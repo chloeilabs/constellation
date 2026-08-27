@@ -100,7 +100,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getCashFlowTtm(ticker),
     getBalanceSheets(ticker, "quarter", 1),
     getCompanyEarnings(ticker, 12),
-    getDividends(ticker, 40),
+    getDividends(ticker, 80),
     getSplits(ticker, 5),
     getEmployeeCount(ticker, 1),
     getEstimates(ticker, "annual"),
