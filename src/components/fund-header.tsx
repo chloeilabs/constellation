@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { FundSubnav } from "@/components/fund-subnav";
+import { QuoteHeaderStats } from "@/components/quote-header-stats";
 import { ChangeValue } from "@/components/change";
-import { formatMoney, formatPercentPlain } from "@/lib/format";
+import { formatCompactMoney, formatInteger, formatMoney, formatPercentPlain } from "@/lib/format";
 import type { FmpEtfInfo, FmpProfile, FmpQuote } from "@/lib/types";
 
 export function FundHeader({
@@ -20,7 +21,7 @@ export function FundHeader({
   const price = quote?.price ?? profile?.price;
 
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 pt-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -46,6 +47,21 @@ export function FundHeader({
               <div className="text-4xl font-semibold tabular">{price != null ? formatMoney(price, profile?.currency) : "—"}</div>
               <ChangeValue change={quote?.change ?? profile?.change} percent={quote?.changePercentage ?? profile?.changePercentage} className="text-lg" />
             </div>
+            <QuoteHeaderStats
+              items={[
+                { label: "AUM", value: formatCompactMoney(info?.assetsUnderManagement ?? quote?.marketCap ?? profile?.marketCap, profile?.currency) },
+                {
+                  label: "Expense Ratio",
+                  value: info?.expenseRatio != null ? formatPercentPlain(info.expenseRatio, { alreadyPercent: true }) : "—",
+                },
+                { label: "Holdings", value: formatInteger(info?.holdingsCount) },
+                { label: "Volume", value: formatInteger(quote?.volume ?? profile?.volume) },
+                {
+                  label: "52-Week",
+                  value: quote ? `${formatMoney(quote.yearLow, profile?.currency)} – ${formatMoney(quote.yearHigh, profile?.currency)}` : "—",
+                },
+              ]}
+            />
           </div>
           <div className="flex gap-2">
             <WatchlistButton symbol={symbol} />

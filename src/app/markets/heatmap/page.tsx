@@ -63,7 +63,7 @@ export default async function HeatmapPage({
             href={item.href}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
-              item.href === activeHref ? "bg-header text-white" : "bg-chip text-header hover:bg-border",
+              item.href === activeHref ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
             )}
           >
             {item.label}

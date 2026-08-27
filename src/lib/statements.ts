@@ -269,6 +269,17 @@ export function withTtmColumn(
   return [{ key: "ttm", label: "TTM", values: ttm }, ...columns];
 }
 
+export function statementChartItems(
+  columns: { label: string; values: Record<string, unknown> }[],
+  key: string,
+) {
+  return [...columns]
+    .filter((column) => column.label !== "TTM")
+    .reverse()
+    .filter((column) => typeof column.values[key] === "number" && Number.isFinite(column.values[key] as number))
+    .map((column) => ({ label: column.label, value: column.values[key] as number }));
+}
+
 export type StatementSource = "standardized" | "reported";
 
 export function sourceFrom(value?: string): StatementSource {

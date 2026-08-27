@@ -80,13 +80,13 @@ export function SearchBox({
           onFocus={() => visibleResults.length && setOpen(true)}
           placeholder={placeholder}
           className={cn(
-            "w-full rounded-md border border-border-strong bg-white outline-none ring-brand/30 placeholder:text-muted focus:ring-2",
+            "w-full rounded-md border border-border-strong bg-background outline-none ring-brand/30 placeholder:text-muted focus:ring-2",
             large ? "h-14 pl-11 pr-4 text-lg shadow-sm" : "h-9 pl-9 pr-3 text-sm",
           )}
         />
       </form>
       {open && visibleResults.length > 0 ? (
-        <ul className="absolute z-50 mt-1 max-h-80 w-full overflow-auto rounded-md border border-border bg-white py-1 shadow-lg">
+        <ul className="absolute z-50 mt-1 max-h-80 w-full overflow-auto rounded-md border border-border bg-background py-1 shadow-lg">
           {visibleResults.map((item) => (
             <li key={`${item.symbol}-${item.exchange}`}>
               <button

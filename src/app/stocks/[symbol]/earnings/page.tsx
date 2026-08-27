@@ -1,13 +1,14 @@
 import { Container } from "@/components/container";
+import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { compactMoneyFn, formatDate, formatMoney, reportingCurrency, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, formatDate, formatMoney, formatPercent, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 
@@ -38,6 +39,17 @@ export default async function EarningsPage({
   const currency = reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency);
   const money = compactMoneyFn(currency);
   const px = (value: number | null | undefined) => formatMoney(value, currency);
+  const surpriseBars = [...reported]
+    .map((row) => {
+      const value = earningsSurprise(row);
+      if (value == null) return null;
+      return {
+        label: formatDate(row.date),
+        value,
+      };
+    })
+    .filter((row): row is { label: string; value: number } => row != null)
+    .reverse();
 
   return (
     <Container>
@@ -75,8 +87,8 @@ export default async function EarningsPage({
       />
       <MetricHistory
         period={period}
-        annualHref={`/stocks/${ticker}/earnings`}
-        quarterHref={`/stocks/${ticker}/earnings?period=quarter`}
+        annualHref={stockPath(ticker, "/earnings")}
+        quarterHref={`${stockPath(ticker, "/earnings")}?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} EPS`}
         valueLabel="EPS"
         formatValue={(value) => (value == null ? "—" : px(value))}
@@ -90,6 +102,11 @@ export default async function EarningsPage({
       />
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Earnings Surprises</h2>
+        {surpriseBars.length > 1 ? (
+          <div className="mb-6">
+            <HistoryBars items={surpriseBars} formatValue={(value) => formatPercent(value)} />
+          </div>
+        ) : null}
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
             <thead>

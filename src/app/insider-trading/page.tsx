@@ -72,9 +72,9 @@ export default async function InsiderTradingPage({
           name="name"
           defaultValue={queryName}
           placeholder="Insider last name (e.g. Zuckerberg)"
-          className="h-9 min-w-[16rem] flex-1 rounded-md border border-border bg-white px-3 text-sm outline-none ring-brand/30 placeholder:text-muted focus:ring-2"
+          className="h-9 min-w-[16rem] flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none ring-brand/30 placeholder:text-muted focus:ring-2"
         />
-        <button type="submit" className="h-9 rounded-md bg-header px-3 text-sm font-semibold text-white">
+        <button type="submit" className="h-9 rounded-md bg-header px-3 text-sm font-semibold text-on-header">
           Search
         </button>
         {searching ? (
@@ -98,7 +98,7 @@ export default async function InsiderTradingPage({
                 href={href}
                 className={cn(
                   "rounded-full px-3 py-1 text-sm font-medium",
-                  active ? "bg-header text-white" : "bg-chip text-header hover:bg-border",
+                  active ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
                 )}
               >
                 {person.reportingName}

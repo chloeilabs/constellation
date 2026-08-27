@@ -45,7 +45,7 @@ export default async function StockTranscriptsPage({
                   href={href}
                   className={
                     active
-                      ? "rounded-full bg-header px-3 py-1 text-sm font-medium text-white"
+                      ? "rounded-full bg-header px-3 py-1 text-sm font-medium text-on-header"
                       : "rounded-full bg-chip px-3 py-1 text-sm font-medium text-header hover:bg-border"
                   }
                 >

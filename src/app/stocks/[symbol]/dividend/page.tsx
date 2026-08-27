@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
@@ -45,11 +46,45 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const cagr = first && last && first > 0 && span > 0 ? Math.pow(last / first, 1 / span) - 1 : null;
   const currency = profile?.currency || "USD";
   const px = (value: number | null | undefined) => formatMoney(value, currency);
+  const today = nyDateString();
+  const upcoming = [...dividends]
+    .filter((row) => (row.date || "") >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const nextEx = upcoming[0] ?? null;
+  const nextPay =
+    [...dividends]
+      .filter((row) => (row.paymentDate || "") >= today)
+      .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate))[0] ?? null;
 
   return (
     <Container>
-      <PageHeader title={`${ticker} Dividend`} description="Dividend history, yield, payout, and growth from live FMP data." />
+      <PageHeader
+        title={`${ticker} Dividend`}
+        description="Dividend history, yield, payout, and growth from live FMP data."
+        actions={
+          <Link
+            href={`/tools/dividend-calculator?symbol=${encodeURIComponent(ticker)}`}
+            className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+          >
+            Dividend Calculator
+          </Link>
+        }
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {nextEx ? (
+          <div className="rounded-lg border border-border p-4">
+            <div className="text-sm text-muted">Next Ex-Dividend</div>
+            <div className="mt-1 text-2xl font-semibold tabular">{formatDate(nextEx.date)}</div>
+            <div className="mt-1 text-sm text-muted">{px(nextEx.dividend)}</div>
+          </div>
+        ) : null}
+        {nextPay ? (
+          <div className="rounded-lg border border-border p-4">
+            <div className="text-sm text-muted">Next Payment</div>
+            <div className="mt-1 text-2xl font-semibold tabular">{formatDate(nextPay.paymentDate)}</div>
+            <div className="mt-1 text-sm text-muted">{px(nextPay.dividend)}</div>
+          </div>
+        ) : null}
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Last Dividend</div>
           <div className="mt-1 text-2xl font-semibold tabular">{px(latest?.dividend ?? profile?.lastDividend)}</div>

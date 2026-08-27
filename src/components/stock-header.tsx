@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { StockSubnav } from "@/components/stock-subnav";
+import { QuoteHeaderStats } from "@/components/quote-header-stats";
 import { ChangeValue } from "@/components/change";
-import { formatMoney, formatPrice } from "@/lib/format";
+import { formatCompactMoney, formatInteger, formatMoney, formatPrice } from "@/lib/format";
 import { industrySlug, sectorHref } from "@/lib/industries";
+import { stockPath } from "@/lib/listings";
 import { nyExtendedCopy, isExtendedSession } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
 
@@ -29,7 +31,7 @@ export function StockHeader({
     isIndex ? formatPrice(value) : formatMoney(value, profile?.currency);
 
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 pt-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex gap-3">
@@ -101,6 +103,33 @@ export function StockHeader({
                   <ChangeValue change={afterChange} percent={afterPct} />
                 </p>
               ) : null}
+              {isIndex ? null : (
+                <QuoteHeaderStats
+                  items={[
+                    {
+                      label: "Market Cap",
+                      value: formatCompactMoney(quote?.marketCap ?? profile?.marketCap, profile?.currency),
+                      href: stockPath(symbol, "/market-cap"),
+                    },
+                    { label: "Volume", value: formatInteger(quote?.volume ?? profile?.volume) },
+                    { label: "Avg. Volume", value: formatInteger(quote?.avgVolume ?? profile?.averageVolume) },
+                    {
+                      label: "Day Range",
+                      value:
+                        quote?.dayLow != null && quote?.dayHigh != null
+                          ? `${px(quote.dayLow)} – ${px(quote.dayHigh)}`
+                          : "—",
+                    },
+                    {
+                      label: "52-Week",
+                      value:
+                        quote?.yearLow != null && quote?.yearHigh != null
+                          ? `${px(quote.yearLow)} – ${px(quote.yearHigh)}`
+                          : "—",
+                    },
+                  ]}
+                />
+              )}
             </div>
           </div>
           <div className="flex gap-2">

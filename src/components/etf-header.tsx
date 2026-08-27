@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { EtfSubnav } from "@/components/etf-subnav";
+import { QuoteHeaderStats } from "@/components/quote-header-stats";
 import { ChangeValue } from "@/components/change";
-import { formatMoney, formatPrice } from "@/lib/format";
+import { formatCompactMoney, formatInteger, formatMoney, formatPercentPlain, formatPrice } from "@/lib/format";
 import { nyExtendedCopy, isExtendedSession } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpEtfInfo, FmpQuote } from "@/lib/types";
 
@@ -25,7 +26,7 @@ export function EtfHeader({
   const extendedLabel = nyExtendedCopy().label;
 
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 pt-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -53,6 +54,18 @@ export function EtfHeader({
                 <ChangeValue change={afterChange} percent={afterPct} />
               </p>
             ) : null}
+            <QuoteHeaderStats
+              items={[
+                { label: "AUM", value: formatCompactMoney(info?.assetsUnderManagement ?? quote?.marketCap, "USD") },
+                { label: "NAV", value: info?.nav != null ? formatMoney(info.nav, info.navCurrency || "USD") : "—" },
+                {
+                  label: "Expense Ratio",
+                  value: info?.expenseRatio != null ? formatPercentPlain(info.expenseRatio, { alreadyPercent: true }) : "—",
+                },
+                { label: "Holdings", value: formatInteger(info?.holdingsCount) },
+                { label: "Volume", value: formatInteger(quote?.volume ?? info?.avgVolume) },
+              ]}
+            />
           </div>
           <div className="flex gap-2">
             <WatchlistButton symbol={symbol} />

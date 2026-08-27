@@ -103,7 +103,7 @@ export default async function EconomicCalendarPage({
           <span className="mb-1 block text-muted">To</span>
           <input type="date" name="to" defaultValue={to} className="h-9 rounded-md border border-border px-2" />
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-white">
+        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
           Update
         </button>
       </form>

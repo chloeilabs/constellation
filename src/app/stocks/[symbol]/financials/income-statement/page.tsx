@@ -1,15 +1,17 @@
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, StatementToolbar } from "@/components/page-header";
+import { StatementCharts } from "@/components/statement-charts";
 import { StatementTable } from "@/components/statement-table";
 import { getIncomeAsReported, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
-import { reportingCurrency } from "@/lib/format";
+import { formatMillions, formatPrice, reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   INCOME_ROWS,
   asReportedColumns,
   asReportedStatementRows,
   sourceFrom,
+  statementChartItems,
   statementHref,
   toStatementColumns,
   withTtmColumn,
@@ -43,6 +45,10 @@ export default async function IncomeStatementPage({
     ttm?.reportedCurrency,
     reported[0]?.reportedCurrency,
   );
+  const columns =
+    source === "reported"
+      ? asReportedColumns(reported, period)
+      : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period));
 
   return (
     <Container>
@@ -65,10 +71,25 @@ export default async function IncomeStatementPage({
         }
       />
       <FinancialsNav symbol={ticker} />
+      {source === "standardized" ? (
+        <StatementCharts
+          formatValue={formatMillions}
+          series={[
+            { title: "Revenue", items: statementChartItems(columns, "revenue") },
+            { title: "Operating Income", items: statementChartItems(columns, "operatingIncome") },
+            { title: "Net Income", items: statementChartItems(columns, "netIncome") },
+            {
+              title: "EPS (Diluted)",
+              items: statementChartItems(columns, "epsDiluted"),
+              formatValue: formatPrice,
+            },
+          ]}
+        />
+      ) : null}
       {source === "reported" ? (
         <StatementTable
           rows={asReportedStatementRows(reported)}
-          columns={asReportedColumns(reported, period)}
+          columns={columns}
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. Line labels follow the company's as-reported US-GAAP tags, not FMP's standardized statement.`}
@@ -76,7 +97,7 @@ export default async function IncomeStatementPage({
       ) : (
         <StatementTable
           rows={INCOME_ROWS}
-          columns={withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period))}
+          columns={columns}
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`}

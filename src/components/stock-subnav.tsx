@@ -11,6 +11,7 @@ const STOCK_TABS = [
   { href: "/financials", label: "Financials" },
   { href: "/statistics", label: "Statistics" },
   { href: "/forecast", label: "Forecast" },
+  { href: "/earnings", label: "Earnings" },
   { href: "/dividend", label: "Dividend" },
   { href: "/company", label: "Company" },
   { href: "/news", label: "News" },

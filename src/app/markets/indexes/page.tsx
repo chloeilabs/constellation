@@ -61,7 +61,7 @@ export default async function MarketIndexesPage({
             ))}
           </select>
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-white">
+        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
           Filter
         </button>
       </form>

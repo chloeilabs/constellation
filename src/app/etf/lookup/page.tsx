@@ -48,11 +48,11 @@ export default async function EtfLookupPage({
             name="symbol"
             defaultValue={ticker}
             placeholder="AAPL"
-            className="h-9 w-48 rounded-md border border-border bg-white px-2 uppercase"
+            className="h-9 w-48 rounded-md border border-border bg-background px-2 uppercase"
             autoCapitalize="characters"
           />
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-white">
+        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
           Look up
         </button>
         <p className="text-sm text-muted">

@@ -208,7 +208,7 @@ export default async function HomePage() {
             <Link
               key={href}
               href={href}
-              className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-header hover:border-border-strong hover:bg-muted-bg"
+              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-header hover:border-border-strong hover:bg-muted-bg"
             >
               {label}
             </Link>

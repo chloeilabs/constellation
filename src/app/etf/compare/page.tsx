@@ -40,7 +40,7 @@ export default async function EtfComparePage({
               placeholder="QQQ,SPY,VOO"
               className="h-9 w-56 rounded-md border border-border px-2 text-sm"
             />
-            <button className="h-9 rounded-md bg-header px-3 text-sm font-medium text-white" type="submit">
+            <button className="h-9 rounded-md bg-header px-3 text-sm font-medium text-on-header" type="submit">
               Compare
             </button>
           </form>

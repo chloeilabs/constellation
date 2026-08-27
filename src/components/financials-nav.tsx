@@ -29,7 +29,7 @@ export function FinancialsNav({ symbol }: { symbol: string }) {
             href={href}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
-              active ? "bg-header text-white" : "bg-chip text-header hover:bg-border",
+              active ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
             )}
           >
             {link.label}

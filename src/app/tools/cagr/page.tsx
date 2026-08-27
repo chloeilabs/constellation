@@ -46,18 +46,18 @@ export default async function CagrCalculatorPage({
       <form className="mb-8 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-4">
         <label className="text-sm">
           <span className="mb-1 block text-muted">Symbol</span>
-          <input name="symbol" defaultValue={ticker} className="h-9 w-full rounded-md border border-border bg-white px-2" />
+          <input name="symbol" defaultValue={ticker} className="h-9 w-full rounded-md border border-border bg-background px-2" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Start</span>
-          <input name="start" type="date" defaultValue={start} className="h-9 w-full rounded-md border border-border bg-white px-2" />
+          <input name="start" type="date" defaultValue={start} className="h-9 w-full rounded-md border border-border bg-background px-2" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">End</span>
-          <input name="end" type="date" defaultValue={end} className="h-9 w-full rounded-md border border-border bg-white px-2" />
+          <input name="end" type="date" defaultValue={end} className="h-9 w-full rounded-md border border-border bg-background px-2" />
         </label>
         <div className="flex items-end">
-          <button className="h-9 rounded-md bg-header px-4 text-sm font-medium text-white" type="submit">
+          <button className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header" type="submit">
             Calculate
           </button>
         </div>

@@ -17,7 +17,7 @@ export function PeriodToggle({
         href={annualHref}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
-          period === "annual" ? "bg-header text-white" : "text-muted hover:text-header",
+          period === "annual" ? "bg-header text-on-header" : "text-muted hover:text-header",
         )}
       >
         Annual
@@ -26,7 +26,7 @@ export function PeriodToggle({
         href={quarterHref}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
-          period === "quarter" ? "bg-header text-white" : "text-muted hover:text-header",
+          period === "quarter" ? "bg-header text-on-header" : "text-muted hover:text-header",
         )}
       >
         Quarterly
@@ -50,7 +50,7 @@ export function SourceToggle({
         href={standardizedHref}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
-          source === "standardized" ? "bg-header text-white" : "text-muted hover:text-header",
+          source === "standardized" ? "bg-header text-on-header" : "text-muted hover:text-header",
         )}
       >
         Standardized
@@ -59,7 +59,7 @@ export function SourceToggle({
         href={reportedHref}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
-          source === "reported" ? "bg-header text-white" : "text-muted hover:text-header",
+          source === "reported" ? "bg-header text-on-header" : "text-muted hover:text-header",
         )}
       >
         As Reported

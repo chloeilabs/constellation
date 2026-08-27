@@ -173,7 +173,7 @@ export function PriceChart({
               scroll={false}
               className={cn(
                 "rounded px-2 py-1 text-xs font-semibold",
-                item === range ? "bg-header text-white" : "text-muted hover:bg-muted-bg",
+                item === range ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
               )}
             >
               {item}

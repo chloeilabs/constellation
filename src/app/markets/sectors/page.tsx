@@ -96,7 +96,7 @@ export default async function SectorsPage({
               href={name === "Technology" ? "/markets/sectors" : `/markets/sectors?sector=${encodeURIComponent(name)}`}
               className={cn(
                 "rounded-full px-3 py-1 text-sm font-medium",
-                name === selected ? "bg-header text-white" : "bg-chip text-header hover:bg-border",
+                name === selected ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
               )}
             >
               {name}

@@ -8,7 +8,8 @@ import { ReturnsTable } from "@/components/returns-table";
 import { SectionNav } from "@/components/section-nav";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { ChangeValue } from "@/components/change";
-import { formatCompact, formatCompactUsd, formatMoney, formatPrice } from "@/lib/format";
+import { QuoteHeaderStats } from "@/components/quote-header-stats";
+import { formatCompact, formatCompactUsd, formatInteger, formatMoney, formatPrice } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
 import { getCryptoNews, getForexNews, getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
 import { MARKET_NAV } from "@/lib/nav";
@@ -87,7 +88,7 @@ export async function MarketAssetQuote({
 
   return (
     <>
-      <div className="bg-white">
+      <div className="bg-background">
         <div className="mx-auto max-w-7xl px-4 pt-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -117,6 +118,33 @@ export async function MarketAssetQuote({
                   className="text-lg"
                 />
               </div>
+              <QuoteHeaderStats
+                items={[
+                  {
+                    label: "Day Range",
+                    value:
+                      quote.dayLow != null && quote.dayHigh != null
+                        ? `${priceLabel(kind, quote.dayLow, priceDigits)} – ${priceLabel(kind, quote.dayHigh, priceDigits)}`
+                        : "—",
+                  },
+                  {
+                    label: "52-Week",
+                    value:
+                      quote.yearLow != null && quote.yearHigh != null
+                        ? `${priceLabel(kind, quote.yearLow, priceDigits)} – ${priceLabel(kind, quote.yearHigh, priceDigits)}`
+                        : "—",
+                  },
+                  { label: "Volume", value: formatInteger(quote.volume) },
+                  { label: "Avg. Volume", value: formatInteger(quote.avgVolume) },
+                  {
+                    label: kind === "crypto" ? "Market Cap" : "Open",
+                    value:
+                      kind === "crypto"
+                        ? formatCompactUsd(quote.marketCap)
+                        : priceLabel(kind, quote.open, priceDigits),
+                  },
+                ]}
+              />
             </div>
             <WatchlistButton symbol={ticker} />
           </div>

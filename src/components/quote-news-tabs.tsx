@@ -67,7 +67,7 @@ export function QuoteNewsTabs({
               onClick={() => setTab(item.id)}
               className={cn(
                 "rounded-full px-3 py-1 text-sm font-medium",
-                selected ? "bg-header text-white" : "bg-chip text-header hover:bg-border",
+                selected ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
               )}
             >
               {item.label}

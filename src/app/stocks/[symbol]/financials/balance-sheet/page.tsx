@@ -1,15 +1,17 @@
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, StatementToolbar } from "@/components/page-header";
+import { StatementCharts } from "@/components/statement-charts";
 import { StatementTable } from "@/components/statement-table";
 import { getBalanceAsReported, getBalanceSheets, getBalanceSheetTtm } from "@/lib/fmp";
-import { reportingCurrency } from "@/lib/format";
+import { formatMillions, reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   BALANCE_ROWS,
   asReportedColumns,
   asReportedStatementRows,
   sourceFrom,
+  statementChartItems,
   statementHref,
   toStatementColumns,
   withTtmColumn,
@@ -39,6 +41,10 @@ export default async function BalanceSheetPage({
     ttm?.reportedCurrency,
     reported[0]?.reportedCurrency,
   );
+  const columns =
+    source === "reported"
+      ? asReportedColumns(reported, period)
+      : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period));
 
   return (
     <Container>
@@ -61,10 +67,20 @@ export default async function BalanceSheetPage({
         }
       />
       <FinancialsNav symbol={ticker} />
+      {source === "standardized" ? (
+        <StatementCharts
+          formatValue={formatMillions}
+          series={[
+            { title: "Total Assets", items: statementChartItems(columns, "totalAssets") },
+            { title: "Total Debt", items: statementChartItems(columns, "totalDebt") },
+            { title: "Shareholders' Equity", items: statementChartItems(columns, "totalStockholdersEquity") },
+          ]}
+        />
+      ) : null}
       {source === "reported" ? (
         <StatementTable
           rows={asReportedStatementRows(reported)}
-          columns={asReportedColumns(reported, period)}
+          columns={columns}
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. Line labels follow the company's as-reported US-GAAP tags.`}
@@ -72,7 +88,7 @@ export default async function BalanceSheetPage({
       ) : (
         <StatementTable
           rows={BALANCE_ROWS}
-          columns={withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period))}
+          columns={columns}
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`}
