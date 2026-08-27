@@ -7,9 +7,8 @@ import { Container } from "@/components/container";
 import { PopularStocks } from "@/components/popular-stocks";
 import { SectorStrip } from "@/components/sector-strip";
 import { Toolkit } from "@/components/toolkit";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import {
-  getEarningsCalendar,
   getGainers,
   getIndexQuotes,
   getIpos,
@@ -21,9 +20,9 @@ import {
   getStockNews,
   POPULAR_SYMBOLS,
 } from "@/lib/fmp";
-import { isForeignListingSymbol, quoteHref } from "@/lib/listings";
+import { quoteHref } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
-import type { FmpEarnings, FmpIpo } from "@/lib/types";
+import type { FmpIpo } from "@/lib/types";
 
 const MARKET_LINKS = [
   ["/markets/premarket", "Premarket"],
@@ -80,58 +79,13 @@ function IpoTable({ title, rows }: { title: string; rows: FmpIpo[] }) {
   );
 }
 
-function EarningsTable({ rows }: { rows: FmpEarnings[] }) {
-  return (
-    <section>
-      <div className="mb-3 flex items-end justify-between">
-        <h2 className="text-xl font-semibold text-header">Today&apos;s Earnings</h2>
-        <Link href="/calendar/earnings" className="text-sm text-link hover:underline">
-          Calendar
-        </Link>
-      </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="sa-table">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th className="num">EPS Est.</th>
-              <th className="num">EPS Act.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="text-muted">
-                  No earnings scheduled today.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr key={row.symbol}>
-                  <td className="symbol">
-                    <Link href={quoteHref(row.symbol)} className="text-link hover:underline">
-                      {row.symbol}
-                    </Link>
-                  </td>
-                  <td className="num">{formatPrice(row.epsEstimated)}</td>
-                  <td className="num">{formatPrice(row.epsActual)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
 export default async function HomePage() {
   const today = new Date(`${nyDateString()}T00:00:00Z`);
   const from = isoDate(addDays(today, -30));
   const to = isoDate(addDays(today, 30));
   const todayStr = nyDateString();
   const yesterday = isoDate(addDays(today, -1));
-  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday, earnings] =
+  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday] =
     await Promise.all([
       getIndexQuotes(),
       getGainers(),
@@ -143,13 +97,11 @@ export default async function HomePage() {
       getMostActive(),
       getSectorPerformance(todayStr),
       getSectorPerformance(yesterday),
-      getEarningsCalendar(todayStr, todayStr),
     ]);
 
   const recentIpos = ipos.filter((ipo) => ipo.date <= todayStr).slice(0, 8);
   const upcomingIpos = ipos.filter((ipo) => ipo.date > todayStr).slice(0, 8);
   const sectors = sectorsToday.length ? sectorsToday : sectorsYesterday;
-  const todaysEarnings = earnings.filter((row) => !isForeignListingSymbol(row.symbol)).slice(0, 10);
 
   return (
     <>
@@ -219,7 +171,6 @@ export default async function HomePage() {
             <NewsList items={news.slice(0, 12)} />
           </section>
           <div className="space-y-8">
-            <EarningsTable rows={todaysEarnings} />
             <IpoTable title="Recent IPOs" rows={recentIpos} />
             <IpoTable title="Upcoming IPOs" rows={upcomingIpos} />
             <p className="text-sm">

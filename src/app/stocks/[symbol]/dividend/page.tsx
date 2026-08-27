@@ -3,7 +3,7 @@ import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
 import { getDividends, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
-import { annualDividendPayments } from "@/lib/utils";
+import { annualDividendPayments, nyDateString } from "@/lib/utils";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -31,11 +31,13 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const byYear = new Map<string, number>();
   for (const row of dividends) {
     const year = String(row.date).slice(0, 4);
-    byYear.set(year, (byYear.get(year) ?? 0) + (row.dividend || 0));
+    const amount = row.adjDividend || row.dividend || 0;
+    byYear.set(year, (byYear.get(year) ?? 0) + amount);
   }
   const years = [...byYear.keys()].sort();
+  const completeYears = years.filter((year) => year < nyDateString().slice(0, 4));
   const bars = years.map((year) => ({ label: year, value: byYear.get(year) ?? 0 }));
-  const five = years.slice(-6);
+  const five = (completeYears.length >= 2 ? completeYears : years).slice(-6);
   const first = five[0] ? byYear.get(five[0]) : null;
   const last = five.at(-1) ? byYear.get(five.at(-1)!) : null;
   const span = five.length - 1;
