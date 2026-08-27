@@ -733,9 +733,11 @@ export async function getFinancialReportXlsx(symbol: string, year: string, perio
   url.searchParams.set("apikey", key);
   const response = await fetch(url.toString(), { next: { revalidate: 86400 } });
   if (!response.ok) return null;
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) return null;
-  return response.arrayBuffer();
+  const buffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const isZip = bytes.length >= 2 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+  if (!isZip) return null;
+  return buffer;
 }
 
 export function getRatios(symbol: string, period: StatementPeriod, limit = 8) {

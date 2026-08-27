@@ -90,7 +90,7 @@ export function parseFinancialReport(report: FmpFinancialReportJson | null | und
     if (rows.length === 0 && !caption) continue;
     sections.push({
       id: title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `section-${sections.length}`,
-      title,
+      title: title.replace(/\s+/g, " ").trim(),
       caption,
       columns,
       rows,
