@@ -28,7 +28,12 @@ export default async function CashPage({
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const latest = quarterly[0] ?? annual[0] ?? null;
-  const prior = (period === "quarter" ? quarterly[1] : annual[1]) ?? null;
+  const prior =
+    period === "quarter"
+      ? quarterly[1]
+      : latest && annual[0] && latest.date !== annual[0].date
+        ? annual[0]
+        : annual[1];
   const total = cashAndInvestments(latest);
   const growth = yearOverYear(total, cashAndInvestments(prior));
   const money = compactMoneyFn(reportingCurrency(latest?.reportedCurrency, annual[0]?.reportedCurrency));
@@ -44,7 +49,7 @@ export default async function CashPage({
         items={[
           { label: "Cash & Investments", value: money(total) },
           {
-            label: period === "quarter" ? "QoQ Change" : "FY Change",
+            label: period === "quarter" ? "QoQ Change" : "vs Last FY",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
           },
           { label: "Cash & Equivalents", value: money(latest?.cashAndCashEquivalents) },
