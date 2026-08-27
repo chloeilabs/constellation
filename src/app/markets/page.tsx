@@ -1,27 +1,104 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { IndexTicker } from "@/components/index-ticker";
+import { MarketQuotesTable } from "@/components/market-quotes-table";
 import { MoversTable } from "@/components/movers-table";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
 import { SectionNav } from "@/components/section-nav";
 import { MARKET_NAV } from "@/lib/nav";
-import { getGainers, getIndexQuotes, getLosers, getMarketHours, getMostActive, getSectorPerformance } from "@/lib/fmp";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import {
+  getCommodityQuotes,
+  getCryptoQuotes,
+  getForexQuotes,
+  getGainers,
+  getIndexQuotes,
+  getLosers,
+  getMarketHours,
+  getMostActive,
+  getSectorPerformance,
+  getWorldIndexQuotes,
+  INDEX_SYMBOLS,
+  WORLD_INDEX_SYMBOLS,
+} from "@/lib/fmp";
+import { INDEX_LABELS } from "@/lib/statements";
+import { addDays, isoDate, nyDateString, percentFromPriceChange } from "@/lib/utils";
+
+const COMMODITY_SNIPPET = [
+  { symbol: "GCUSD", name: "Gold" },
+  { symbol: "SIUSD", name: "Silver" },
+  { symbol: "CLUSD", name: "WTI Crude" },
+  { symbol: "BZUSD", name: "Brent Crude" },
+  { symbol: "NGUSD", name: "Natural Gas" },
+  { symbol: "HGUSD", name: "Copper" },
+] as const;
+
+const CRYPTO_SNIPPET = [
+  { symbol: "BTCUSD", name: "Bitcoin" },
+  { symbol: "ETHUSD", name: "Ethereum" },
+  { symbol: "SOLUSD", name: "Solana" },
+  { symbol: "XRPUSD", name: "XRP" },
+  { symbol: "ADAUSD", name: "Cardano" },
+  { symbol: "DOGEUSD", name: "Dogecoin" },
+] as const;
+
+const FOREX_SNIPPET = [
+  { symbol: "EURUSD", name: "EUR/USD" },
+  { symbol: "GBPUSD", name: "GBP/USD" },
+  { symbol: "USDJPY", name: "USD/JPY" },
+  { symbol: "USDCHF", name: "USD/CHF" },
+  { symbol: "AUDUSD", name: "AUD/USD" },
+  { symbol: "USDCNY", name: "USD/CNY" },
+] as const;
+
+function snippetRows(
+  quotes: Array<{ symbol: string; price?: number; change?: number; changePercentage?: number }>,
+  items: ReadonlyArray<{ symbol: string; name: string }>,
+  { fromAbsoluteChange = false }: { fromAbsoluteChange?: boolean } = {},
+) {
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  return items.flatMap((item) => {
+    const quote = bySymbol.get(item.symbol);
+    if (!quote || quote.price == null) return [];
+    const changePercentage = fromAbsoluteChange
+      ? percentFromPriceChange(quote.price, quote.change)
+      : quote.changePercentage ?? null;
+    return [
+      {
+        symbol: item.symbol,
+        name: item.name,
+        price: quote.price ?? null,
+        changePercentage,
+      },
+    ];
+  });
+}
+
+export const metadata = {
+  title: "Stock Market",
+  description: "U.S. and world indexes, movers, sectors, commodities, crypto, and forex.",
+};
 
 export default async function MarketsPage() {
   const today = nyDateString();
   const yesterday = isoDate(addDays(new Date(`${today}T00:00:00Z`), -1));
-  const [indexes, gainers, losers, active, sectorsToday, sectorsYesterday, hours] = await Promise.all([
-    getIndexQuotes(),
-    getGainers(),
-    getLosers(),
-    getMostActive(),
-    getSectorPerformance(today),
-    getSectorPerformance(yesterday),
-    getMarketHours("NASDAQ"),
-  ]);
+  const [indexes, world, gainers, losers, active, sectorsToday, sectorsYesterday, hours, commodities, crypto, forex] =
+    await Promise.all([
+      getIndexQuotes(),
+      getWorldIndexQuotes(),
+      getGainers(),
+      getLosers(),
+      getMostActive(),
+      getSectorPerformance(today),
+      getSectorPerformance(yesterday),
+      getMarketHours("NASDAQ"),
+      getCommodityQuotes(),
+      getCryptoQuotes(),
+      getForexQuotes(),
+    ]);
   const sectors = sectorsToday.length ? sectorsToday : sectorsYesterday;
+  const indexBySymbol = new Map(indexes.map((quote) => [quote.symbol, quote]));
+  const worldBySymbol = new Map(world.map((quote) => [quote.symbol, quote]));
 
   return (
     <>
@@ -33,6 +110,56 @@ export default async function MarketsPage() {
           <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 8)} />
           <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 8)} />
           <MoversTable title="Most Active" href="/markets/active" rows={active.slice(0, 8)} />
+        </div>
+        <div className="mt-12 grid gap-8 lg:grid-cols-2">
+          <MarketQuotesTable
+            title="U.S. Indexes"
+            rows={INDEX_SYMBOLS.map((item) => {
+              const quote = indexBySymbol.get(item.symbol);
+              return {
+                symbol: item.symbol,
+                name: INDEX_LABELS[item.symbol] ?? item.label,
+                price: quote?.price ?? null,
+                changePercentage: quote?.changePercentage ?? null,
+              };
+            })}
+            linkSymbols
+          />
+          <MarketQuotesTable
+            title="World Markets"
+            href="/markets/global"
+            extraLabel="Region"
+            rows={WORLD_INDEX_SYMBOLS.slice(0, 8).map((item) => {
+              const quote = worldBySymbol.get(item.symbol);
+              return {
+                symbol: item.symbol,
+                name: INDEX_LABELS[item.symbol] ?? item.label,
+                extra: item.region,
+                price: quote?.price ?? null,
+                changePercentage: quote?.changePercentage ?? null,
+              };
+            })}
+            linkSymbols
+          />
+          <MarketQuotesTable
+            title="Commodities"
+            href="/markets/commodities"
+            rows={snippetRows(commodities, COMMODITY_SNIPPET, { fromAbsoluteChange: true })}
+            alreadyPercent={false}
+          />
+          <MarketQuotesTable
+            title="Cryptocurrency"
+            href="/markets/crypto"
+            rows={snippetRows(crypto, CRYPTO_SNIPPET, { fromAbsoluteChange: true })}
+            alreadyPercent={false}
+          />
+          <MarketQuotesTable
+            title="Forex"
+            href="/markets/forex"
+            rows={snippetRows(forex, FOREX_SNIPPET, { fromAbsoluteChange: true })}
+            alreadyPercent={false}
+            priceDigits={4}
+          />
         </div>
         <section className="mt-12">
           <div className="mb-3 flex items-end justify-between gap-3">

@@ -20,7 +20,7 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
   const rows = await loadStockList(slug);
   const hrefBase = listHrefBase(slug);
   const isEtfList = hrefBase === "/etf";
-  const noun = isEtfList ? "ETFs" : "stocks";
+  const noun = hrefBase === "/etf" ? "ETFs" : hrefBase === "/funds" ? "funds" : "stocks";
   const showYield =
     ("sort" in list && list.sort === "dividendYield") ||
     slug === "monthly-dividend-stocks" ||
@@ -29,7 +29,10 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
     slug === "dividend-aristocrats" ||
     slug === "dividend-kings" ||
     slug === "reit-stocks" ||
-    slug === "highest-dividend";
+    slug === "highest-dividend" ||
+    slug === "bdc-stocks" ||
+    slug === "cef-funds" ||
+    slug === "preferred-stocks";
 
   return (
     <Container>
@@ -49,6 +52,7 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
         showProfit={slug === "highest-profit"}
         showEmployees={slug === "highest-employees"}
         showTax={slug === "highest-taxes"}
+        showRating={slug === "top-rated"}
       />
     </Container>
   );

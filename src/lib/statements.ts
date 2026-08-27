@@ -177,6 +177,22 @@ export const INDEX_LABELS: Record<string, string> = {
   "^IXIC": "Nasdaq",
   "^RUT": "Russell 2000",
   "^VIX": "VIX",
+  "^N225": "Nikkei 225",
+  "^FTSE": "FTSE 100",
+  "^GDAXI": "DAX",
+  "^FCHI": "CAC 40",
+  "^STOXX50E": "Euro Stoxx 50",
+  "^SSMI": "SMI",
+  "^HSI": "Hang Seng",
+  "^AXJO": "S&P/ASX 200",
+  "^GSPTSE": "S&P/TSX",
+  "^BVSP": "Bovespa",
+  "^KS11": "KOSPI",
+  "^TWII": "TAIEX",
+  "^BSESN": "BSE Sensex",
+  "^MXX": "IPC Mexico",
+  "^STI": "STI",
+  "^JKSE": "Jakarta Composite",
 };
 
 export function toStatementColumns(

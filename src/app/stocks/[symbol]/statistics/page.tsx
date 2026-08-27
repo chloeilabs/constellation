@@ -78,7 +78,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const oneYear = num(changes?.["1Y"]);
   const peValue = num(ratios?.priceToEarningsRatioTTM) ?? quote?.pe ?? null;
   const epsGrowth = num(growthRows[0]?.growthEPSDiluted) ?? num(growthRows[0]?.growthEPS);
-  const peg = peValue != null && epsGrowth != null && epsGrowth > 0 ? peValue / (epsGrowth * 100) : null;
+  const peg =
+    num(ratios?.priceToEarningsGrowthRatioTTM) ??
+    (peValue != null && epsGrowth != null && epsGrowth > 0 ? peValue / (epsGrowth * 100) : null) ??
+    num(metrics?.pegRatioTTM);
   const currency = profile?.currency || "USD";
   const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
@@ -128,8 +131,9 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "PS Ratio", href: `/stocks/${ticker}/ps-ratio`, value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
               { label: "PB Ratio", href: `/stocks/${ticker}/pb-ratio`, value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
               { label: "P/FCF", href: `/stocks/${ticker}/free-cash-flow`, value: formatRatio(num(ratios?.priceToFreeCashFlowRatioTTM)) },
-              { label: "PEG Ratio", value: formatRatio(peg ?? num(metrics?.pegRatioTTM)) },
+              { label: "PEG Ratio", href: `/stocks/${ticker}/peg-ratio`, value: formatRatio(peg) },
               { label: "Graham Number", value: formatMoney(num(metrics?.grahamNumberTTM), currency) },
+              { label: "Graham Net-Net", value: formatMoney(num(metrics?.grahamNetNetTTM), currency) },
               { label: "Net Debt / EBITDA", value: formatRatio(num(metrics?.netDebtToEBITDATTM)) },
             ]}
           />

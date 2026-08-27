@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { ChangeValue } from "@/components/change";
-import { formatPrice, formatUsd } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import type { FmpProfile, FmpQuote } from "@/lib/types";
 
 export function FundHeader({
@@ -35,7 +35,7 @@ export function FundHeader({
               {profile?.currency ? ` · ${profile.currency}` : null}
             </p>
             <div className="mt-3 flex flex-wrap items-end gap-4">
-              <div className="text-4xl font-semibold tabular">{price != null ? formatUsd(price) : "—"}</div>
+              <div className="text-4xl font-semibold tabular">{price != null ? formatMoney(price, profile?.currency) : "—"}</div>
               <ChangeValue change={quote?.change ?? profile?.change} percent={quote?.changePercentage ?? profile?.changePercentage} className="text-lg" />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { getDividendCalendar, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getScreener, getScreenerPages } from "@/lib/fmp";
+import { getDividendCalendar, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getRatings, getScreener, getScreenerPages } from "@/lib/fmp";
 import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
@@ -101,6 +101,13 @@ type FundamentalsRankList = {
   rank: "revenue" | "employees" | "tax" | "profit";
 };
 
+type RatingsRankList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "ratings-rank";
+};
+
 type StockList =
   | ScreenerList
   | ConstituentList
@@ -112,7 +119,8 @@ type StockList =
   | EtfIssuerList
   | WeekRangeList
   | IndustryMatchList
-  | FundamentalsRankList;
+  | FundamentalsRankList
+  | RatingsRankList;
 
 export const STOCK_LISTS = {
   "sp-500-stocks": {
@@ -176,6 +184,13 @@ export const STOCK_LISTS = {
     category: "popular",
     source: "fundamentals-rank",
     rank: "profit",
+  },
+  "top-rated": {
+    title: "Highest Rated Stocks",
+    description:
+      "Major U.S. listed companies ranked by FMP financial ratings (overall score). FMP has no bulk ratings screener, so this ranks a Fortune-style mega-issuer set rather than every U.S. listing.",
+    category: "popular",
+    source: "ratings-rank",
   },
   "oldest-companies": {
     title: "Oldest S&P 500 Companies",
@@ -732,6 +747,46 @@ export const STOCK_LISTS = {
     hrefBase: "/etf",
     symbols: ["GLD", "IAU", "SLV", "USO", "UNG", "DBC", "PDBC", "CPER"],
   },
+  "bdc-stocks": {
+    title: "BDC Stocks",
+    description: "Business development companies listed in the U.S., with live FMP quotes. FMP has no BDC industry screen, so this is a curated set.",
+    category: "popular",
+    source: "symbols",
+    symbols: [
+      "ARCC", "MAIN", "OBDC", "BXSL", "HTGC", "GBDC", "TSLX", "PSEC", "FSK", "CSWC",
+      "OCSL", "NMFC", "GSBD", "BBDC", "TCPC",
+    ],
+  },
+  "cef-funds": {
+    title: "Closed-End Funds",
+    description: "Widely held U.S. closed-end funds with live FMP quotes. FMP’s income-fund screener returns open-end mutual funds, so this list is curated.",
+    category: "popular",
+    source: "symbols",
+    hrefBase: "/funds",
+    symbols: [
+      "PDI", "PTY", "PDO", "DNP", "UTF", "UTG", "RQI", "USA", "ADX", "EVT",
+      "BDJ", "EXG", "ETY", "BST", "BSTZ", "QQQX", "BME", "ETG", "GAM", "TY",
+      "CET", "PHK", "NUV", "NAD", "NEA", "NZF", "HYT", "DSL", "JPC", "OXLC",
+    ],
+  },
+  "preferred-stocks": {
+    title: "Preferred Stocks",
+    description:
+      "Selected U.S. preferred issues with live FMP quotes (BAC-PL style tickers). Share prices are the preferreds; FMP market-cap figures follow the parent common stock.",
+    category: "popular",
+    source: "symbols",
+    symbols: [
+      "BAC-PL", "BAC-PB", "WFC-PL", "WFC-PY", "JPM-PC", "JPM-PD", "GS-PA", "GS-PD",
+      "MS-PI", "MS-PK", "C-PJ", "T-PC", "USB-PH", "NEE-PN", "SOJD",
+    ],
+  },
+  "glp1-stocks": {
+    title: "GLP-1 Stocks",
+    description: "U.S.-listed companies tied to GLP-1 obesity and diabetes drugs, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["LLY", "NVO", "AMGN", "VKTX", "GPCR", "TERN", "ALT"],
+  },
   "sector-etfs": {
     title: "Sector ETFs",
     description: "The 11 SPDR sector ETFs, with live FMP quotes.",
@@ -943,6 +998,7 @@ export const LIST_NAV = [
   { href: "/list/highest-profit", label: "Profit" },
   { href: "/list/highest-employees", label: "Employees" },
   { href: "/list/highest-taxes", label: "Taxes" },
+  { href: "/list/top-rated", label: "Top Rated" },
   { href: "/list/oldest-companies", label: "Oldest" },
   { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
@@ -963,6 +1019,10 @@ export const LIST_NAV = [
   { href: "/list/ai-stocks", label: "AI" },
   { href: "/list/cloud-stocks", label: "Cloud" },
   { href: "/list/healthcare-stocks", label: "Healthcare" },
+  { href: "/list/glp1-stocks", label: "GLP-1" },
+  { href: "/list/bdc-stocks", label: "BDCs" },
+  { href: "/list/cef-funds", label: "CEFs" },
+  { href: "/list/preferred-stocks", label: "Preferred" },
   { href: "/list/solar-stocks", label: "Solar" },
   { href: "/list/cybersecurity-stocks", label: "Cyber" },
   { href: "/list/semiconductor-stocks", label: "Chips" },
@@ -1007,7 +1067,14 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
   }
 
   if (list.source === "symbols") {
-    return loadSymbolsList(list.symbols);
+    const rows = await loadSymbolsList(list.symbols);
+    if (slug === "preferred-stocks") {
+      return rows.map((row) => ({
+        ...row,
+        name: /preferred/i.test(row.name) ? row.name : `${row.name} Preferred`,
+      }));
+    }
+    return rows;
   }
 
   if (list.source === "week-range") {
@@ -1020,6 +1087,10 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
 
   if (list.source === "fundamentals-rank") {
     return loadFundamentalsRank(list.rank);
+  }
+
+  if (list.source === "ratings-rank") {
+    return loadRatingsRank();
   }
 
   if (list.source === "etf-issuer") {
@@ -1215,6 +1286,42 @@ async function loadFundamentalsRank(rank: "revenue" | "employees" | "tax" | "pro
   return rows
     .filter((row) => (row[key] ?? 0) > 0)
     .sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
+}
+
+const RATING_LETTER_ORDER = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "E", "F"];
+
+async function loadRatingsRank(): Promise<SymbolTableRow[]> {
+  const [quotes, ratings] = await Promise.all([
+    getQuotes([...MEGA_US_FUNDAMENTALS]),
+    Promise.all(MEGA_US_FUNDAMENTALS.map((symbol) => getRatings(symbol))),
+  ]);
+  const quoteBy = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const letterRank = (rating?: string | null) => {
+    const index = RATING_LETTER_ORDER.indexOf((rating || "").toUpperCase());
+    return index === -1 ? 99 : index;
+  };
+  const rows = MEGA_US_FUNDAMENTALS.map((symbol, index) => {
+    const quote = quoteBy.get(symbol);
+    const rating = ratings[index];
+    return {
+      symbol,
+      name: quote?.name || symbol,
+      marketCap: quote?.marketCap ?? null,
+      price: quote?.price ?? null,
+      changePercentage: quote?.changePercentage ?? null,
+      volume: quote?.volume ?? null,
+      rating: rating?.rating ?? null,
+      ratingScore: rating?.overallScore ?? null,
+    } satisfies SymbolTableRow;
+  });
+  return rows
+    .filter((row) => row.ratingScore != null || Boolean(row.rating))
+    .sort(
+      (a, b) =>
+        (b.ratingScore ?? 0) - (a.ratingScore ?? 0) ||
+        letterRank(a.rating) - letterRank(b.rating) ||
+        (b.marketCap ?? 0) - (a.marketCap ?? 0),
+    );
 }
 
 async function loadIndustryMatchList(sector: string | undefined, industryPattern: string): Promise<SymbolTableRow[]> {

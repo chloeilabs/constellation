@@ -36,6 +36,15 @@ const nextConfig: NextConfig = {
       { source: "/list/coal", destination: "/list/coal-stocks", permanent: false },
       { source: "/list/commodity-etf", destination: "/list/commodity-etfs", permanent: false },
       { source: "/list/semiconductor-equipment", destination: "/list/semiconductor-equipment-stocks", permanent: false },
+      { source: "/markets/world", destination: "/markets/global", permanent: false },
+      { source: "/list/bdcs", destination: "/list/bdc-stocks", permanent: false },
+      { source: "/list/bdc", destination: "/list/bdc-stocks", permanent: false },
+      { source: "/list/cefs", destination: "/list/cef-funds", permanent: false },
+      { source: "/list/closed-end-funds", destination: "/list/cef-funds", permanent: false },
+      { source: "/list/preferred", destination: "/list/preferred-stocks", permanent: false },
+      { source: "/list/glp-1", destination: "/list/glp1-stocks", permanent: false },
+      { source: "/list/glp1", destination: "/list/glp1-stocks", permanent: false },
+      { source: "/list/top-rated-stocks", destination: "/list/top-rated", permanent: false },
     ];
   },
   images: {

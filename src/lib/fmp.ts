@@ -1169,3 +1169,26 @@ export const INDEX_SYMBOLS = [
 export function getIndexQuotes() {
   return getQuotes(INDEX_SYMBOLS.map((item) => item.symbol));
 }
+
+export const WORLD_INDEX_SYMBOLS = [
+  { symbol: "^N225", label: "Nikkei 225", region: "Japan" },
+  { symbol: "^FTSE", label: "FTSE 100", region: "United Kingdom" },
+  { symbol: "^GDAXI", label: "DAX", region: "Germany" },
+  { symbol: "^FCHI", label: "CAC 40", region: "France" },
+  { symbol: "^STOXX50E", label: "Euro Stoxx 50", region: "Eurozone" },
+  { symbol: "^SSMI", label: "SMI", region: "Switzerland" },
+  { symbol: "^HSI", label: "Hang Seng", region: "Hong Kong" },
+  { symbol: "^AXJO", label: "S&P/ASX 200", region: "Australia" },
+  { symbol: "^GSPTSE", label: "S&P/TSX", region: "Canada" },
+  { symbol: "^BVSP", label: "Bovespa", region: "Brazil" },
+  { symbol: "^KS11", label: "KOSPI", region: "South Korea" },
+  { symbol: "^TWII", label: "TAIEX", region: "Taiwan" },
+  { symbol: "^BSESN", label: "BSE Sensex", region: "India" },
+  { symbol: "^MXX", label: "IPC", region: "Mexico" },
+  { symbol: "^STI", label: "STI", region: "Singapore" },
+  { symbol: "^JKSE", label: "Jakarta Composite", region: "Indonesia" },
+] as const;
+
+export function getWorldIndexQuotes() {
+  return getQuotes(WORLD_INDEX_SYMBOLS.map((item) => item.symbol));
+}

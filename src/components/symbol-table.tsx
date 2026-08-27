@@ -23,6 +23,8 @@ export type SymbolTableRow = {
   employees?: number | null;
   incomeTax?: number | null;
   netIncome?: number | null;
+  rating?: string | null;
+  ratingScore?: number | null;
 };
 
 export function SymbolTable({
@@ -38,6 +40,7 @@ export function SymbolTable({
   showEmployees = false,
   showTax = false,
   showProfit = false,
+  showRating = false,
 }: {
   rows: SymbolTableRow[];
   hrefBase?: string;
@@ -51,6 +54,7 @@ export function SymbolTable({
   showEmployees?: boolean;
   showTax?: boolean;
   showProfit?: boolean;
+  showRating?: boolean;
 }) {
   const colSpan =
     6 +
@@ -61,7 +65,8 @@ export function SymbolTable({
     (showRevenue ? 1 : 0) +
     (showEmployees ? 1 : 0) +
     (showTax ? 1 : 0) +
-    (showProfit ? 1 : 0);
+    (showProfit ? 1 : 0) +
+    (showRating ? 1 : 0);
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="sa-table">
@@ -75,6 +80,7 @@ export function SymbolTable({
             {showProfit ? <th className="num">Net Income (ttm)</th> : null}
             {showEmployees ? <th className="num">Employees</th> : null}
             {showTax ? <th className="num">Income Tax (ttm)</th> : null}
+            {showRating ? <th className="num">Rating</th> : null}
             <th className="num">Stock Price</th>
             <th className="num">% Change</th>
             {showYield ? <th className="num">Yield</th> : null}
@@ -116,6 +122,12 @@ export function SymbolTable({
                 {showProfit ? <td className="num">{formatCompactUsd(row.netIncome)}</td> : null}
                 {showEmployees ? <td className="num">{formatInteger(row.employees)}</td> : null}
                 {showTax ? <td className="num">{formatCompactUsd(row.incomeTax)}</td> : null}
+                {showRating ? (
+                  <td className="num">
+                    {row.rating || "—"}
+                    {row.ratingScore != null ? ` (${row.ratingScore})` : ""}
+                  </td>
+                ) : null}
                 <td className="num">{formatPrice(row.price)}</td>
                 <td className="num">
                   <ChangePercent value={row.changePercentage} />

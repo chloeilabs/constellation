@@ -11,6 +11,7 @@ export function extendedHoursNav(base: "/markets/premarket" | "/markets/afterhou
 
 export const MARKET_NAV: NavItem[] = [
   { href: "/markets", label: "Overview" },
+  { href: "/markets/global", label: "World Markets" },
   { href: "/markets/heatmap", label: "Heatmap" },
   { href: "/markets/premarket", label: "Pre-Market", match: "prefix" },
   { href: "/markets/afterhours", label: "After Hours", match: "prefix" },
@@ -133,6 +134,7 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `/stocks/${symbol}/debt`, label: "Debt" },
     { href: `/stocks/${symbol}/equity`, label: "Equity" },
     { href: `/stocks/${symbol}/pe-ratio`, label: "PE Ratio" },
+    { href: `/stocks/${symbol}/peg-ratio`, label: "PEG Ratio" },
     { href: `/stocks/${symbol}/ps-ratio`, label: "PS Ratio" },
     { href: `/stocks/${symbol}/pb-ratio`, label: "PB Ratio" },
     { href: `/stocks/${symbol}/current-ratio`, label: "Current Ratio" },

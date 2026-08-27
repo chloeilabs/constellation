@@ -2,7 +2,7 @@ import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { EtfSubnav } from "@/components/etf-subnav";
 import { ChangeValue } from "@/components/change";
-import { formatPrice, formatUsd } from "@/lib/format";
+import { formatMoney, formatPrice } from "@/lib/format";
 import { nyExtendedCopy } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpEtfInfo, FmpQuote } from "@/lib/types";
 
@@ -44,7 +44,7 @@ export function EtfHeader({
               {info?.inceptionDate ? ` · Inception ${info.inceptionDate}` : null}
             </p>
             <div className="mt-3 flex flex-wrap items-end gap-4">
-              <div className="text-4xl font-semibold tabular">{price != null ? formatUsd(price) : "—"}</div>
+              <div className="text-4xl font-semibold tabular">{price != null ? formatMoney(price, "USD") : "—"}</div>
               <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
             </div>
             {afterPrice ? (

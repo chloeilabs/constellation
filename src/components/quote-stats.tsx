@@ -91,7 +91,9 @@ export function QuoteStats({
   const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
   const px = (value: number | null | undefined) => formatMoney(value, currency);
   const epsGrowth = growth?.growthEPSDiluted ?? growth?.growthEPS;
-  const peg = pe != null && typeof epsGrowth === "number" && epsGrowth > 0 ? pe / (epsGrowth * 100) : null;
+  const reportedPeg = typeof ratios?.priceToEarningsGrowthRatioTTM === "number" ? ratios.priceToEarningsGrowthRatioTTM : null;
+  const derivedPeg = pe != null && typeof epsGrowth === "number" && epsGrowth > 0 ? pe / (epsGrowth * 100) : null;
+  const peg = reportedPeg ?? derivedPeg;
   const upside =
     target?.targetConsensus && quote?.price
       ? ((target.targetConsensus - quote.price) / quote.price) * 100
@@ -111,7 +113,7 @@ export function QuoteStats({
         { label: "Shares Out", href: `${base}/shares`, value: formatCompactMoney(ttm?.weightedAverageShsOutDil, "USD").replace("$", "") },
         { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency), growth?.growthEPSDiluted ?? growth?.growthEPS) },
         { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(pe) },
-        { label: "PEG Ratio", value: formatRatio(peg) },
+        { label: "PEG Ratio", href: `${base}/peg-ratio`, value: formatRatio(peg) },
         { label: "PS Ratio", href: `${base}/ps-ratio`, value: formatRatio(typeof ratios?.priceToSalesRatioTTM === "number" ? ratios.priceToSalesRatioTTM : null) },
         { label: "PB Ratio", href: `${base}/pb-ratio`, value: formatRatio(typeof ratios?.priceToBookRatioTTM === "number" ? ratios.priceToBookRatioTTM : null) },
         { label: "Forward PE", value: formatRatio(forwardPe) },

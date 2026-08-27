@@ -4,8 +4,8 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
-import { formatPrice, formatRatio } from "@/lib/format";
-import { getEstimates, getIncomeTtm, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
+import { formatMoney, formatRatio } from "@/lib/format";
+import { getEstimates, getIncomeTtm, getProfile, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 
 function num(value: unknown) {
@@ -23,18 +23,20 @@ export default async function PeRatioPage({
   const { period: periodParam } = await searchParams;
   const ticker = symbol.toUpperCase();
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [annual, quarterly, ttmRatios, ttmIncome, quote, estimates] = await Promise.all([
+  const [annual, quarterly, ttmRatios, ttmIncome, quote, estimates, profile] = await Promise.all([
     getRatios(ticker, "annual", 20),
     getRatios(ticker, "quarter", 12),
     getRatiosTtm(ticker),
     getIncomeTtm(ticker),
     getQuote(ticker),
     getEstimates(ticker, "annual"),
+    getProfile(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const pe = num(ttmRatios?.priceToEarningsRatioTTM);
   const eps = ttmIncome?.epsDiluted ?? ttmIncome?.eps;
   const impliedPe = quote?.price && eps ? quote.price / eps : null;
+  const currency = profile?.currency || "USD";
 
   return (
     <Container>
@@ -47,8 +49,8 @@ export default async function PeRatioPage({
         items={[
           { label: "PE Ratio (ttm)", value: formatRatio(pe ?? impliedPe) },
           { label: "Forward PE", value: formatRatio(forwardPeFromEstimates(quote?.price, estimates)) },
-          { label: "Stock Price", value: `$${formatPrice(quote?.price)}` },
-          { label: "EPS (ttm)", value: eps == null ? "—" : `$${formatPrice(eps)}` },
+          { label: "Stock Price", value: formatMoney(quote?.price, currency) },
+          { label: "EPS (ttm)", value: formatMoney(eps, currency) },
           { label: "P/S (ttm)", value: formatRatio(num(ttmRatios?.priceToSalesRatioTTM)) },
           { label: "P/B (ttm)", value: formatRatio(num(ttmRatios?.priceToBookRatioTTM)) },
           { label: "P/FCF (ttm)", value: formatRatio(num(ttmRatios?.priceToFreeCashFlowRatioTTM)) },

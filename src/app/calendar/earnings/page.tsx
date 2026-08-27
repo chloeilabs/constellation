@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { ChangePercent } from "@/components/change";
 import { CALENDAR_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { getEarningsCalendar } from "@/lib/fmp";
@@ -47,6 +48,7 @@ export default async function EarningsCalendarPage({
               <th>Symbol</th>
               <th className="num">EPS Est.</th>
               <th className="num">EPS Actual</th>
+              <th className="num">Surprise</th>
               <th className="num">Revenue Est.</th>
               <th className="num">Revenue Actual</th>
             </tr>
@@ -54,12 +56,17 @@ export default async function EarningsCalendarPage({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-muted">
+                <td colSpan={7} className="text-muted">
                   No earnings in this date range.
                 </td>
               </tr>
             ) : (
-              rows.slice(0, 200).map((row) => (
+              rows.slice(0, 200).map((row) => {
+                const surprise =
+                  row.epsActual != null && row.epsEstimated != null ? row.epsActual - row.epsEstimated : null;
+                const surprisePct =
+                  surprise != null && row.epsEstimated ? surprise / Math.abs(row.epsEstimated) : null;
+                return (
                 <tr key={`${row.symbol}-${row.date}`}>
                   <td>{formatDate(row.date)}</td>
                   <td className="symbol">
@@ -69,10 +76,21 @@ export default async function EarningsCalendarPage({
                   </td>
                   <td className="num">{formatPrice(row.epsEstimated)}</td>
                   <td className="num">{formatPrice(row.epsActual)}</td>
+                  <td className="num">
+                    {surprise == null ? (
+                      "—"
+                    ) : (
+                      <span className="inline-flex items-center gap-2">
+                        {formatPrice(surprise)}
+                        <ChangePercent value={surprisePct} alreadyPercent={false} className="text-xs" />
+                      </span>
+                    )}
+                  </td>
                   <td className="num">{formatCompactUsd(row.revenueEstimated)}</td>
                   <td className="num">{formatCompactUsd(row.revenueActual)}</td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
