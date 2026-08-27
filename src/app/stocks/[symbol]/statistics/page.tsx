@@ -433,6 +433,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Gross Profit", href: `/stocks/${ticker}/gross-profit`, value: money(ttm?.grossProfit) },
               { label: "Research & Development", href: `/stocks/${ticker}/research-and-development`, value: money(ttm?.researchAndDevelopmentExpenses) },
               { label: "SG&A", href: `/stocks/${ticker}/sga`, value: money(ttm?.sellingGeneralAndAdministrativeExpenses) },
+              { label: "Operating Expenses", href: `/stocks/${ticker}/operating-expenses`, value: money(ttm?.operatingExpenses) },
               { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: money(ttm?.operatingIncome) },
               { label: "EBIT", href: `/stocks/${ticker}/ebit`, value: money(ttm?.ebit) },
               { label: "Pretax Income", href: `/stocks/${ticker}/pretax-income`, value: money(ttm?.incomeBeforeTax) },

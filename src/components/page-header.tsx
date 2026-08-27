@@ -6,10 +6,12 @@ export function PeriodToggle({
   period,
   annualHref,
   quarterHref,
+  trailingHref,
 }: {
-  period: "annual" | "quarter";
+  period: "annual" | "quarter" | "trailing";
   annualHref: string;
   quarterHref: string;
+  trailingHref?: string;
 }) {
   return (
     <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Statement period">
@@ -31,6 +33,17 @@ export function PeriodToggle({
       >
         Quarterly
       </Link>
+      {trailingHref ? (
+        <Link
+          href={trailingHref}
+          className={cn(
+            "rounded px-3 py-1.5 font-medium",
+            period === "trailing" ? "bg-header text-on-header" : "text-muted hover:text-header",
+          )}
+        >
+          Trailing
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -180,6 +193,7 @@ export function StatementToolbar({
   view = "dollars",
   annualHref,
   quarterHref,
+  trailingHref,
   standardizedHref,
   reportedHref,
   fiveHref,
@@ -188,12 +202,13 @@ export function StatementToolbar({
   dollarsHref,
   commonHref,
 }: {
-  period: "annual" | "quarter";
+  period: "annual" | "quarter" | "trailing";
   source: "standardized" | "reported";
   span: "5" | "10" | "max";
   view?: "dollars" | "common-size";
   annualHref: string;
   quarterHref: string;
+  trailingHref?: string;
   standardizedHref: string;
   reportedHref: string;
   fiveHref: string;
@@ -204,7 +219,7 @@ export function StatementToolbar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <PeriodToggle period={period} annualHref={annualHref} quarterHref={quarterHref} />
+      <PeriodToggle period={period} annualHref={annualHref} quarterHref={quarterHref} trailingHref={trailingHref} />
       <SourceToggle source={source} standardizedHref={standardizedHref} reportedHref={reportedHref} />
       <YearToggle span={span} fiveHref={fiveHref} tenHref={tenHref} maxHref={maxHref} />
       {source === "standardized" && dollarsHref && commonHref ? (

@@ -17,6 +17,18 @@ export function trailingDividendTotal(
   return total;
 }
 
+/** Last four payments on or before a statement date, for trailing income columns. */
+export function trailingDividendThrough(
+  dividends: Array<{ date: string; dividend?: number; adjDividend?: number }>,
+  endDate: string,
+  count = 4,
+) {
+  const eligible = dividends
+    .filter((row) => row.date && row.date <= endDate)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return trailingDividendTotal(eligible, 0, count);
+}
+
 /** Last four payments versus the prior four, matching Stock Analysis 1-year dividend growth. */
 export function dividendTtmGrowth(dividends: Array<{ dividend?: number; adjDividend?: number }>) {
   return yearOverYear(trailingDividendTotal(dividends, 0), trailingDividendTotal(dividends, 4));

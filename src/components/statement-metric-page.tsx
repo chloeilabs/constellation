@@ -20,6 +20,7 @@ export async function StatementMetricPage({
   field,
   kind,
   ttmField,
+  zeroAsEmpty = false,
 }: {
   symbol: string;
   period: StatementPeriod;
@@ -29,6 +30,7 @@ export async function StatementMetricPage({
   field: string;
   kind: "income" | "balance" | "cash";
   ttmField?: string;
+  zeroAsEmpty?: boolean;
 }) {
   const ticker = decodeTicker(symbol);
   const path = stockPath(ticker, `/${slug}`);
@@ -42,12 +44,14 @@ export async function StatementMetricPage({
   const history = period === "quarter" ? quarterly : annual;
   const latest = history[0] as Record<string, unknown> | undefined;
   const prior = history[1] as Record<string, unknown> | undefined;
-  const latestValue = typeof latest?.[field] === "number" ? (latest[field] as number) : null;
-  const priorValue = typeof prior?.[field] === "number" ? (prior[field] as number) : null;
-  const ttmValue =
+  const display = (value: number | null) => (zeroAsEmpty && value === 0 ? null : value);
+  const latestValue = display(typeof latest?.[field] === "number" ? (latest[field] as number) : null);
+  const priorValue = display(typeof prior?.[field] === "number" ? (prior[field] as number) : null);
+  const ttmValue = display(
     ttm && ttmField && typeof (ttm as Record<string, unknown>)[ttmField] === "number"
       ? ((ttm as Record<string, unknown>)[ttmField] as number)
-      : latestValue;
+      : latestValue,
+  );
   const fyGrowth = yearOverYear(latestValue, priorValue);
   const growth =
     (kind === "income" || kind === "cash") && ttmField
@@ -79,11 +83,12 @@ export async function StatementMetricPage({
         empty="No history available."
         rows={history.map((row) => {
           const values = row as Record<string, unknown>;
+          const raw = typeof values[field] === "number" ? (values[field] as number) : null;
           return {
             key: `${row.date}-${row.period}`,
             date: row.date,
             label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
-            value: typeof values[field] === "number" ? (values[field] as number) : null,
+            value: display(raw),
           };
         })}
       />

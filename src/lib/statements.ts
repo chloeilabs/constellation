@@ -1,4 +1,5 @@
 import { yearOverYear } from "@/lib/format";
+import { stockPath } from "@/lib/listings";
 import type { FmpRevenueSegment } from "@/lib/types";
 
 export type StatementRow = {
@@ -6,6 +7,8 @@ export type StatementRow = {
   label: string;
   indent?: number;
   emphasize?: boolean;
+  href?: string;
+  zeroAsEmpty?: boolean;
   format?: "money" | "share" | "eps" | "ratio" | "percent" | "number" | "growth";
 };
 
@@ -22,8 +25,8 @@ export const INCOME_ROWS: StatementRow[] = [
   },
   { key: "operatingExpenses", label: "Operating Expenses", format: "money" },
   { key: "operatingIncome", label: "Operating Income", emphasize: true, format: "money" },
-  { key: "interestIncome", label: "Interest Income", indent: 1, format: "money" },
-  { key: "interestExpense", label: "Interest Expense", indent: 1, format: "money" },
+  { key: "interestIncome", label: "Interest Income", indent: 1, format: "money", zeroAsEmpty: true },
+  { key: "interestExpense", label: "Interest Expense", indent: 1, format: "money", zeroAsEmpty: true },
   { key: "totalOtherIncomeExpensesNet", label: "Other Income / Expense", format: "money" },
   { key: "incomeBeforeTax", label: "Pretax Income", emphasize: true, format: "money" },
   { key: "incomeTaxExpense", label: "Income Tax", format: "money" },
@@ -34,6 +37,69 @@ export const INCOME_ROWS: StatementRow[] = [
   { key: "weightedAverageShsOutDil", label: "Shares Outstanding (Diluted)", format: "share" },
   { key: "ebitda", label: "EBITDA", format: "money" },
 ];
+
+/** Extra lines Stock Analysis shows under the income statement. */
+export const ADDITIONAL_INCOME_ROWS: StatementRow[] = [
+  { key: "freeCashFlow", label: "Free Cash Flow", emphasize: true, format: "money" },
+  { key: "fcfPerShare", label: "Free Cash Flow Per Share", format: "eps" },
+  { key: "dividendPerShare", label: "Dividend Per Share", format: "eps" },
+  { key: "grossProfitMargin", label: "Gross Margin", format: "percent" },
+  { key: "operatingProfitMargin", label: "Operating Margin", format: "percent" },
+  { key: "netProfitMargin", label: "Profit Margin", format: "percent" },
+  { key: "fcfMargin", label: "Free Cash Flow Margin", format: "percent" },
+  { key: "ebitdaMargin", label: "EBITDA Margin", format: "percent" },
+  { key: "depreciationAndAmortization", label: "D&A For EBITDA", format: "money" },
+  { key: "ebit", label: "EBIT", format: "money" },
+  { key: "ebitMargin", label: "EBIT Margin", format: "percent" },
+  { key: "effectiveTaxRate", label: "Effective Tax Rate", format: "percent" },
+];
+
+export const STATEMENT_METRIC_HREFS: Record<string, string> = {
+  revenue: "revenue",
+  costOfRevenue: "cost-of-revenue",
+  grossProfit: "gross-profit",
+  researchAndDevelopmentExpenses: "research-and-development",
+  sellingGeneralAndAdministrativeExpenses: "sga",
+  operatingExpenses: "operating-expenses",
+  operatingIncome: "operating-income",
+  interestIncome: "interest-income",
+  interestExpense: "interest-expense",
+  incomeBeforeTax: "pretax-income",
+  incomeTaxExpense: "income-tax",
+  netIncome: "net-income",
+  epsDiluted: "earnings",
+  ebitda: "ebitda",
+  ebit: "ebit",
+  freeCashFlow: "free-cash-flow",
+  netCashProvidedByOperatingActivities: "operating-cash-flow",
+  operatingCashFlow: "operating-cash-flow",
+  investmentsInPropertyPlantAndEquipment: "capex",
+  capitalExpenditure: "capex",
+  depreciationAndAmortization: "depreciation-amortization",
+  commonStockRepurchased: "buybacks",
+  netDebtIssuance: "net-borrowing",
+  grossProfitMargin: "gross-margin",
+  operatingProfitMargin: "operating-margin",
+  netProfitMargin: "profit-margin",
+  fcfMargin: "fcf-margin",
+  ebitdaMargin: "ebitda-margin",
+  ebitMargin: "ebit-margin",
+  effectiveTaxRate: "effective-tax-rate",
+  fcfPerShare: "free-cash-flow",
+  cashAndCashEquivalents: "cash",
+  cashAndShortTermInvestments: "cash",
+  totalAssets: "assets",
+  totalLiabilities: "liabilities",
+  totalStockholdersEquity: "equity",
+  totalDebt: "debt",
+};
+
+export function withStatementHrefs(rows: StatementRow[], symbol: string): StatementRow[] {
+  return rows.map((row) => {
+    const slug = STATEMENT_METRIC_HREFS[row.key];
+    return slug ? { ...row, href: stockPath(symbol, `/${slug}`) } : row;
+  });
+}
 
 export const BALANCE_ROWS: StatementRow[] = [
   { key: "cashAndCashEquivalents", label: "Cash & Equivalents", format: "money" },
@@ -212,6 +278,99 @@ export function trailingSum(rows: Array<Record<string, unknown>>, field: string,
   }
   return total;
 }
+
+export function toTrailingColumns(
+  rows: Array<{ date: string; fiscalYear: string; period: string } & Record<string, unknown>>,
+  limit: number,
+  sumKeys: string[],
+  latestKeys: string[] = [],
+) {
+  const columns: { key: string; label: string; values: Record<string, unknown> }[] = [];
+  for (let i = 0; i < limit; i++) {
+    if (rows.length < i + 4) break;
+    const end = rows[i];
+    const values: Record<string, unknown> = {
+      date: end.date,
+      fiscalYear: end.fiscalYear,
+      period: end.period,
+    };
+    for (const key of sumKeys) {
+      values[key] = trailingSum(rows, key, i);
+    }
+    for (const key of latestKeys) {
+      const value = rows[i][key];
+      values[key] = typeof value === "number" && Number.isFinite(value) ? value : null;
+    }
+    columns.push({
+      key: `ttm-${end.date}-${end.period}`,
+      label: `${end.period} ${end.fiscalYear}`,
+      values,
+    });
+  }
+  return columns;
+}
+
+export function derivedStatementMetrics(values: Record<string, unknown>) {
+  const n = (key: string) =>
+    typeof values[key] === "number" && Number.isFinite(values[key] as number) ? (values[key] as number) : null;
+  const revenue = n("revenue");
+  const pretax = n("incomeBeforeTax");
+  const fcf = n("freeCashFlow");
+  const shares = n("weightedAverageShsOutDil");
+  const ebit = n("ebit") ?? n("operatingIncome");
+  const ebitda = n("ebitda");
+  const tax = n("incomeTaxExpense");
+  const gross = n("grossProfit");
+  const operating = n("operatingIncome");
+  const net = n("netIncome");
+  return {
+    ebit,
+    fcfPerShare: fcf != null && shares && shares > 0 ? fcf / shares : null,
+    grossProfitMargin: revenue && gross != null ? gross / revenue : null,
+    operatingProfitMargin: revenue && operating != null ? operating / revenue : null,
+    netProfitMargin: revenue && net != null ? net / revenue : null,
+    fcfMargin: revenue && fcf != null ? fcf / revenue : null,
+    ebitdaMargin: revenue && ebitda != null ? ebitda / revenue : null,
+    ebitMargin: revenue && ebit != null ? ebit / revenue : null,
+    effectiveTaxRate: pretax && pretax !== 0 && tax != null ? tax / pretax : null,
+  };
+}
+
+export function mergeStatementValues(
+  columns: { key: string; label: string; values: Record<string, unknown> }[],
+  extras: Array<{ date?: string; fiscalYear?: string } & Record<string, unknown>>,
+  keys: string[],
+  by: "date" | "fiscalYear" = "date",
+) {
+  const lookup = new Map(
+    extras.map((row) => [by === "date" ? String(row.date ?? "") : String(row.fiscalYear ?? ""), row]),
+  );
+  return columns.map((column) => {
+    const match = lookup.get(by === "date" ? String(column.values.date ?? "") : String(column.values.fiscalYear ?? ""));
+    if (!match) return column;
+    const values = { ...column.values };
+    for (const key of keys) {
+      const value = match[key];
+      if (typeof value === "number" && Number.isFinite(value)) values[key] = value;
+    }
+    return { ...column, values };
+  });
+}
+
+export function withDerivedStatementMetrics(
+  columns: { key: string; label: string; values: Record<string, unknown> }[],
+) {
+  return columns.map((column) => ({
+    ...column,
+    values: { ...column.values, ...derivedStatementMetrics(column.values) },
+  }));
+}
+
+export const INCOME_TRAILING_SUM_KEYS = INCOME_ROWS.filter(
+  (row) => row.format === "money" || row.format === "eps",
+).map((row) => row.key);
+export const INCOME_TRAILING_LATEST_KEYS = INCOME_ROWS.filter((row) => row.format === "share").map((row) => row.key);
+export const CASH_TRAILING_SUM_KEYS = CASH_FLOW_ROWS.filter((row) => row.format === "money").map((row) => row.key);
 
 /** Last four quarters versus the prior four, as a decimal change. */
 export function ttmChange(rows: Array<Record<string, unknown>> | undefined, field: string) {
@@ -407,6 +566,7 @@ export function statementChartItems(
 export type StatementSource = "standardized" | "reported";
 export type StatementSpan = "5" | "10" | "max";
 export type StatementView = "dollars" | "common-size";
+export type StatementViewPeriod = "annual" | "quarter" | "trailing";
 
 export function sourceFrom(value?: string): StatementSource {
   return value === "reported" || value === "as-reported" ? "reported" : "standardized";
@@ -421,6 +581,12 @@ export function viewFrom(value?: string): StatementView {
   return value === "common-size" || value === "common" ? "common-size" : "dollars";
 }
 
+export function viewPeriodFrom(value?: string): StatementViewPeriod {
+  if (value === "quarter") return "quarter";
+  if (value === "trailing" || value === "ttm") return "trailing";
+  return "annual";
+}
+
 export function statementLimit(period: "annual" | "quarter", span: StatementSpan) {
   if (period === "annual") return span === "max" ? 20 : span === "10" ? 10 : 5;
   return span === "5" ? 20 : 40;
@@ -428,13 +594,14 @@ export function statementLimit(period: "annual" | "quarter", span: StatementSpan
 
 export function statementHref(
   base: string,
-  period: "annual" | "quarter",
+  period: StatementViewPeriod,
   source: StatementSource = "standardized",
   span: StatementSpan = "5",
   view: StatementView = "dollars",
 ) {
   const params = new URLSearchParams();
   if (period === "quarter") params.set("period", "quarter");
+  if (period === "trailing") params.set("period", "trailing");
   if (source === "reported") params.set("source", "reported");
   if (span !== "5") params.set("years", span);
   if (view === "common-size") params.set("view", "common-size");
@@ -444,16 +611,20 @@ export function statementHref(
 
 export function statementToolbarHrefs(
   base: string,
-  period: "annual" | "quarter",
+  period: StatementViewPeriod,
   source: StatementSource,
   span: StatementSpan,
   view: StatementView = "dollars",
+  options?: { trailing?: boolean },
 ) {
+  const reportedPeriod: StatementViewPeriod = period === "trailing" ? "annual" : period;
+  const showTrailing = options?.trailing !== false && source !== "reported";
   return {
     annualHref: statementHref(base, "annual", source, span, view),
     quarterHref: statementHref(base, "quarter", source, span, view),
+    trailingHref: showTrailing ? statementHref(base, "trailing", source, span, view) : undefined,
     standardizedHref: statementHref(base, period, "standardized", span, view),
-    reportedHref: statementHref(base, period, "reported", span, "dollars"),
+    reportedHref: statementHref(base, reportedPeriod, "reported", span, "dollars"),
     fiveHref: statementHref(base, period, source, "5", view),
     tenHref: statementHref(base, period, source, "10", view),
     maxHref: statementHref(base, period, source, "max", view),

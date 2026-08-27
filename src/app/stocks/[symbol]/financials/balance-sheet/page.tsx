@@ -17,6 +17,7 @@ import {
   statementToolbarHrefs,
   toStatementColumns,
   viewFrom,
+  withStatementHrefs,
   withTtmColumn,
 } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
@@ -69,7 +70,7 @@ export default async function BalanceSheetPage({
             source={source}
             span={span}
             view={view}
-            {...statementToolbarHrefs(base, period, source, span, view)}
+            {...statementToolbarHrefs(base, period, source, span, view, { trailing: false })}
           />
         }
       />
@@ -95,7 +96,7 @@ export default async function BalanceSheetPage({
         />
       ) : (
         <StatementTable
-          rows={BALANCE_ROWS}
+          rows={withStatementHrefs(BALANCE_ROWS, ticker)}
           columns={columns}
           scale="millions"
           currency={currency}

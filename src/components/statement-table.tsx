@@ -1,4 +1,5 @@
 import { DownloadCsvButton } from "@/components/download-csv";
+import Link from "next/link";
 import {
   changeClass,
   formatCompact,
@@ -73,6 +74,11 @@ function periodEnd(values: Record<string, unknown>) {
   return typeof raw === "string" && raw ? formatDate(raw) : null;
 }
 
+function cellValue(row: StatementRow, value: unknown) {
+  if (row.zeroAsEmpty && value === 0) return null;
+  return value;
+}
+
 export function StatementTable({
   rows,
   columns,
@@ -82,6 +88,7 @@ export function StatementTable({
   commonSizeBase,
   downloadName,
   inlineYoy = true,
+  yoyOffset = 1,
 }: {
   rows: StatementRow[];
   columns: { key: string; label: string; values: Record<string, unknown> }[];
@@ -91,6 +98,7 @@ export function StatementTable({
   commonSizeBase?: string;
   downloadName?: string;
   inlineYoy?: boolean;
+  yoyOffset?: number;
 }) {
   if (columns.length === 0) {
     return <p className="text-sm text-muted">No statement data available for this period.</p>;
@@ -100,7 +108,13 @@ export function StatementTable({
   const csvRows = rows.map((row) => [
     row.label,
     ...columns.map((column) =>
-      csvValue(column.values[row.key], row.format, scale, commonSizeBase, commonSizeBase ? column.values[commonSizeBase] : null),
+      csvValue(
+        cellValue(row, column.values[row.key]),
+        row.format,
+        scale,
+        commonSizeBase,
+        commonSizeBase ? column.values[commonSizeBase] : null,
+      ),
     ),
   ]);
 
@@ -136,11 +150,17 @@ export function StatementTable({
                     className="whitespace-normal"
                     style={{ paddingLeft: `${12 + (row.indent ?? 0) * 16}px` }}
                   >
-                    {row.label}
+                    {row.href ? (
+                      <Link href={row.href} className="text-link hover:underline">
+                        {row.label}
+                      </Link>
+                    ) : (
+                      row.label
+                    )}
                   </td>
                   {columns.map((column, index) => {
-                    const value = column.values[row.key];
-                    const previous = columns[index + 1]?.values[row.key];
+                    const value = cellValue(row, column.values[row.key]);
+                    const previous = cellValue(row, columns[index + yoyOffset]?.values[row.key]);
                     const yoy = showYoy && column.label !== "TTM" ? yearOverYear(value, previous) : null;
                     const text = asPercent && commonSizeBase
                       ? formatCommonSize(value, column.values[commonSizeBase])

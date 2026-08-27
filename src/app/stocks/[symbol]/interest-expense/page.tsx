@@ -21,6 +21,7 @@ export default async function InterestExpensePage({
       field="interestExpense"
       kind="income"
       ttmField="interestExpense"
+      zeroAsEmpty
     />
   );
 }

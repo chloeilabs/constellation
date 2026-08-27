@@ -3,27 +3,40 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, StatementToolbar } from "@/components/page-header";
 import { StatementCharts } from "@/components/statement-charts";
 import { StatementTable } from "@/components/statement-table";
-import { getIncomeAsReported, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import {
+  getCashFlows,
+  getCashFlowTtm,
+  getDividends,
+  getIncomeAsReported,
+  getIncomeStatements,
+  getIncomeTtm,
+} from "@/lib/fmp";
 import { formatMillions, formatPrice, reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { dividendsByFiscalYear, trailingDividendThrough, trailingDividendTotal } from "@/lib/dividends";
 import {
+  ADDITIONAL_INCOME_ROWS,
+  CASH_TRAILING_SUM_KEYS,
   INCOME_ROWS,
+  INCOME_TRAILING_LATEST_KEYS,
+  INCOME_TRAILING_SUM_KEYS,
   asReportedColumns,
   asReportedStatementRows,
+  mergeStatementValues,
   sourceFrom,
   spanFrom,
   statementChartItems,
   statementLimit,
   statementToolbarHrefs,
   toStatementColumns,
+  toTrailingColumns,
   viewFrom,
+  viewPeriodFrom,
+  withDerivedStatementMetrics,
+  withStatementHrefs,
   withTtmColumn,
 } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
-
-function periodFrom(value?: string): StatementPeriod {
-  return value === "quarter" ? "quarter" : "annual";
-}
 
 export default async function IncomeStatementPage({
   params,
@@ -35,26 +48,73 @@ export default async function IncomeStatementPage({
   const { symbol } = await params;
   const { period: periodParam, source: sourceParam, years: yearsParam, view: viewParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const period = periodFrom(periodParam);
+  const viewPeriod = viewPeriodFrom(periodParam);
+  const period: StatementPeriod = viewPeriod === "quarter" ? "quarter" : "annual";
   const source = sourceFrom(sourceParam);
   const span = spanFrom(yearsParam);
   const view = source === "reported" ? "dollars" : viewFrom(viewParam);
-  const limit = statementLimit(period, span);
+  const trailing = viewPeriod === "trailing" && source === "standardized";
+  const displayCount = trailing ? statementLimit("quarter", span) : statementLimit(period, span);
   const base = stockPath(ticker, "/financials/income-statement");
-  const [rows, ttm, reported] = await Promise.all([
-    source === "standardized" ? getIncomeStatements(ticker, period, limit) : Promise.resolve([]),
+  const [annual, quarterly, ttm, reported, annualCash, quarterlyCash, ttmCash, dividends] = await Promise.all([
+    source === "standardized" && !trailing ? getIncomeStatements(ticker, period, displayCount) : Promise.resolve([]),
+    source === "standardized" && trailing
+      ? getIncomeStatements(ticker, "quarter", displayCount + 4)
+      : Promise.resolve([]),
     source === "standardized" ? getIncomeTtm(ticker) : Promise.resolve(null),
-    source === "reported" ? getIncomeAsReported(ticker, period, limit) : Promise.resolve([]),
+    source === "reported" ? getIncomeAsReported(ticker, period, displayCount) : Promise.resolve([]),
+    source === "standardized" && !trailing ? getCashFlows(ticker, period, displayCount) : Promise.resolve([]),
+    source === "standardized" && trailing ? getCashFlows(ticker, "quarter", displayCount + 4) : Promise.resolve([]),
+    source === "standardized" ? getCashFlowTtm(ticker) : Promise.resolve(null),
+    source === "standardized" ? getDividends(ticker, 80) : Promise.resolve([]),
   ]);
   const currency = reportingCurrency(
-    rows[0]?.reportedCurrency,
+    annual[0]?.reportedCurrency,
+    quarterly[0]?.reportedCurrency,
     ttm?.reportedCurrency,
     reported[0]?.reportedCurrency,
   );
-  const columns =
+  const dividendByYear = dividendsByFiscalYear(
+    dividends,
+    (trailing ? quarterly : annual).map((row) => ({ fiscalYear: row.fiscalYear, date: row.date })),
+  );
+  let columns =
     source === "reported"
       ? asReportedColumns(reported, period)
-      : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period));
+      : trailing
+        ? toTrailingColumns(quarterly, displayCount, INCOME_TRAILING_SUM_KEYS, INCOME_TRAILING_LATEST_KEYS)
+        : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(annual, period));
+
+  if (source === "standardized") {
+    const cashColumns = trailing
+      ? toTrailingColumns(quarterlyCash, displayCount, CASH_TRAILING_SUM_KEYS)
+      : withTtmColumn(ttmCash as Record<string, unknown> | null, toStatementColumns(annualCash, period));
+    columns = mergeStatementValues(columns, cashColumns.map((column) => column.values), [
+      "freeCashFlow",
+      "depreciationAndAmortization",
+    ]);
+    columns = columns.map((column) => {
+      const year = String(column.values.fiscalYear ?? "");
+      const endDate = String(column.values.date ?? "");
+      const dividend =
+        column.key === "ttm" || column.label === "TTM"
+          ? trailingDividendTotal(dividends)
+          : trailing
+            ? trailingDividendThrough(dividends, endDate)
+            : (dividendByYear.get(year) ?? null);
+      return {
+        ...column,
+        values: {
+          ...column.values,
+          dividendPerShare: dividend,
+        },
+      };
+    });
+    columns = withDerivedStatementMetrics(columns);
+  }
+
+  const hrefRows = withStatementHrefs(INCOME_ROWS, ticker);
+  const extraRows = withStatementHrefs(ADDITIONAL_INCOME_ROWS, ticker);
 
   return (
     <Container>
@@ -65,15 +125,17 @@ export default async function IncomeStatementPage({
             ? `As-reported XBRL line items from company filings. Figures in millions of ${currency} except per-share items.`
             : view === "common-size"
               ? "Each income-statement line is a percentage of revenue. Charts remain in dollars."
-              : `Revenue, expenses, and profitability. Figures in millions of ${currency} except per-share items.`
+              : trailing
+                ? `Rolling trailing-twelve-month income. Each column sums four quarters. Figures in millions of ${currency} except per-share items.`
+                : `Revenue, expenses, and profitability. Figures in millions of ${currency} except per-share items.`
         }
         actions={
           <StatementToolbar
-            period={period}
+            period={viewPeriod}
             source={source}
             span={span}
             view={view}
-            {...statementToolbarHrefs(base, period, source, span, view)}
+            {...statementToolbarHrefs(base, viewPeriod, source, span, view)}
           />
         }
       />
@@ -104,19 +166,38 @@ export default async function IncomeStatementPage({
           downloadName={`${ticker}-income-as-reported-${period}-${span}`}
         />
       ) : (
-        <StatementTable
-          rows={INCOME_ROWS}
-          columns={columns}
-          scale="millions"
-          currency={currency}
-          commonSizeBase={view === "common-size" ? "revenue" : undefined}
-          caption={
-            view === "common-size"
-              ? "Percent of revenue. EPS and share counts stay in original units. Green/red year-over-year change is hidden in this view."
-              : `Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`
-          }
-          downloadName={`${ticker}-income-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
-        />
+        <>
+          <StatementTable
+            rows={hrefRows}
+            columns={columns}
+            scale="millions"
+            currency={currency}
+            commonSizeBase={view === "common-size" ? "revenue" : undefined}
+            yoyOffset={trailing ? 4 : 1}
+            caption={
+              view === "common-size"
+                ? "Percent of revenue. EPS and share counts stay in original units. Green/red year-over-year change is hidden in this view."
+                : trailing
+                  ? `Values in millions of ${currency}. Green/red percentages compare each trailing window with the same quarter a year earlier.`
+                  : `Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`
+            }
+            downloadName={`${ticker}-income-${viewPeriod}-${span}${view === "common-size" ? "-common-size" : ""}`}
+          />
+          {view === "dollars" ? (
+            <section className="mt-10">
+              <h2 className="mb-3 text-lg font-semibold text-header">Additional Metrics</h2>
+              <StatementTable
+                rows={extraRows}
+                columns={columns}
+                scale="millions"
+                currency={currency}
+                yoyOffset={trailing ? 4 : 1}
+                caption="Free cash flow, dividends, margins, and EBIT from the matching cash-flow statement and income lines."
+                downloadName={`${ticker}-income-additional-${viewPeriod}-${span}`}
+              />
+            </section>
+          ) : null}
+        </>
       )}
     </Container>
   );

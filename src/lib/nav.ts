@@ -160,6 +160,7 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `${base}/operating-margin`, label: "Operating Margin" },
     { href: `${base}/research-and-development`, label: "R&D" },
     { href: `${base}/sga`, label: "SG&A" },
+    { href: `${base}/operating-expenses`, label: "Operating Expenses" },
     { href: `${base}/ebitda`, label: "EBITDA" },
     { href: `${base}/ebitda-margin`, label: "EBITDA Margin" },
     { href: `${base}/ebit`, label: "EBIT" },
