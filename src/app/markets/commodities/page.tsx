@@ -7,6 +7,8 @@ import { formatInteger, formatPrice } from "@/lib/format";
 import { getCommoditiesList, getCommodityQuotes } from "@/lib/fmp";
 import { percentFromPriceChange } from "@/lib/utils";
 
+const PINNED = ["GCUSD", "SIUSD", "CLUSD", "BZUSD", "NGUSD", "HGUSD", "ZCUSD", "ZWUSD", "ZSUSD", "KCUSD", "CTUSD", "SBUSD"];
+
 export const metadata = {
   title: "Commodities",
   description: "Live futures prices for gold, crude oil, natural gas, grains, and other commodities.",
@@ -15,6 +17,7 @@ export const metadata = {
 export default async function CommoditiesPage() {
   const [names, quotes] = await Promise.all([getCommoditiesList(), getCommodityQuotes()]);
   const bySymbol = new Map(quotes.map((row) => [row.symbol, row]));
+  const pinRank = new Map(PINNED.map((symbol, index) => [symbol, index]));
   const rows = names
     .map((row) => {
       const quote = bySymbol.get(row.symbol);
@@ -30,9 +33,10 @@ export default async function CommoditiesPage() {
         change,
         changePercentage,
         volume: quote?.volume ?? null,
+        pinned: pinRank.get(row.symbol) ?? 1000,
       };
     })
-    .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+    .sort((a, b) => a.pinned - b.pinned || (b.volume ?? 0) - (a.volume ?? 0));
 
   return (
     <Container>
@@ -41,7 +45,7 @@ export default async function CommoditiesPage() {
         description="Gold, oil, natural gas, grains, and other futures contracts from FMP commodity quotes."
       />
       <SectionNav items={MARKET_NAV} />
-      <p className="mb-3 text-sm text-muted">{rows.length} contracts, ranked by volume</p>
+      <p className="mb-3 text-sm text-muted">{rows.length} contracts, with gold, oil, and grains listed first</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

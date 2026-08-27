@@ -31,7 +31,7 @@ export default async function CryptoPage() {
         circulatingSupply: row.circulatingSupply ?? null,
       };
     })
-    .filter((row) => (row.volume ?? 0) > 0 && (row.price ?? 0) > 0)
+    .filter((row) => (row.volume ?? 0) > 0 && (row.price ?? 0) > 0 && (row.circulatingSupply ?? 0) > 0)
     .sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0))
     .slice(0, 80);
 
