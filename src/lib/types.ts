@@ -525,3 +525,41 @@ export type FmpFullCandle = {
   changePercent: number;
   vwap?: number;
 };
+
+export type FmpSecFiling = {
+  symbol: string;
+  cik: string;
+  filingDate: string;
+  acceptedDate: string;
+  formType: string;
+  link: string;
+  finalLink: string;
+};
+
+export type FmpTranscriptDate = {
+  quarter: number;
+  fiscalYear: number;
+  date: string;
+};
+
+export type FmpTranscript = {
+  symbol: string;
+  period: string;
+  year: number;
+  date: string;
+  content: string;
+};
+
+export type FmpEconomicEvent = {
+  date: string;
+  country: string;
+  event: string;
+  currency: string;
+  previous: number | null;
+  estimate: number | null;
+  actual: number | null;
+  change: number | null;
+  impact: string;
+  changePercentage: number | null;
+  unit: string;
+};

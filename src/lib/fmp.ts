@@ -6,6 +6,7 @@ import type {
   FmpCashFlow,
   FmpDividend,
   FmpEarnings,
+  FmpEconomicEvent,
   FmpEstimate,
   FmpEtfHolding,
   FmpEtfInfo,
@@ -40,6 +41,9 @@ import type {
   FmpSectorPerformance,
   FmpShareFloat,
   FmpSplit,
+  FmpSecFiling,
+  FmpTranscript,
+  FmpTranscriptDate,
   StatementPeriod,
 } from "@/lib/types";
 
@@ -575,6 +579,46 @@ export function getFullDailyChart(symbol: string, from?: string, to?: string) {
   return fmpList<FmpFullCandle>(
     "/historical-price-eod/full",
     { symbol: symbol.toUpperCase(), from, to },
+    { revalidate: 300 },
+  );
+}
+
+export function getSecFilings(symbol: string, from: string, to: string, limit = 50) {
+  return fmpList<FmpSecFiling>(
+    "/sec-filings-search/symbol",
+    { symbol: symbol.toUpperCase(), from, to, page: 0, limit },
+    { revalidate: 600 },
+  );
+}
+
+export function getTranscriptDates(symbol: string) {
+  return fmpList<FmpTranscriptDate>(
+    "/earning-call-transcript-dates",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
+export function getTranscript(symbol: string, year: number, quarter: number) {
+  return fmpFirst<FmpTranscript>(
+    "/earning-call-transcript",
+    { symbol: symbol.toUpperCase(), year, quarter },
+    { revalidate: 86400 },
+  );
+}
+
+export function getLatestTranscripts(limit = 30) {
+  return fmpList<FmpTranscriptDate & { symbol: string; period?: string }>(
+    "/earning-call-transcript-latest",
+    { limit, page: 0 },
+    { revalidate: 300 },
+  );
+}
+
+export function getEconomicCalendar(from: string, to: string, country = "US") {
+  return fmpList<FmpEconomicEvent>(
+    "/economic-calendar",
+    { from, to, country },
     { revalidate: 300 },
   );
 }

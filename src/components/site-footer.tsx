@@ -33,6 +33,7 @@ const columns = [
       ["/calendar/ipos", "IPO Calendar"],
       ["/calendar/dividends", "Dividend Calendar"],
       ["/calendar/splits", "Stock Splits"],
+      ["/calendar/economy", "Economic Calendar"],
       ["/insider-trading", "Insider Trading"],
     ],
   },

@@ -17,6 +17,7 @@ export const CALENDAR_NAV = [
   { href: "/calendar/ipos", label: "IPOs" },
   { href: "/calendar/dividends", label: "Dividends" },
   { href: "/calendar/splits", label: "Splits" },
+  { href: "/calendar/economy", label: "Economy" },
 ];
 
 export function SectionNav({
