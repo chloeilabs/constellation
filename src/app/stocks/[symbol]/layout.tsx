@@ -1,13 +1,31 @@
 import { notFound } from "next/navigation";
 import { StockHeader } from "@/components/stock-header";
-import { getAftermarketQuote, getAftermarketTrade, getProfile, getQuote, hasFmpKey, mergeAftermarketQuote } from "@/lib/fmp";
+import {
+  getAftermarketQuote,
+  getAftermarketTrade,
+  getProfile,
+  getQuote,
+  getQuotes,
+  hasFmpKey,
+  mergeAftermarketQuote,
+} from "@/lib/fmp";
+import { INDEX_LABELS } from "@/lib/statements";
+
+function tickerFromParam(symbol: string) {
+  try {
+    return decodeURIComponent(symbol).toUpperCase();
+  } catch {
+    return symbol.toUpperCase();
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const profile = await getProfile(symbol);
-  const name = profile?.companyName ?? symbol.toUpperCase();
+  const ticker = tickerFromParam(symbol);
+  const profile = ticker.startsWith("^") ? null : await getProfile(ticker);
+  const name = profile?.companyName ?? INDEX_LABELS[ticker] ?? ticker;
   return {
-    title: `${name} (${symbol.toUpperCase()}) Stock Price & Overview`,
+    title: `${name} (${ticker}) Stock Price & Overview`,
     description: profile?.description?.slice(0, 160) ?? `${name} stock price, financials, news, and forecasts.`,
   };
 }
@@ -20,12 +38,13 @@ export default async function StockLayout({
   params: Promise<{ symbol: string }>;
 }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = tickerFromParam(symbol);
+  const isIndex = ticker.startsWith("^");
   const [quote, profile, afterHours, afterTrade] = await Promise.all([
-    getQuote(ticker),
-    getProfile(ticker),
-    getAftermarketQuote(ticker),
-    getAftermarketTrade(ticker),
+    isIndex ? getQuotes([ticker]).then((rows) => rows[0] ?? null) : getQuote(ticker),
+    isIndex ? Promise.resolve(null) : getProfile(ticker),
+    isIndex ? Promise.resolve(null) : getAftermarketQuote(ticker),
+    isIndex ? Promise.resolve(null) : getAftermarketTrade(ticker),
   ]);
   const extended = mergeAftermarketQuote(afterHours, afterTrade);
 

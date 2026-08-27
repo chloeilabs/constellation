@@ -16,7 +16,7 @@ export default async function EarningsCalendarPage({
 }) {
   const params = await searchParams;
   const today = nyDateString();
-  const from = params.from || today;
+  const from = params.from || isoDate(addDays(new Date(`${today}T00:00:00Z`), -7));
   const to = params.to || isoDate(addDays(new Date(`${today}T00:00:00Z`), 7));
   const rows = (await getEarningsCalendar(from, to)).filter((row) => !isForeignListingSymbol(row.symbol));
 

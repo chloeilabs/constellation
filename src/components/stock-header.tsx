@@ -2,7 +2,7 @@ import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatPrice } from "@/lib/format";
 import { industrySlug } from "@/lib/industries";
 import { nyExtendedCopy } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
@@ -24,6 +24,9 @@ export function StockHeader({
   const afterChange = afterPrice && price ? afterPrice - price : null;
   const afterPct = afterChange != null && price ? (afterChange / price) * 100 : null;
   const extendedLabel = nyExtendedCopy().label;
+  const isIndex = symbol.startsWith("^");
+  const px = (value: number | null | undefined) =>
+    isIndex ? formatPrice(value) : formatMoney(value, profile?.currency);
 
   return (
     <div className="bg-white">
@@ -83,13 +86,13 @@ export function StockHeader({
               </p>
               <div className="mt-3 flex flex-wrap items-end gap-4">
                 <div className="text-4xl font-semibold tabular">
-                  {price != null ? formatMoney(price, profile?.currency) : "—"}
+                  {price != null ? px(price) : "—"}
                 </div>
                 <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
               </div>
               {afterPrice ? (
                 <p className="mt-1 text-sm text-muted">
-                  {extendedLabel} {formatMoney(afterPrice, profile?.currency)}{" "}
+                  {extendedLabel} {px(afterPrice)}{" "}
                   <ChangeValue change={afterChange} percent={afterPct} />
                 </p>
               ) : null}
