@@ -221,6 +221,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               },
             ]}
           />
+          {institutionPct != null && institutionPct > 100 ? (
+            <p className="mt-2 text-xs text-muted">
+              13F ownership can exceed 100% when short interest, options, and overlapping filings are included.
+            </p>
+          ) : null}
         </section>
         <section>
           <h2 className="mb-3 font-semibold text-header">Valuation Ratios</h2>
