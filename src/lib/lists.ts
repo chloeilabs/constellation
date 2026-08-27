@@ -1,4 +1,4 @@
-import { getDividendCalendar, getIndexConstituents, getProfile, getQuotes, getScreener } from "@/lib/fmp";
+import { getDividendCalendar, getIndexConstituents, getProfile, getQuotes, getScreener, getScreenerPages } from "@/lib/fmp";
 import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
@@ -748,12 +748,7 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     selected = selected.filter((row) => symbolPattern.test(row.symbol));
   }
   let rows = await toScreenerRows(selected);
-  const capMax =
-    "capMax" in list && typeof list.capMax === "number"
-      ? list.capMax
-      : listing === "raw"
-        ? 20_000_000_000_000
-        : undefined;
+  const capMax = "capMax" in list && typeof list.capMax === "number" ? list.capMax : undefined;
   if (capMax != null) {
     rows = rows.filter((row) => (row.marketCap ?? 0) > 0 && (row.marketCap ?? 0) < capMax);
   }
@@ -875,7 +870,7 @@ async function loadWeekRangeList(direction: "high" | "low"): Promise<SymbolTable
 
 async function loadIndustryMatchList(sector: string | undefined, industryPattern: string): Promise<SymbolTableRow[]> {
   const matcher = new RegExp(industryPattern, "i");
-  const raw = await getScreener({ country: "US", ...(sector ? { sector } : {}) }, { limit: 200 });
+  const raw = await getScreenerPages({ country: "US", ...(sector ? { sector } : {}) }, { pages: 1, limit: 1000, revalidate: 1800 });
   const selected = preferPrimaryListings(raw).filter((row) => matcher.test(row.industry || ""));
   const rows = await toScreenerRows(selected);
   return rows

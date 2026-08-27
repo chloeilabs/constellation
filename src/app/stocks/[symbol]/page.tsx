@@ -76,12 +76,15 @@ export default async function StockOverviewPage({
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
   const peerRows = await withQuoteChanges(
-    peers.slice(0, 8).map((peer) => ({
-      symbol: peer.symbol,
-      price: peer.price,
-      companyName: peer.companyName,
-      mktCap: peer.mktCap,
-    })),
+    peers
+      .filter((peer) => (peer.mktCap ?? 0) >= 1_000_000_000)
+      .slice(0, 8)
+      .map((peer) => ({
+        symbol: peer.symbol,
+        price: peer.price,
+        companyName: peer.companyName,
+        mktCap: peer.mktCap,
+      })),
   );
 
   return (
