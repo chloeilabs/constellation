@@ -1249,12 +1249,17 @@ export function getEconomicCalendar(from: string, to: string, country = "US") {
 }
 
 function isPlausible13F(row: FmpInstitutionalSummary) {
-  const previous = row.lastNumberOf13Fshares;
-  const jump =
-    typeof previous === "number" &&
-    previous > 0 &&
-    row.numberOf13Fshares / previous > 1.75;
-  return !(jump && row.ownershipPercent > 95);
+  if (row.ownershipPercent > 95) {
+    const prevPct = row.lastOwnershipPercent;
+    if (typeof prevPct === "number" && prevPct > 0 && row.ownershipPercent - prevPct > 20) {
+      return false;
+    }
+    const previous = row.lastNumberOf13Fshares;
+    if (typeof previous === "number" && previous > 0 && row.numberOf13Fshares / previous > 1.75) {
+      return false;
+    }
+  }
+  return true;
 }
 
 async function findLatestInstitutionalSummary(symbol: string) {
