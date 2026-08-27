@@ -10,23 +10,40 @@ import {
   getExecutiveCompensation,
   getKeyExecutives,
   getProfile,
+  getSecFilings,
+  getSecProfile,
 } from "@/lib/fmp";
 import { industrySlug, sectorHref } from "@/lib/industries";
-import { quoteHref } from "@/lib/listings";
+import { decodeTicker, quoteHref } from "@/lib/listings";
+import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import Link from "next/link";
+
+function formatFiscalYearEnd(value?: string | null) {
+  if (!value) return null;
+  const match = value.match(/^(\d{1,2})-(\d{1,2})$/);
+  if (!match) return value;
+  const date = new Date(Date.UTC(2020, Number(match[1]) - 1, Number(match[2])));
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+}
 
 export default async function CompanyPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
-  const [profile, executives, notes, esgRatings, esgDisclosures, compensation, variants] = await Promise.all([
-    getProfile(ticker),
-    getKeyExecutives(ticker),
-    getCompanyNotes(ticker),
-    getEsgRatings(ticker),
-    getEsgDisclosures(ticker),
-    getExecutiveCompensation(ticker),
-    getExchangeVariants(ticker),
-  ]);
+  const ticker = decodeTicker(symbol);
+  const to = nyDateString();
+  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -540));
+  const [profile, executives, notes, esgRatings, esgDisclosures, compensation, variants, secProfile, filings] =
+    await Promise.all([
+      getProfile(ticker),
+      getKeyExecutives(ticker),
+      getCompanyNotes(ticker),
+      getEsgRatings(ticker),
+      getEsgDisclosures(ticker),
+      getExecutiveCompensation(ticker),
+      getExchangeVariants(ticker),
+      getSecProfile(ticker),
+      getSecFilings(ticker, from, to, 20),
+    ]);
   const people = executives.filter((person) => person.active !== false);
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
   const esg = esgDisclosures[0] ?? null;
@@ -36,20 +53,25 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
     .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
     .slice(0, 12);
 
-  const details = [
+  const details: Array<[string, string | number | null | undefined]> = [
     ["CEO", profile?.ceo],
     ["Sector", profile?.sector],
     ["Industry", profile?.industry],
     ["Employees", profile?.fullTimeEmployees],
     ["Headquarters", [profile?.city, profile?.state, profile?.country].filter(Boolean).join(", ")],
     ["Address", [profile?.address, profile?.zip].filter(Boolean).join(", ")],
-    ["Phone", profile?.phone],
+    ["Phone", profile?.phone || secProfile?.phoneNumber],
     ["IPO Date", formatDate(profile?.ipoDate)],
-    ["CIK", profile?.cik],
-    ["ISIN", profile?.isin],
+    ["Stock Type", secProfile?.securityType],
+    ["Fiscal Year End", formatFiscalYearEnd(secProfile?.fiscalYearEnd)],
+    ["Incorporated", secProfile?.stateOfIncorporation],
+    ["SIC", secProfile?.sicCode ? `${secProfile.sicCode}${secProfile.sicDescription ? ` · ${secProfile.sicDescription}` : ""}` : null],
+    ["Employer ID", secProfile?.taxIdentificationNumber],
+    ["CIK", profile?.cik || secProfile?.cik],
+    ["ISIN", profile?.isin || secProfile?.isin],
     ["CUSIP", profile?.cusip],
     ["Exchange", profile?.exchangeFullName],
-  ] as const;
+  ];
 
   const listings = variants
     .filter((row) => row.symbol && row.symbol.toUpperCase() !== ticker)
@@ -182,6 +204,49 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {filings.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-header">Latest SEC Filings</h2>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Form</th>
+                  <th>Filing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...filings]
+                  .sort((a, b) => b.filingDate.localeCompare(a.filingDate))
+                  .slice(0, 10)
+                  .map((row) => (
+                    <tr key={`${row.formType}-${row.acceptedDate}-${row.link}`}>
+                      <td>{formatDate(row.filingDate)}</td>
+                      <td className="font-medium">{row.formType}</td>
+                      <td>
+                        <a
+                          href={row.finalLink || row.link}
+                          className="text-link hover:underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View filing
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/filings`} className="text-link hover:underline">
+              View all SEC filings
+            </Link>
+          </p>
         </section>
       ) : null}
 

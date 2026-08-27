@@ -15,6 +15,8 @@ export function extendedHoursNav(base: "/markets/premarket" | "/markets/afterhou
 export const MARKET_NAV: NavItem[] = [
   { href: "/markets", label: "Overview" },
   { href: "/markets/global", label: "World Markets" },
+  { href: "/markets/hours", label: "Hours" },
+  { href: "/markets/indexes", label: "Indexes" },
   { href: "/markets/heatmap", label: "Heatmap" },
   { href: "/markets/premarket", label: "Pre-Market", match: "prefix" },
   { href: "/markets/afterhours", label: "After Hours", match: "prefix" },

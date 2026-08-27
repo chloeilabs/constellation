@@ -438,6 +438,31 @@ export type FmpMarketHours = {
   isMarketOpen: boolean;
 };
 
+export type FmpExchangeInfo = {
+  exchange: string;
+  name: string;
+  countryName: string;
+  countryCode: string;
+  symbolSuffix: string;
+  delay: string;
+};
+
+export type FmpExchangeHoliday = {
+  exchange: string;
+  date: string;
+  name: string;
+  isClosed: boolean;
+  adjOpenTime: string | null;
+  adjCloseTime: string | null;
+};
+
+export type FmpIndexListItem = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+};
+
 export type FmpExecutive = {
   title: string;
   name: string;
@@ -800,6 +825,42 @@ export type FmpCommodityQuote = {
   price: number;
   change: number;
   volume: number;
+};
+
+export type FmpBeneficialOwner = {
+  cik: string;
+  symbol: string;
+  filingDate: string;
+  acceptedDate: string;
+  cusip: string;
+  nameOfReportingPerson: string;
+  citizenshipOrPlaceOfOrganization: string;
+  soleVotingPower: string;
+  sharedVotingPower: string;
+  soleDispositivePower: string;
+  sharedDispositivePower: string;
+  amountBeneficiallyOwned: string;
+  percentOfClass: string;
+  typeOfReportingPerson: string;
+  url: string;
+};
+
+export type FmpSecProfile = {
+  symbol: string;
+  cik: string;
+  registrantName: string;
+  sicCode: string;
+  sicDescription: string;
+  sicGroup: string;
+  isin: string;
+  phoneNumber: string;
+  city: string;
+  state: string;
+  country: string;
+  stateOfIncorporation: string;
+  fiscalYearEnd: string;
+  taxIdentificationNumber?: string;
+  securityType?: string | null;
 };
 
 export type FmpCrypto = {

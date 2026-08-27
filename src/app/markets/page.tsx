@@ -110,6 +110,7 @@ export default async function MarketsPage() {
         <div className="mt-12 grid gap-8 lg:grid-cols-2">
           <MarketQuotesTable
             title="U.S. Indexes"
+            href="/markets/indexes"
             rows={INDEX_SYMBOLS.map((item) => {
               const quote = indexBySymbol.get(item.symbol);
               return {

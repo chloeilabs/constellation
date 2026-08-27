@@ -23,19 +23,44 @@ const EXCHANGE_SUFFIX: Record<string, string> = {
   b3: "SA",
 };
 
-export default async function QuoteAliasPage({ params }: { params: Promise<{ parts: string[] }> }) {
-  const { parts } = await params;
-  const [first, second] = parts;
-  if (!first) redirect("/");
+const QUOTE_SUBPAGES = new Set([
+  "statistics",
+  "company",
+  "financials",
+  "dividend",
+  "forecast",
+  "news",
+  "chart",
+  "history",
+  "insiders",
+  "filings",
+  "transcripts",
+  "ownership",
+  "earnings",
+  "shares",
+  "employees",
+  "holdings",
+  "congress",
+  "market-cap",
+  "revenue",
+  "pe-ratio",
+  "peg-ratio",
+  "ps-ratio",
+  "pb-ratio",
+]);
 
-  if (!second) {
-    const token = decodeURIComponent(first);
-    if (token.toLowerCase() === "compare") redirect("/compare");
-    const ticker = token.toUpperCase();
-    const market = marketAssetHref(ticker);
-    if (market) redirect(market);
-    const profile = await getProfile(ticker);
-    redirect(
+function withSubpath(href: string, segments: string[]) {
+  const extra = segments.map((part) => decodeURIComponent(part)).filter(Boolean);
+  if (extra.length === 0) return href;
+  return `${href.replace(/\/$/, "")}/${extra.join("/")}`;
+}
+
+async function redirectQuote(ticker: string, extra: string[] = []): Promise<never> {
+  const market = marketAssetHref(ticker);
+  if (market) redirect(withSubpath(market, extra));
+  const profile = await getProfile(ticker);
+  redirect(
+    withSubpath(
       quoteHref(ticker, {
         name: profile?.companyName,
         exchange: profile?.exchange,
@@ -43,20 +68,38 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
         isEtf: profile?.isEtf,
         isFund: profile?.isFund,
       }),
-    );
+      extra,
+    ),
+  );
+}
+
+export default async function QuoteAliasPage({ params }: { params: Promise<{ parts: string[] }> }) {
+  const { parts } = await params;
+  const [first, second, ...rest] = parts;
+  if (!first) redirect("/");
+
+  if (!second) {
+    const token = decodeURIComponent(first);
+    if (token.toLowerCase() === "compare") redirect("/compare");
+    await redirectQuote(token.toUpperCase());
   }
 
   const exchange = decodeURIComponent(first);
+  const token = decodeURIComponent(second);
   if (exchange.toLowerCase() === "compare") {
-    redirect(`/compare?symbols=${decodeURIComponent(second).toUpperCase()}`);
+    redirect(`/compare?symbols=${token.toUpperCase()}`);
   }
   if (exchange.toLowerCase() === "congress") {
-    redirect(`/congress/${decodeURIComponent(second)}`);
+    redirect(`/congress/${token}`);
   }
   if (exchange.toLowerCase() === "13f") {
-    redirect(`/institutional/${decodeURIComponent(second)}`);
+    redirect(`/institutional/${token}`);
   }
-  const ticker = decodeURIComponent(second).toUpperCase();
+  if (QUOTE_SUBPAGES.has(token.toLowerCase())) {
+    await redirectQuote(exchange.toUpperCase(), [token, ...rest]);
+  }
+
+  const ticker = token.toUpperCase();
   const suffix = EXCHANGE_SUFFIX[exchange.toLowerCase()];
   const candidates = ticker.includes(".")
     ? [ticker]
@@ -68,16 +111,19 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
     const profile = await getProfile(candidate);
     if (profile?.symbol) {
       redirect(
-        quoteHref(profile.symbol, {
-          name: profile.companyName,
-          exchange: profile.exchange,
-          exchangeFullName: profile.exchangeFullName,
-          isEtf: profile.isEtf,
-          isFund: profile.isFund,
-        }),
+        withSubpath(
+          quoteHref(profile.symbol, {
+            name: profile.companyName,
+            exchange: profile.exchange,
+            exchangeFullName: profile.exchangeFullName,
+            isEtf: profile.isEtf,
+            isFund: profile.isFund,
+          }),
+          rest,
+        ),
       );
     }
   }
 
-  redirect(quoteHref(candidates[0]));
+  redirect(withSubpath(quoteHref(candidates[0]), rest));
 }

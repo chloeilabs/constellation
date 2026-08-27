@@ -80,6 +80,11 @@ const nextConfig: NextConfig = {
       { source: "/earnings/reported", destination: "/calendar/earnings?view=reported", permanent: false },
       { source: "/crypto", destination: "/markets/crypto", permanent: false },
       { source: "/forex", destination: "/markets/forex", permanent: false },
+      { source: "/stock-market-hours", destination: "/markets/hours", permanent: false },
+      { source: "/market-hours", destination: "/markets/hours", permanent: false },
+      { source: "/markets/index", destination: "/markets/indexes", permanent: false },
+      { source: "/indexes", destination: "/markets/indexes", permanent: false },
+      { source: "/market-indexes", destination: "/markets/indexes", permanent: false },
     ];
   },
   images: {

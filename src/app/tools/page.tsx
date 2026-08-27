@@ -37,6 +37,8 @@ const GROUPS = [
     links: [
       ["/search", "Symbol Lookup", "Search tickers, company names, ETFs, funds, crypto, and forex."],
       ["/etf/lookup", "ETF Reverse Lookup", "Find U.S. ETFs that hold a stock, ranked by position value."],
+      ["/markets/hours", "Market Hours", "Live open/closed status, session times, and upcoming U.S. holidays."],
+      ["/markets/indexes", "Market Indexes", "S&P 500, Dow, Nasdaq, and global indexes with live FMP quotes."],
     ],
   },
 ] as const;

@@ -34,6 +34,11 @@ import type {
   FmpKeyMetricsTtm,
   FmpLightCandle,
   FmpMarketHours,
+  FmpExchangeInfo,
+  FmpExchangeHoliday,
+  FmpIndexListItem,
+  FmpBeneficialOwner,
+  FmpSecProfile,
   FmpMover,
   FmpNewsItem,
   FmpPeer,
@@ -487,15 +492,32 @@ export function mergeAftermarketQuote(
   };
 }
 
-export async function getLatestRsi(symbol: string, periodLength = 14) {
-  const from = isoDate(addDays(new Date(), -45));
+export async function getLatestTechnical(
+  symbol: string,
+  indicator: "rsi" | "sma" | "ema",
+  periodLength = 14,
+) {
+  const lookback = Math.max(periodLength * 2 + 20, 45);
+  const from = isoDate(addDays(new Date(), -lookback));
   const rows = await fmpList<FmpTechnicalPoint>(
-    "/technical-indicators/rsi",
+    `/technical-indicators/${indicator}`,
     { symbol: decodeTicker(symbol), periodLength, timeframe: "1day", from },
     { revalidate: 300 },
   );
   if (rows.length === 0) return null;
   return [...rows].sort((a, b) => b.date.localeCompare(a.date))[0];
+}
+
+export function getLatestRsi(symbol: string, periodLength = 14) {
+  return getLatestTechnical(symbol, "rsi", periodLength);
+}
+
+export function getLatestSma(symbol: string, periodLength = 50) {
+  return getLatestTechnical(symbol, "sma", periodLength);
+}
+
+export function getLatestEma(symbol: string, periodLength = 12) {
+  return getLatestTechnical(symbol, "ema", periodLength);
 }
 
 export function getEtfList() {
@@ -760,6 +782,46 @@ export function getMarketHours(exchange = "NASDAQ") {
     "/exchange-market-hours",
     { exchange },
     { revalidate: 60 },
+  );
+}
+
+export function getAllExchangeHours() {
+  return fmpList<FmpMarketHours>("/all-exchange-market-hours", {}, { revalidate: 60 });
+}
+
+export function getAvailableExchanges() {
+  return fmpList<FmpExchangeInfo>("/available-exchanges", {}, { revalidate: 86400 });
+}
+
+export function getExchangeHolidays(exchange = "NASDAQ") {
+  return fmpList<FmpExchangeHoliday>(
+    "/holidays-by-exchange",
+    { exchange },
+    { revalidate: 86400 },
+  );
+}
+
+export function getIndexList() {
+  return fmpList<FmpIndexListItem>("/index-list", {}, { revalidate: 86400 });
+}
+
+export function getBatchIndexQuotes() {
+  return fmpList<FmpCommodityQuote>("/batch-index-quotes", {}, { revalidate: 30 });
+}
+
+export function getBeneficialOwnership(symbol: string) {
+  return fmpList<FmpBeneficialOwner>(
+    "/acquisition-of-beneficial-ownership",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 3600 },
+  );
+}
+
+export function getSecProfile(symbol: string) {
+  return fmpFirst<FmpSecProfile>(
+    "/sec-profile",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 86400 },
   );
 }
 

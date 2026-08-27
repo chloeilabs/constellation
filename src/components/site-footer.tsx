@@ -6,6 +6,8 @@ const columns = [
     links: [
       ["/markets", "Market Overview"],
       ["/markets/global", "World Markets"],
+      ["/markets/hours", "Market Hours"],
+      ["/markets/indexes", "Market Indexes"],
       ["/markets/gainers", "Top Gainers"],
       ["/markets/losers", "Top Losers"],
       ["/markets/active", "Most Active"],

@@ -28,6 +28,8 @@ import type { FmpEarnings, FmpIpo } from "@/lib/types";
 const MARKET_LINKS = [
   ["/markets/premarket", "Pre-Market"],
   ["/markets/afterhours", "After Hours"],
+  ["/markets/hours", "Hours"],
+  ["/markets/indexes", "Indexes"],
   ["/markets/heatmap", "Heatmap"],
   ["/markets/global", "World Markets"],
   ["/markets/sectors", "Sectors"],

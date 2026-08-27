@@ -6,20 +6,31 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain } from "@/lib/format";
-import { getLatestInstitutionalOwnership } from "@/lib/fmp";
+import { getBeneficialOwnership, getLatestInstitutionalOwnership } from "@/lib/fmp";
 import { institutionalHref } from "@/lib/institutional";
+import { decodeTicker } from "@/lib/listings";
+import {
+  latestBeneficialOwners,
+  parseBeneficialPercent,
+  parseBeneficialShares,
+  reportingPersonType,
+} from "@/lib/markets";
 
 export default async function OwnershipPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
-  const { summary, year, quarter, holders } = await getLatestInstitutionalOwnership(ticker, 40);
+  const ticker = decodeTicker(symbol);
+  const [{ summary, year, quarter, holders }, beneficial] = await Promise.all([
+    getLatestInstitutionalOwnership(ticker, 40),
+    getBeneficialOwnership(ticker),
+  ]);
   const ranked = [...holders].sort((a, b) => (b.marketValue || 0) - (a.marketValue || 0));
+  const owners = latestBeneficialOwners(beneficial).slice(0, 25);
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Institutional Ownership`}
-        description="13F positions, top holders, and changes versus the prior quarter."
+        description="13F positions, Schedule 13G/13D beneficial owners, and changes versus the prior quarter."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       {summary ? (
@@ -106,6 +117,58 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
                     <td className="num">{formatCompactUsd(row.marketValue)}</td>
                     <td className="num">{formatPercentPlain(row.ownership, { alreadyPercent: true })}</td>
                     <td>{formatDate(row.filingDate)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Beneficial Owners (13G / 13D)</h2>
+        <p className="mb-3 text-sm text-muted">
+          Latest acquisition-of-beneficial-ownership filings from FMP, unique by reporting person. The CIK on these rows
+          is the issuer, not the holder, so names are not linked to 13F portfolios.
+        </p>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Reporting person</th>
+                <th>Type</th>
+                <th className="num">Shares</th>
+                <th className="num">% Class</th>
+                <th>Filed</th>
+                <th>Filing</th>
+              </tr>
+            </thead>
+            <tbody>
+              {owners.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-muted">
+                    No recent 13G/13D beneficial-owner filings for this symbol.
+                  </td>
+                </tr>
+              ) : (
+                owners.map((row) => (
+                  <tr key={`${row.nameOfReportingPerson}-${row.filingDate}`}>
+                    <td className="max-w-[280px] truncate font-medium">{row.nameOfReportingPerson}</td>
+                    <td className="text-muted">{reportingPersonType(row.typeOfReportingPerson)}</td>
+                    <td className="num">{formatInteger(parseBeneficialShares(row.amountBeneficiallyOwned))}</td>
+                    <td className="num">
+                      {formatPercentPlain(parseBeneficialPercent(row.percentOfClass), { alreadyPercent: true })}
+                    </td>
+                    <td>{formatDate(row.filingDate)}</td>
+                    <td>
+                      {row.url ? (
+                        <a href={row.url} className="text-link hover:underline" target="_blank" rel="noreferrer">
+                          SEC
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
