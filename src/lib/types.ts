@@ -320,6 +320,19 @@ export type FmpPriceTarget = {
   targetMedian: number;
 };
 
+export type FmpPriceTargetSummary = {
+  symbol: string;
+  lastMonthCount: number;
+  lastMonthAvgPriceTarget: number;
+  lastQuarterCount: number;
+  lastQuarterAvgPriceTarget: number;
+  lastYearCount: number;
+  lastYearAvgPriceTarget: number;
+  allTimeCount: number;
+  allTimeAvgPriceTarget: number;
+  publishers?: string;
+};
+
 export type FmpGradesConsensus = {
   symbol: string;
   strongBuy: number;
@@ -339,6 +352,16 @@ export type FmpGrade = {
   action: string;
 };
 
+export type FmpHistoricalGrade = {
+  symbol: string;
+  date: string;
+  analystRatingsStrongBuy: number;
+  analystRatingsBuy: number;
+  analystRatingsHold: number;
+  analystRatingsSell: number;
+  analystRatingsStrongSell: number;
+};
+
 export type FmpRatings = {
   symbol: string;
   rating: string;
@@ -349,6 +372,10 @@ export type FmpRatings = {
   debtToEquityScore: number;
   priceToEarningsScore: number;
   priceToBookScore: number;
+};
+
+export type FmpHistoricalRating = FmpRatings & {
+  date: string;
 };
 
 export type FmpScores = {
@@ -425,6 +452,19 @@ export type FmpEtfSector = {
   symbol: string;
   sector: string;
   weightPercentage: number;
+};
+
+export type FmpEtfCountryWeight = {
+  country: string;
+  weightPercentage: string | number;
+};
+
+export type FmpEtfExposure = {
+  symbol: string;
+  asset: string;
+  sharesNumber: number;
+  weightPercentage: number;
+  marketValue: number;
 };
 
 export type FmpEstimate = {
@@ -706,4 +746,69 @@ export type FmpIpoProspectus = {
   proceedsBeforeExpensesTotal: number | null;
   form: string;
   url: string;
+};
+
+export type FmpCongressTrade = {
+  symbol: string;
+  senateID?: string;
+  disclosureDate: string;
+  transactionDate: string;
+  firstName: string;
+  lastName: string;
+  office: string;
+  district: string;
+  owner: string;
+  assetDescription: string;
+  assetType: string;
+  type: string;
+  amount: string;
+  capitalGainsOver200USD?: string;
+  comment: string;
+  link: string;
+};
+
+export type FmpOwnerEarnings = {
+  symbol: string;
+  reportedCurrency: string;
+  fiscalYear: string;
+  period: string;
+  date: string;
+  averagePPE: number;
+  maintenanceCapex: number;
+  ownersEarnings: number;
+  growthCapex: number;
+  ownersEarningsPerShare: number;
+};
+
+export type FmpEnterpriseValue = {
+  symbol: string;
+  date: string;
+  stockPrice: number;
+  numberOfShares: number;
+  marketCapitalization: number;
+  minusCashAndCashEquivalents: number;
+  addTotalDebt: number;
+  enterpriseValue: number;
+};
+
+export type FmpTreasuryRate = {
+  date: string;
+  month1: number;
+  month2: number;
+  month3: number;
+  month6: number;
+  year1: number;
+  year2: number;
+  year3: number;
+  year5: number;
+  year7: number;
+  year10: number;
+  year20: number;
+  year30: number;
+};
+
+export type FmpEconomicIndicator = {
+  name: string;
+  date: string;
+  value: number;
 };

@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatNumber, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { getDcf, getKeyMetricsTtm, getProfile, getQuote, getRatiosTtm, getScores, getShareFloat } from "@/lib/fmp";
+import { getDcf, getKeyMetricsTtm, getProfile, getQuote, getRatings, getRatiosTtm, getScores, getShareFloat } from "@/lib/fmp";
 
 function num(value: unknown) {
   return typeof value === "number" ? value : null;
@@ -11,7 +11,7 @@ function num(value: unknown) {
 export default async function StatisticsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, profile, ratios, metrics, scores, shareFloat, dcf] = await Promise.all([
+  const [quote, profile, ratios, metrics, scores, shareFloat, dcf, ratings] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getRatiosTtm(ticker),
@@ -19,6 +19,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getScores(ticker),
     getShareFloat(ticker),
     getDcf(ticker),
+    getRatings(ticker),
   ]);
 
   return (
@@ -34,7 +35,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
               { label: "DCF Fair Value", value: dcf?.dcf != null ? `$${formatPrice(dcf.dcf)}` : "—" },
-              { label: "Enterprise Value", value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
+              { label: "Enterprise Value", href: `/stocks/${ticker}/enterprise-value`, value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
               { label: "PE Ratio (ttm)", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(num(ratios?.priceToEarningsRatioTTM)) },
               { label: "PB Ratio", value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
               { label: "PS Ratio", value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
@@ -80,6 +81,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Altman Z-Score", value: formatNumber(scores?.altmanZScore) },
               { label: "Piotroski Score", value: scores?.piotroskiScore ?? "—" },
+              { label: "FMP Rating", value: ratings?.rating ?? "—" },
               { label: "FCF Yield", value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
               { label: "Dividend Yield", value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
               { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },

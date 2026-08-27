@@ -63,3 +63,21 @@ export function yearEndSnapshots<T extends { date: string }>(rows: T[]) {
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([, row]) => row);
 }
+
+export function parseWeightPercentage(value: string | number | null | undefined) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value.replace(/%/g, "").trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+export function annualDividendPayments(frequency: string | null | undefined) {
+  const value = (frequency || "").toLowerCase();
+  if (value.includes("month")) return 12;
+  if (value.includes("quarter")) return 4;
+  if (value.includes("semi")) return 2;
+  if (value.includes("annual") || value.includes("year")) return 1;
+  return 4;
+}

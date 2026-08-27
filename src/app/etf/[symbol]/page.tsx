@@ -5,7 +5,8 @@ import { ChangeValue } from "@/components/change";
 import { NewsList } from "@/components/news-list";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatUsd } from "@/lib/format";
-import { getEtfHoldings, getEtfInfo, getEtfSectors, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
+import { getEtfCountryWeights, getEtfHoldings, getEtfInfo, getEtfSectors, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
+import { parseWeightPercentage } from "@/lib/utils";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -13,17 +14,18 @@ export async function generateMetadata({ params }: { params: Promise<{ symbol: s
   const ticker = symbol.toUpperCase();
   return {
     title: `${info?.name ?? ticker} (${ticker}) ETF`,
-    description: info?.description?.slice(0, 160) ?? `${ticker} ETF holdings, sectors, and quote.`,
+    description: info?.description?.slice(0, 160) ?? `${ticker} ETF holdings, sectors, countries, and quote.`,
   };
 }
 
 export default async function EtfPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [info, holdings, sectors, quote, news] = await Promise.all([
+  const [info, holdings, sectors, countries, quote, news] = await Promise.all([
     getEtfInfo(ticker),
     getEtfHoldings(ticker),
     getEtfSectors(ticker),
+    getEtfCountryWeights(ticker),
     getQuote(ticker),
     getSymbolNews(ticker, 8),
   ]);
@@ -42,8 +44,13 @@ export default async function EtfPage({ params }: { params: Promise<{ symbol: st
 
   const name = info?.name ?? quote?.name ?? ticker;
   const rankedSectors = [...sectors].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
+  const rankedCountries = [...countries]
+    .map((row) => ({ country: row.country, weight: parseWeightPercentage(row.weightPercentage) }))
+    .filter((row) => row.country && row.weight > 0)
+    .sort((a, b) => b.weight - a.weight);
   const topHoldings = holdings.slice(0, 25);
   const maxSector = Math.max(...rankedSectors.map((row) => row.weightPercentage || 0), 1);
+  const maxCountry = Math.max(...rankedCountries.map((row) => row.weight), 1);
 
   return (
     <Container>
@@ -173,6 +180,29 @@ export default async function EtfPage({ params }: { params: Promise<{ symbol: st
                     <div
                       className="h-2 rounded bg-brand"
                       style={{ width: `${Math.min(100, (row.weightPercentage / maxSector) * 100)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <h2 className="mb-3 mt-10 text-xl font-semibold text-header">Country Weights</h2>
+          {rankedCountries.length === 0 ? (
+            <p className="text-sm text-muted">Country allocation is unavailable.</p>
+          ) : (
+            <ul className="space-y-3">
+              {rankedCountries.map((row) => (
+                <li key={row.country}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span>{row.country}</span>
+                    <span className="tabular text-muted">
+                      {formatPercentPlain(row.weight, { alreadyPercent: true })}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded bg-chip">
+                    <div
+                      className="h-2 rounded bg-brand"
+                      style={{ width: `${Math.min(100, (row.weight / maxCountry) * 100)}%` }}
                     />
                   </div>
                 </li>

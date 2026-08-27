@@ -21,9 +21,9 @@ const TOOLS = [
     icon: Building2,
   },
   {
-    href: "/calendar/earnings",
-    title: "Earnings Calendar",
-    body: "Track upcoming earnings reports, IPOs, and ex-dividend dates.",
+    href: "/list/monthly-dividend-stocks",
+    title: "Monthly Dividends",
+    body: "U.S. stocks that pay a dividend every month, ranked by indicated yield.",
     icon: CalendarDays,
   },
   {

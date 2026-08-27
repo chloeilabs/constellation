@@ -40,6 +40,19 @@ export const HEATMAP_INDEX_NAV: NavItem[] = [
   { href: "/markets/heatmap?index=dow", label: "Dow Jones" },
 ];
 
+export const NEWS_NAV: NavItem[] = [
+  { href: "/news", label: "Stocks" },
+  { href: "/news/press-releases", label: "Press Releases" },
+  { href: "/news/general", label: "General" },
+];
+
+export const CONGRESS_NAV: NavItem[] = [
+  { href: "/insider-trading", label: "Insiders" },
+  { href: "/congress", label: "Congress" },
+  { href: "/congress/senate", label: "Senate" },
+  { href: "/congress/house", label: "House" },
+];
+
 export function quoteFundamentalsNav(symbol: string) {
   return [
     { href: `/stocks/${symbol}/market-cap`, label: "Market Cap" },
@@ -48,6 +61,8 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `/stocks/${symbol}/earnings`, label: "EPS" },
     { href: `/stocks/${symbol}/free-cash-flow`, label: "FCF" },
     { href: `/stocks/${symbol}/pe-ratio`, label: "PE Ratio" },
+    { href: `/stocks/${symbol}/enterprise-value`, label: "EV" },
+    { href: `/stocks/${symbol}/owner-earnings`, label: "Owner Earnings" },
     { href: `/stocks/${symbol}/employees`, label: "Employees" },
     { href: `/stocks/${symbol}/ownership`, label: "Ownership" },
   ];

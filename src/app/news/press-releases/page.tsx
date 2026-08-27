@@ -3,13 +3,16 @@ import { NewsList } from "@/components/news-list";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { NEWS_NAV } from "@/lib/nav";
-import { getStockNews } from "@/lib/fmp";
+import { getLatestPressReleases } from "@/lib/fmp";
 
-export default async function NewsPage() {
-  const items = await getStockNews(40);
+export default async function PressReleasesNewsPage() {
+  const items = await getLatestPressReleases(40);
   return (
     <Container>
-      <PageHeader title="Market News" description="Latest headlines across the stock market." />
+      <PageHeader
+        title="Press Releases"
+        description="Official company announcements, including earnings, lawsuits, and corporate updates."
+      />
       <SectionNav items={NEWS_NAV} />
       <NewsList items={items} />
     </Container>

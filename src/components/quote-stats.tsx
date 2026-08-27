@@ -69,6 +69,7 @@ export function QuoteStats({
   dividend,
   growth,
   earningsDate,
+  forwardPe,
 }: {
   symbol: string;
   quote: FmpQuote | null;
@@ -80,6 +81,7 @@ export function QuoteStats({
   dividend: FmpDividend | null;
   growth?: FmpIncomeGrowth | null;
   earningsDate?: string | null;
+  forwardPe?: number | null;
 }) {
   const pe = ratios?.priceToEarningsRatioTTM;
   const upside =
@@ -97,6 +99,7 @@ export function QuoteStats({
         { label: "Shares Out", value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
         { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatPrice(ttm?.epsDiluted ?? ttm?.eps), growth?.growthEPSDiluted ?? growth?.growthEPS) },
         { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(typeof pe === "number" ? pe : null) },
+        { label: "Forward PE", value: formatRatio(forwardPe) },
         {
           label: "Dividend Yield",
           value: formatPercentPlain(typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null),

@@ -1,5 +1,6 @@
-import { getIndexConstituents, getQuotes, getScreener } from "@/lib/fmp";
-import { preferPrimaryListings } from "@/lib/listings";
+import { getDividendCalendar, getIndexConstituents, getQuotes, getScreener } from "@/lib/fmp";
+import { isForeignListingSymbol, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
+import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
 
 type ScreenerList = {
@@ -18,6 +19,13 @@ type ConstituentList = {
   category: "popular" | "index" | "exchange" | "market-cap";
   source: "constituents";
   index: "sp500" | "nasdaq" | "dow";
+};
+
+type CalendarList = {
+  title: string;
+  description: string;
+  category: "popular" | "index" | "exchange" | "market-cap";
+  source: "monthly-dividends";
 };
 
 export const STOCK_LISTS = {
@@ -59,6 +67,12 @@ export const STOCK_LISTS = {
     filters: { country: "US", dividendMoreThan: 0.01 },
     limit: 400,
     sort: "dividendYield",
+  },
+  "monthly-dividend-stocks": {
+    title: "Monthly Dividend Stocks",
+    description: "U.S. stocks that currently pay a monthly dividend, ranked by indicated yield.",
+    category: "popular",
+    source: "monthly-dividends",
   },
   "nasdaq-stocks": {
     title: "NASDAQ Stocks",
@@ -123,7 +137,7 @@ export const STOCK_LISTS = {
     limit: 100,
     sort: "marketCap",
   },
-} as const satisfies Record<string, ScreenerList | ConstituentList>;
+} as const satisfies Record<string, ScreenerList | ConstituentList | CalendarList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
 
@@ -141,6 +155,7 @@ export const LIST_NAV = [
   { href: "/list/dow-jones-stocks", label: "Dow Jones" },
   { href: "/list/biggest-companies", label: "Biggest" },
   { href: "/list/highest-dividend", label: "Dividends" },
+  { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
 ];
 
 export function isStockListSlug(value: string): value is StockListSlug {
@@ -170,6 +185,10 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
       .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
   }
 
+  if (list.source === "monthly-dividends") {
+    return loadMonthlyDividendStocks();
+  }
+
   const raw = await getScreener({ ...list.filters }, { limit: list.limit });
   const primary = preferPrimaryListings(raw);
   const quotes = await getQuotes(primary.map((row) => row.symbol));
@@ -195,4 +214,35 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     return rows.sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0)).slice(0, 50);
   }
   return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
+}
+
+async function loadMonthlyDividendStocks(): Promise<SymbolTableRow[]> {
+  const today = nyDateString();
+  const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -7));
+  const to = isoDate(addDays(new Date(`${today}T00:00:00Z`), 45));
+  const calendar = await getDividendCalendar(from, to);
+  const monthly = uniqueBySymbol(
+    calendar.filter((row) => /month/i.test(row.frequency || "") && !isForeignListingSymbol(row.symbol)),
+  );
+  const quotes = await getQuotes(monthly.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  return monthly
+    .map((row) => {
+      const quote = bySymbol.get(row.symbol);
+      const price = quote?.price ?? null;
+      const payments = annualDividendPayments(row.frequency);
+      const dividendYield = price && row.dividend ? (row.dividend * payments) / price : null;
+      return {
+        symbol: row.symbol,
+        name: quote?.name || row.symbol,
+        marketCap: quote?.marketCap ?? null,
+        price,
+        changePercentage: quote?.changePercentage ?? null,
+        volume: quote?.volume ?? null,
+        dividendYield,
+      };
+    })
+    .filter((row) => row.price && row.price > 0)
+    .sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0))
+    .slice(0, 100);
 }

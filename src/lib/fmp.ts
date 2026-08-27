@@ -11,10 +11,14 @@ import type {
   FmpEtfHolding,
   FmpEtfInfo,
   FmpEtfSector,
+  FmpEtfCountryWeight,
+  FmpEtfExposure,
   FmpExecutive,
   FmpFullCandle,
   FmpGrade,
   FmpGradesConsensus,
+  FmpHistoricalGrade,
+  FmpHistoricalRating,
   FmpHistoricalMarketCap,
   FmpIncomeGrowth,
   FmpIncomeStatement,
@@ -30,6 +34,7 @@ import type {
   FmpPeer,
   FmpPriceChange,
   FmpPriceTarget,
+  FmpPriceTargetSummary,
   FmpProfile,
   FmpQuote,
   FmpRatings,
@@ -54,6 +59,11 @@ import type {
   FmpMerger,
   FmpIpoDisclosure,
   FmpIpoProspectus,
+  FmpCongressTrade,
+  FmpOwnerEarnings,
+  FmpEnterpriseValue,
+  FmpTreasuryRate,
+  FmpEconomicIndicator,
   StatementPeriod,
 } from "@/lib/types";
 import { recentFiscalQuarters } from "@/lib/utils";
@@ -254,6 +264,22 @@ export function getStockNews(limit = 20, page = 0) {
   );
 }
 
+export function getGeneralNews(limit = 20, page = 0) {
+  return fmpList<FmpNewsItem>(
+    "/news/general-latest",
+    { limit, page },
+    { revalidate: 120 },
+  );
+}
+
+export function getLatestPressReleases(limit = 20, page = 0) {
+  return fmpList<FmpNewsItem>(
+    "/news/press-releases-latest",
+    { limit, page },
+    { revalidate: 180 },
+  );
+}
+
 export function getSymbolNews(symbol: string, limit = 20) {
   return fmpList<FmpNewsItem>(
     "/news/stock",
@@ -410,6 +436,14 @@ export function getPriceTarget(symbol: string) {
   );
 }
 
+export function getPriceTargetSummary(symbol: string) {
+  return fmpFirst<FmpPriceTargetSummary>(
+    "/price-target-summary",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
 export function getGradesConsensus(symbol: string) {
   return fmpFirst<FmpGradesConsensus>(
     "/grades-consensus",
@@ -426,10 +460,26 @@ export function getGrades(symbol: string, limit = 12) {
   );
 }
 
+export function getGradesHistorical(symbol: string, limit = 16) {
+  return fmpList<FmpHistoricalGrade>(
+    "/grades-historical",
+    { symbol: symbol.toUpperCase(), limit },
+    { revalidate: 3600 },
+  );
+}
+
 export function getRatings(symbol: string) {
   return fmpFirst<FmpRatings>(
     "/ratings-snapshot",
     { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
+export function getRatingsHistorical(symbol: string, limit = 16) {
+  return fmpList<FmpHistoricalRating>(
+    "/ratings-historical",
+    { symbol: symbol.toUpperCase(), limit },
     { revalidate: 3600 },
   );
 }
@@ -561,6 +611,22 @@ export function getEtfSectors(symbol: string) {
   );
 }
 
+export function getEtfCountryWeights(symbol: string) {
+  return fmpList<FmpEtfCountryWeight>(
+    "/etf/country-weightings",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
+export function getEtfAssetExposure(symbol: string) {
+  return fmpList<FmpEtfExposure>(
+    "/etf/asset-exposure",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
 export function getIndexConstituents(index: "sp500" | "nasdaq" | "dow") {
   const path = {
     sp500: "/sp500-constituent",
@@ -591,6 +657,30 @@ export function getLatestInsiderTrades(limit = 50) {
     "/insider-trading/latest",
     { page: 0, limit },
     { revalidate: 120 },
+  );
+}
+
+export function getSenateLatest(limit = 100) {
+  return fmpList<FmpCongressTrade>("/senate-latest", { page: 0, limit }, { revalidate: 300 });
+}
+
+export function getHouseLatest(limit = 100) {
+  return fmpList<FmpCongressTrade>("/house-latest", { page: 0, limit }, { revalidate: 300 });
+}
+
+export function getSenateTrades(symbol: string, limit = 50) {
+  return fmpList<FmpCongressTrade>(
+    "/senate-trades",
+    { symbol: symbol.toUpperCase(), page: 0, limit },
+    { revalidate: 600 },
+  );
+}
+
+export function getHouseTrades(symbol: string, limit = 50) {
+  return fmpList<FmpCongressTrade>(
+    "/house-trades",
+    { symbol: symbol.toUpperCase(), page: 0, limit },
+    { revalidate: 600 },
   );
 }
 
@@ -796,6 +886,34 @@ export function getIpoDisclosures(from: string, to: string) {
 
 export function getIpoProspectuses(from: string, to: string) {
   return fmpList<FmpIpoProspectus>("/ipos-prospectus", { from, to }, { revalidate: 600 });
+}
+
+export function getOwnerEarnings(symbol: string, limit = 20) {
+  return fmpList<FmpOwnerEarnings>(
+    "/owner-earnings",
+    { symbol: symbol.toUpperCase(), limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getEnterpriseValues(symbol: string, period: StatementPeriod = "annual", limit = 20) {
+  return fmpList<FmpEnterpriseValue>(
+    "/enterprise-values",
+    { symbol: symbol.toUpperCase(), period, limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getTreasuryRates(from: string, to: string) {
+  return fmpList<FmpTreasuryRate>("/treasury-rates", { from, to }, { revalidate: 3600 });
+}
+
+export function getEconomicIndicator(name: string, from?: string, to?: string) {
+  return fmpList<FmpEconomicIndicator>(
+    "/economic-indicators",
+    { name, from, to },
+    { revalidate: 86400 },
+  );
 }
 
 export async function withQuoteChanges<T extends { symbol: string; price?: number }>(rows: T[]) {

@@ -22,6 +22,7 @@ const columns = [
       ["/list/nasdaq-100-stocks", "Nasdaq 100"],
       ["/list/dow-jones-stocks", "Dow Jones"],
       ["/list/biggest-companies", "Biggest Companies"],
+      ["/list/monthly-dividend-stocks", "Monthly Dividends"],
       ["/list/nasdaq-stocks", "NASDAQ Stocks"],
       ["/list/nyse-stocks", "NYSE Stocks"],
       ["/etf", "ETFs"],
@@ -33,6 +34,7 @@ const columns = [
     title: "News & Calendar",
     links: [
       ["/news", "Market News"],
+      ["/news/press-releases", "Press Releases"],
       ["/ipos", "Recent IPOs"],
       ["/calendar/earnings", "Earnings Calendar"],
       ["/calendar/ipos", "IPO Calendar"],
@@ -41,6 +43,7 @@ const columns = [
       ["/calendar/economy", "Economic Calendar"],
       ["/actions", "Corporate Actions"],
       ["/insider-trading", "Insider Trading"],
+      ["/congress", "Congressional Trades"],
     ],
   },
   {

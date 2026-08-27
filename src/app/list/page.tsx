@@ -8,7 +8,7 @@ export default function ListsIndexPage() {
     <Container>
       <PageHeader
         title="Stock Lists"
-        description="Index constituents, U.S. exchanges, market-cap groups, and other ranked stock lists."
+        description="Index constituents, U.S. exchanges, market-cap groups, dividend lists, and other ranked stock lists."
       />
       <div className="space-y-10">
         {LIST_CATEGORIES.map((category) => {

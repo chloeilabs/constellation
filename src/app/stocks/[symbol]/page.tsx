@@ -4,11 +4,13 @@ import { Container } from "@/components/container";
 import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
-import { formatCompactUsd, formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
+import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import {
   getCompanyEarnings,
   getDividends,
+  getEstimates,
+  getEtfAssetExposure,
   getGradesConsensus,
   getIncomeGrowth,
   getIncomeStatements,
@@ -20,6 +22,8 @@ import {
   getRatiosTtm,
   getSymbolNews,
 } from "@/lib/fmp";
+import { isForeignListingSymbol } from "@/lib/listings";
+import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 
 export default async function StockOverviewPage({
   params,
@@ -33,7 +37,7 @@ export default async function StockOverviewPage({
   const ticker = symbol.toUpperCase();
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -48,10 +52,16 @@ export default async function StockOverviewPage({
       getIncomeStatements(ticker, "annual", 2),
       getIncomeGrowth(ticker, "annual", 1),
       getCompanyEarnings(ticker, 1),
+      getEstimates(ticker, "annual"),
+      getEtfAssetExposure(ticker),
     ]);
   const latestYear = annual[0];
   const priorYear = annual[1];
   const growth = growthRows[0] ?? null;
+  const usEtfs = etfHolders.filter((row) => row.symbol && !isForeignListingSymbol(row.symbol));
+  const heldByEtfs = [...(usEtfs.length ? usEtfs : etfHolders)]
+    .sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0))
+    .slice(0, 12);
 
   return (
     <Container>
@@ -59,7 +69,7 @@ export default async function StockOverviewPage({
         <p className="mb-4 rounded-md border border-border bg-muted-bg px-3 py-2 text-sm">
           {ticker} is an ETF.{" "}
           <Link href={`/etf/${ticker}`} className="text-link hover:underline">
-            View holdings and sector weights
+            View holdings, sectors, and country weights
           </Link>
           .
         </p>
@@ -80,6 +90,7 @@ export default async function StockOverviewPage({
           dividend={dividends[0] ?? null}
           growth={growth}
           earningsDate={earnings[0]?.date}
+          forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
         />
       </div>
 
@@ -209,6 +220,41 @@ export default async function StockOverviewPage({
                     <td>{peer.companyName}</td>
                     <td className="num">{formatPrice(peer.price)}</td>
                     <td className="num">{formatCompactUsd(peer.mktCap)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
+      {heldByEtfs.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-header">Held by ETFs</h2>
+          <p className="mb-3 text-sm text-muted">
+            ETFs that report {ticker} as a holding, ranked by weight in the fund.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>ETF</th>
+                  <th className="num">Weight</th>
+                  <th className="num">Shares</th>
+                  <th className="num">Market Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {heldByEtfs.map((row) => (
+                  <tr key={row.symbol}>
+                    <td className="symbol">
+                      <Link href={`/etf/${row.symbol}`} className="text-link hover:underline">
+                        {row.symbol}
+                      </Link>
+                    </td>
+                    <td className="num">{formatPercentPlain(row.weightPercentage, { alreadyPercent: true })}</td>
+                    <td className="num">{formatInteger(row.sharesNumber)}</td>
+                    <td className="num">{formatCompactUsd(row.marketValue)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -2,21 +2,64 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
-import { getCompanyEarnings, getDcf, getEstimates, getGrades, getGradesConsensus, getLeveredDcf, getPriceTarget, getQuote } from "@/lib/fmp";
+import {
+  getCompanyEarnings,
+  getDcf,
+  getEstimates,
+  getGrades,
+  getGradesConsensus,
+  getGradesHistorical,
+  getLeveredDcf,
+  getPriceTarget,
+  getPriceTargetSummary,
+  getQuote,
+  getRatingsHistorical,
+} from "@/lib/fmp";
+import type { FmpHistoricalGrade } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+function GradeMix({ row }: { row: FmpHistoricalGrade }) {
+  const parts = [
+    { key: "sb", count: row.analystRatingsStrongBuy, className: "bg-gain" },
+    { key: "b", count: row.analystRatingsBuy, className: "bg-gain/60" },
+    { key: "h", count: row.analystRatingsHold, className: "bg-chip" },
+    { key: "s", count: row.analystRatingsSell, className: "bg-loss/60" },
+    { key: "ss", count: row.analystRatingsStrongSell, className: "bg-loss" },
+  ];
+  const total = parts.reduce((sum, part) => sum + (part.count || 0), 0) || 1;
+  return (
+    <div className="flex h-2.5 overflow-hidden rounded-full bg-chip">
+      {parts.map((part) =>
+        part.count > 0 ? (
+          <div
+            key={part.key}
+            className={cn("h-full", part.className)}
+            style={{ width: `${(part.count / total) * 100}%` }}
+            title={`${part.count}`}
+          />
+        ) : null,
+      )}
+    </div>
+  );
+}
 
 export default async function ForecastPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, target, grades, history, estimates, earnings, dcf, levered] = await Promise.all([
-    getQuote(ticker),
-    getPriceTarget(ticker),
-    getGradesConsensus(ticker),
-    getGrades(ticker, 16),
-    getEstimates(ticker, "annual"),
-    getCompanyEarnings(ticker, 8),
-    getDcf(ticker),
-    getLeveredDcf(ticker),
-  ]);
+  const [quote, target, grades, history, estimates, earnings, dcf, levered, gradeTrend, ratingTrend, targetSummary] =
+    await Promise.all([
+      getQuote(ticker),
+      getPriceTarget(ticker),
+      getGradesConsensus(ticker),
+      getGrades(ticker, 16),
+      getEstimates(ticker, "annual"),
+      getCompanyEarnings(ticker, 8),
+      getDcf(ticker),
+      getLeveredDcf(ticker),
+      getGradesHistorical(ticker, 16),
+      getRatingsHistorical(ticker, 12),
+      getPriceTargetSummary(ticker),
+    ]);
 
   const upside =
     target && quote?.price ? ((target.targetConsensus - quote.price) / quote.price) * 100 : null;
@@ -54,6 +97,36 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
           <p className="mt-2 text-sm text-muted">From last price ${formatPrice(quote?.price)}</p>
         </div>
       </div>
+
+      {targetSummary ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-header">Price Target Trend</h2>
+          <MetricCards
+            items={[
+              {
+                label: "Last Month",
+                value: `$${formatPrice(targetSummary.lastMonthAvgPriceTarget)}`,
+                hint: `${targetSummary.lastMonthCount} analysts`,
+              },
+              {
+                label: "Last Quarter",
+                value: `$${formatPrice(targetSummary.lastQuarterAvgPriceTarget)}`,
+                hint: `${targetSummary.lastQuarterCount} analysts`,
+              },
+              {
+                label: "Last Year",
+                value: `$${formatPrice(targetSummary.lastYearAvgPriceTarget)}`,
+                hint: `${targetSummary.lastYearCount} analysts`,
+              },
+              {
+                label: "All Time",
+                value: `$${formatPrice(targetSummary.allTimeAvgPriceTarget)}`,
+                hint: `${targetSummary.allTimeCount} analysts`,
+              },
+            ]}
+          />
+        </section>
+      ) : null}
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Discounted Cash Flow</h2>
@@ -110,6 +183,92 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
                     <td className="capitalize">{row.action}</td>
                     <td>{row.previousGrade || "—"}</td>
                     <td>{row.newGrade}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Analyst Rating History</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Mix</th>
+                <th className="num">Strong Buy</th>
+                <th className="num">Buy</th>
+                <th className="num">Hold</th>
+                <th className="num">Sell</th>
+                <th className="num">Strong Sell</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gradeTrend.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-muted">
+                    No historical analyst rating mix available.
+                  </td>
+                </tr>
+              ) : (
+                gradeTrend.map((row) => (
+                  <tr key={row.date}>
+                    <td>{formatDate(row.date)}</td>
+                    <td className="min-w-[140px]">
+                      <GradeMix row={row} />
+                    </td>
+                    <td className="num">{row.analystRatingsStrongBuy}</td>
+                    <td className="num">{row.analystRatingsBuy}</td>
+                    <td className="num">{row.analystRatingsHold}</td>
+                    <td className="num">{row.analystRatingsSell}</td>
+                    <td className="num">{row.analystRatingsStrongSell}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">FMP Rating History</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Rating</th>
+                <th className="num">Overall</th>
+                <th className="num">DCF</th>
+                <th className="num">ROE</th>
+                <th className="num">ROA</th>
+                <th className="num">D/E</th>
+                <th className="num">P/E</th>
+                <th className="num">P/B</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ratingTrend.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="text-muted">
+                    No historical financial ratings available.
+                  </td>
+                </tr>
+              ) : (
+                ratingTrend.map((row) => (
+                  <tr key={row.date}>
+                    <td>{formatDate(row.date)}</td>
+                    <td className="font-semibold">{row.rating}</td>
+                    <td className="num">{row.overallScore}</td>
+                    <td className="num">{row.discountedCashFlowScore}</td>
+                    <td className="num">{row.returnOnEquityScore}</td>
+                    <td className="num">{row.returnOnAssetsScore}</td>
+                    <td className="num">{row.debtToEquityScore}</td>
+                    <td className="num">{row.priceToEarningsScore}</td>
+                    <td className="num">{row.priceToBookScore}</td>
                   </tr>
                 ))
               )}

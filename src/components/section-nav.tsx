@@ -4,7 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export { MARKET_NAV, CALENDAR_NAV, IPO_NAV, STOCKS_NAV, HEATMAP_INDEX_NAV, quoteFundamentalsNav } from "@/lib/nav";
+export {
+  MARKET_NAV,
+  CALENDAR_NAV,
+  IPO_NAV,
+  STOCKS_NAV,
+  HEATMAP_INDEX_NAV,
+  NEWS_NAV,
+  CONGRESS_NAV,
+  quoteFundamentalsNav,
+} from "@/lib/nav";
 
 export function SectionNav({
   items,
