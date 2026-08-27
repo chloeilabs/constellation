@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { ETF_NAV } from "@/lib/nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
 import { preferPrimaryListings } from "@/lib/listings";
@@ -22,13 +23,7 @@ export default async function EtfListPage() {
           </Link>
         }
       />
-      <SectionNav
-        items={[
-          { href: "/list/biggest-companies", label: "Biggest Companies" },
-          { href: "/etf", label: "ETFs" },
-          { href: "/funds", label: "Mutual Funds" },
-        ]}
-      />
+      <SectionNav items={ETF_NAV} />
       <SymbolTable
         hrefBase="/etf"
         showIndustry={false}

@@ -4,6 +4,7 @@ import { Container } from "@/components/container";
 import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
+import { SectionNav } from "@/components/section-nav";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import {
@@ -23,6 +24,7 @@ import {
   getSymbolNews,
 } from "@/lib/fmp";
 import { isForeignListingSymbol } from "@/lib/listings";
+import { quoteFundamentalsNav } from "@/lib/nav";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 
 export default async function StockOverviewPage({
@@ -79,6 +81,8 @@ export default async function StockOverviewPage({
           .
         </p>
       ) : null}
+
+      <SectionNav items={quoteFundamentalsNav(ticker)} />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
         <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>

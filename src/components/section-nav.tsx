@@ -12,6 +12,7 @@ export {
   HEATMAP_INDEX_NAV,
   INDEX_CHANGES_NAV,
   NEWS_NAV,
+  ETF_NAV,
   CONGRESS_NAV,
   quoteFundamentalsNav,
 } from "@/lib/nav";

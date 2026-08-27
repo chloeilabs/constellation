@@ -73,6 +73,13 @@ export function parseWeightPercentage(value: string | number | null | undefined)
   return 0;
 }
 
+export function percentFromPriceChange(price: number | null | undefined, change: number | null | undefined) {
+  if (price == null || change == null || !Number.isFinite(price) || !Number.isFinite(change)) return null;
+  const previous = price - change;
+  if (!previous) return null;
+  return change / previous;
+}
+
 export function annualDividendPayments(frequency: string | null | undefined) {
   const value = (frequency || "").toLowerCase();
   if (value.includes("month")) return 12;

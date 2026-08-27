@@ -710,6 +710,67 @@ export type FmpIndustryPe = {
   pe: number;
 };
 
+export type FmpSectorPe = {
+  date: string;
+  sector: string;
+  exchange: string;
+  pe: number;
+};
+
+export type FmpGradeNews = {
+  symbol: string;
+  publishedDate: string;
+  newsURL: string;
+  newsTitle: string;
+  newsBaseURL: string;
+  newsPublisher: string;
+  newGrade: string;
+  previousGrade: string;
+  gradingCompany: string;
+  action: string;
+  priceWhenPosted: number;
+};
+
+export type FmpCommodity = {
+  symbol: string;
+  name: string;
+  exchange: string | null;
+  tradeMonth: string;
+  currency: string;
+};
+
+export type FmpCommodityQuote = {
+  symbol: string;
+  price: number;
+  change: number;
+  volume: number;
+};
+
+export type FmpCrypto = {
+  symbol: string;
+  name: string;
+  exchange: string | null;
+  icoDate?: string;
+  circulatingSupply?: number;
+  totalSupply?: number;
+};
+
+export type FmpForex = {
+  symbol: string;
+  fromCurrency: string;
+  toCurrency: string;
+  fromName: string;
+  toName: string;
+};
+
+export type FmpKeyMetrics = {
+  symbol: string;
+  date: string;
+  fiscalYear: string;
+  period: string;
+  [key: string]: string | number | undefined;
+};
+
 export type FmpMerger = {
   symbol: string;
   companyName: string;

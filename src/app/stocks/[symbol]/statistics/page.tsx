@@ -1,6 +1,8 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav } from "@/components/section-nav";
 import { StatGrid } from "@/components/quote-stats";
+import { quoteFundamentalsNav } from "@/lib/nav";
 import { formatCompactUsd, formatNumber, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { getDcf, getKeyMetricsTtm, getProfile, getQuote, getRatings, getRatiosTtm, getScores, getShareFloat } from "@/lib/fmp";
 
@@ -28,6 +30,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
         title={`${ticker} Statistics`}
         description="Trailing twelve-month valuation, profitability, and financial health metrics."
       />
+      <SectionNav items={quoteFundamentalsNav(ticker)} />
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 font-semibold text-header">Valuation</h2>
@@ -52,7 +55,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Gross Margin", value: formatPercentPlain(num(ratios?.grossProfitMarginTTM)) },
               { label: "Operating Margin", value: formatPercentPlain(num(ratios?.operatingProfitMarginTTM)) },
               { label: "Profit Margin", href: `/stocks/${ticker}/net-income`, value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
-              { label: "EBITDA Margin", value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
+              { label: "EBITDA Margin", href: `/stocks/${ticker}/ebitda`, value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
               { label: "ROA", value: formatPercentPlain(num(metrics?.returnOnAssetsTTM)) },
               { label: "ROE", value: formatPercentPlain(num(metrics?.returnOnEquityTTM)) },
               { label: "ROIC", value: formatPercentPlain(num(metrics?.returnOnInvestedCapitalTTM)) },

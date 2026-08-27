@@ -56,6 +56,13 @@ import type {
   FmpRevenueSegment,
   FmpIndustryPerformance,
   FmpIndustryPe,
+  FmpSectorPe,
+  FmpGradeNews,
+  FmpCommodity,
+  FmpCommodityQuote,
+  FmpCrypto,
+  FmpForex,
+  FmpKeyMetrics,
   FmpMerger,
   FmpIpoDisclosure,
   FmpIpoProspectus,
@@ -430,7 +437,7 @@ export function getKeyMetricsTtm(symbol: string) {
 }
 
 export function getKeyMetrics(symbol: string, period: StatementPeriod, limit = 8) {
-  return fmpList<Record<string, string | number>>(
+  return fmpList<FmpKeyMetrics>(
     "/key-metrics",
     { symbol: symbol.toUpperCase(), period, limit },
     { revalidate: 3600 },
@@ -888,6 +895,46 @@ export function getIndustryPeSnapshot(date: string) {
     { date },
     { revalidate: 300 },
   );
+}
+
+export function getSectorPeSnapshot(date: string) {
+  return fmpList<FmpSectorPe>(
+    "/sector-pe-snapshot",
+    { date },
+    { revalidate: 300 },
+  );
+}
+
+export function getGradesLatestNews(limit = 80) {
+  return fmpList<FmpGradeNews>(
+    "/grades-latest-news",
+    { page: 0, limit },
+    { revalidate: 120 },
+  );
+}
+
+export function getCommoditiesList() {
+  return fmpList<FmpCommodity>("/commodities-list", {}, { revalidate: 86400 });
+}
+
+export function getCommodityQuotes() {
+  return fmpList<FmpCommodityQuote>("/batch-commodity-quotes", {}, { revalidate: 60 });
+}
+
+export function getCryptocurrencyList() {
+  return fmpList<FmpCrypto>("/cryptocurrency-list", {}, { revalidate: 86400 });
+}
+
+export function getCryptoQuotes() {
+  return fmpList<FmpCommodityQuote>("/batch-crypto-quotes", {}, { revalidate: 60 });
+}
+
+export function getForexList() {
+  return fmpList<FmpForex>("/forex-list", {}, { revalidate: 86400 });
+}
+
+export function getForexQuotes() {
+  return fmpList<FmpCommodityQuote>("/batch-forex-quotes", {}, { revalidate: 60 });
 }
 
 export function getLatestMergers(limit = 50) {

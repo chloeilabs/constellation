@@ -95,6 +95,8 @@ export function QuoteStats({
       items={[
         { label: "Market Cap", href: `${base}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
         { label: "Revenue (ttm)", href: `${base}/revenue`, value: withYoy(formatCompactUsd(ttm?.revenue), growth?.growthRevenue) },
+        { label: "Operating Income (ttm)", href: `${base}/operating-income`, value: formatCompactUsd(ttm?.operatingIncome) },
+        { label: "EBITDA (ttm)", href: `${base}/ebitda`, value: formatCompactUsd(ttm?.ebitda) },
         { label: "Net Income (ttm)", href: `${base}/net-income`, value: withYoy(formatCompactUsd(ttm?.netIncome), growth?.growthNetIncome) },
         { label: "Shares Out", href: `${base}/shares`, value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
         { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatPrice(ttm?.epsDiluted ?? ttm?.eps), growth?.growthEPSDiluted ?? growth?.growthEPS) },
@@ -102,6 +104,7 @@ export function QuoteStats({
         { label: "Forward PE", value: formatRatio(forwardPe) },
         {
           label: "Dividend Yield",
+          href: `${base}/dividend`,
           value: formatPercentPlain(typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null),
         },
         { label: "Dividend", value: dividend ? `$${formatPrice(dividend.dividend)}` : profile?.lastDividend ? `$${formatPrice(profile.lastDividend)}` : "—" },
@@ -116,9 +119,10 @@ export function QuoteStats({
         { label: "50-Day Average", value: formatPrice(quote?.priceAvg50) },
         { label: "200-Day Average", value: formatPrice(quote?.priceAvg200) },
         { label: "Profit Margin", value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
-        { label: "Analysts", value: grades?.consensus ?? "—" },
+        { label: "Analysts", href: `${base}/forecast`, value: grades?.consensus ?? "—" },
         {
           label: "Price Target",
+          href: `${base}/forecast`,
           value: target?.targetConsensus
             ? `${formatPrice(target.targetConsensus)}${upside != null ? ` (${upside > 0 ? "+" : ""}${upside.toFixed(1)}%)` : ""}`
             : "—",

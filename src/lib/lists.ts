@@ -4,7 +4,7 @@ import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/ut
 import type { SymbolTableRow } from "@/components/symbol-table";
 import type { FmpScreenerRow } from "@/lib/types";
 
-type ListCategory = "popular" | "index" | "exchange" | "market-cap";
+type ListCategory = "popular" | "index" | "exchange" | "market-cap" | "etf" | "international";
 
 type ScreenerList = {
   title: string;
@@ -14,6 +14,10 @@ type ScreenerList = {
   filters: Record<string, string | number | boolean>;
   limit: number;
   sort?: "marketCap" | "dividendYield";
+  listing?: "primary" | "raw";
+  hrefBase?: "/stocks" | "/etf";
+  yieldMax?: number;
+  symbolPattern?: string;
 };
 
 type ConstituentList = {
@@ -181,6 +185,96 @@ export const STOCK_LISTS = {
     limit: 100,
     sort: "marketCap",
   },
+  "dividend-etfs": {
+    title: "Dividend ETFs",
+    description: "U.S. ETFs ranked by indicated dividend yield from FMP screener data.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", dividendMoreThan: 0.01 },
+    limit: 200,
+    sort: "dividendYield",
+    listing: "primary",
+    hrefBase: "/etf",
+    yieldMax: 0.15,
+  },
+  "bond-etfs": {
+    title: "Bond ETFs",
+    description: "The largest U.S. fixed-income ETFs, ranked by market value.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Bonds" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+  },
+  "income-etfs": {
+    title: "Equity Income ETFs",
+    description: "U.S. equity-income ETFs, including covered-call and high-dividend funds.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Income" },
+    limit: 100,
+    sort: "dividendYield",
+    listing: "primary",
+    hrefBase: "/etf",
+    yieldMax: 0.15,
+  },
+  "tsx-stocks": {
+    title: "Toronto Stock Exchange",
+    description: "The largest Canadian companies listed on the TSX.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "TSX", country: "CA" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.TO$",
+  },
+  "london-stocks": {
+    title: "London Stock Exchange",
+    description: "The largest U.K. companies listed on the London Stock Exchange.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "LSE", country: "GB" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.L$",
+  },
+  "hong-kong-stocks": {
+    title: "Hong Kong Stock Exchange",
+    description: "The largest companies listed on the Hong Kong Stock Exchange.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "HKSE" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^\\d{4}\\.HK$",
+  },
+  "australia-stocks": {
+    title: "Australian Securities Exchange",
+    description: "The largest Australian companies listed on the ASX.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "ASX", country: "AU" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]{2,4}\\.AX$",
+  },
+  "germany-stocks": {
+    title: "Deutsche Börse (Xetra)",
+    description: "The largest German companies listed on Xetra.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "XETRA", country: "DE" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.DE$",
+  },
 } as const satisfies Record<string, StockList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
@@ -190,6 +284,8 @@ export const LIST_CATEGORIES = [
   { id: "popular", title: "Popular Lists" },
   { id: "exchange", title: "U.S. Exchanges" },
   { id: "market-cap", title: "Market Cap Groups" },
+  { id: "etf", title: "ETF Lists" },
+  { id: "international", title: "International Exchanges" },
 ] as const;
 
 export const LIST_NAV = [
@@ -202,7 +298,13 @@ export const LIST_NAV = [
   { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
   { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
+  { href: "/list/dividend-etfs", label: "Dividend ETFs" },
 ];
+
+export function listHrefBase(slug: StockListSlug) {
+  const list = STOCK_LISTS[slug];
+  return "hrefBase" in list && list.hrefBase ? list.hrefBase : "/stocks";
+}
 
 export function isStockListSlug(value: string): value is StockListSlug {
   return value in STOCK_LISTS;
@@ -247,8 +349,22 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     return loadForeignUsStocks();
   }
 
+  const listing = "listing" in list && list.listing === "raw" ? "raw" : "primary";
+  const yieldMax = "yieldMax" in list ? list.yieldMax : undefined;
+  const symbolPattern =
+    "symbolPattern" in list && typeof list.symbolPattern === "string" ? new RegExp(list.symbolPattern, "i") : null;
   const raw = await getScreener({ ...list.filters }, { limit: list.limit });
-  const rows = await toScreenerRows(preferPrimaryListings(raw));
+  let selected = listing === "raw" ? uniqueBySymbol(raw) : preferPrimaryListings(raw);
+  if (symbolPattern) {
+    selected = selected.filter((row) => symbolPattern.test(row.symbol));
+  }
+  let rows = await toScreenerRows(selected);
+  if (listing === "raw") {
+    rows = rows.filter((row) => (row.marketCap ?? 0) > 0 && (row.marketCap ?? 0) < 20_000_000_000_000);
+  }
+  if (yieldMax != null) {
+    rows = rows.filter((row) => (row.dividendYield ?? 0) > 0 && (row.dividendYield ?? 0) < yieldMax);
+  }
 
   if (list.sort === "dividendYield") {
     return rows.sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0)).slice(0, 50);

@@ -8,6 +8,9 @@ export const MARKET_NAV: NavItem[] = [
   { href: "/markets/losers", label: "Losers" },
   { href: "/markets/active", label: "Most Active" },
   { href: "/markets/sectors", label: "Sectors" },
+  { href: "/markets/commodities", label: "Commodities" },
+  { href: "/markets/crypto", label: "Crypto" },
+  { href: "/markets/forex", label: "Forex" },
 ];
 
 export const INDEX_CHANGES_NAV: NavItem[] = [
@@ -51,6 +54,15 @@ export const NEWS_NAV: NavItem[] = [
   { href: "/news", label: "Stocks" },
   { href: "/news/press-releases", label: "Press Releases" },
   { href: "/news/general", label: "General" },
+  { href: "/analysts", label: "Analysts" },
+];
+
+export const ETF_NAV: NavItem[] = [
+  { href: "/etf", label: "Largest ETFs" },
+  { href: "/list/dividend-etfs", label: "Dividend ETFs" },
+  { href: "/list/bond-etfs", label: "Bond ETFs" },
+  { href: "/list/income-etfs", label: "Equity Income" },
+  { href: "/funds", label: "Mutual Funds" },
 ];
 
 export const CONGRESS_NAV: NavItem[] = [
@@ -66,9 +78,13 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `/stocks/${symbol}/market-cap`, label: "Market Cap" },
     { href: `/stocks/${symbol}/shares`, label: "Shares" },
     { href: `/stocks/${symbol}/revenue`, label: "Revenue" },
+    { href: `/stocks/${symbol}/operating-income`, label: "Operating Income" },
+    { href: `/stocks/${symbol}/ebitda`, label: "EBITDA" },
     { href: `/stocks/${symbol}/net-income`, label: "Net Income" },
     { href: `/stocks/${symbol}/earnings`, label: "EPS" },
     { href: `/stocks/${symbol}/free-cash-flow`, label: "FCF" },
+    { href: `/stocks/${symbol}/cash`, label: "Cash" },
+    { href: `/stocks/${symbol}/debt`, label: "Debt" },
     { href: `/stocks/${symbol}/pe-ratio`, label: "PE Ratio" },
     { href: `/stocks/${symbol}/enterprise-value`, label: "EV" },
     { href: `/stocks/${symbol}/owner-earnings`, label: "Owner Earnings" },

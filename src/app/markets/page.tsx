@@ -27,7 +27,7 @@ export default async function MarketsPage() {
     <>
       <IndexTicker quotes={indexes} hours={hours} />
       <Container>
-        <PageHeader title="Stock Market" description="Indexes, movers, and sector performance." />
+        <PageHeader title="Stock Market" description="Indexes, movers, sectors, commodities, crypto, and forex." />
         <SectionNav items={MARKET_NAV} />
         <div className="grid gap-8 lg:grid-cols-3">
           <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 8)} />

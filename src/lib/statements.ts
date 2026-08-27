@@ -140,6 +140,37 @@ export const GROWTH_ROWS: StatementRow[] = [
   { key: "tenYShareholdersEquityGrowthPerShare", label: "10Y Equity / Share", format: "percent" },
 ];
 
+export const KEY_METRIC_ROWS: StatementRow[] = [
+  { key: "marketCap", label: "Market Cap", emphasize: true, format: "money" },
+  { key: "enterpriseValue", label: "Enterprise Value", emphasize: true, format: "money" },
+  { key: "evToSales", label: "EV / Sales", format: "ratio" },
+  { key: "evToEBITDA", label: "EV / EBITDA", format: "ratio" },
+  { key: "evToOperatingCashFlow", label: "EV / Operating CF", format: "ratio" },
+  { key: "evToFreeCashFlow", label: "EV / FCF", format: "ratio" },
+  { key: "netDebtToEBITDA", label: "Net Debt / EBITDA", format: "ratio" },
+  { key: "currentRatio", label: "Current Ratio", format: "ratio" },
+  { key: "returnOnAssets", label: "Return on Assets", format: "percent" },
+  { key: "returnOnEquity", label: "Return on Equity", format: "percent" },
+  { key: "returnOnInvestedCapital", label: "Return on Invested Capital", format: "percent" },
+  { key: "returnOnCapitalEmployed", label: "Return on Capital Employed", format: "percent" },
+  { key: "earningsYield", label: "Earnings Yield", format: "percent" },
+  { key: "freeCashFlowYield", label: "FCF Yield", format: "percent" },
+  { key: "grahamNumber", label: "Graham Number", format: "eps" },
+  { key: "grahamNetNet", label: "Graham Net-Net", format: "eps" },
+  { key: "workingCapital", label: "Working Capital", format: "money" },
+  { key: "investedCapital", label: "Invested Capital", format: "money" },
+  { key: "freeCashFlowToEquity", label: "FCFE", format: "money" },
+  { key: "incomeQuality", label: "Income Quality", format: "ratio" },
+  { key: "capexToRevenue", label: "Capex / Revenue", format: "percent" },
+  { key: "stockBasedCompensationToRevenue", label: "SBC / Revenue", format: "percent" },
+  { key: "researchAndDevelopementToRevenue", label: "R&D / Revenue", format: "percent" },
+  { key: "operatingCycle", label: "Operating Cycle", format: "number" },
+  { key: "cashConversionCycle", label: "Cash Conversion Cycle", format: "number" },
+  { key: "daysOfSalesOutstanding", label: "Days Sales Outstanding", format: "number" },
+  { key: "daysOfInventoryOutstanding", label: "Days Inventory Outstanding", format: "number" },
+  { key: "daysOfPayablesOutstanding", label: "Days Payables Outstanding", format: "number" },
+];
+
 export const INDEX_LABELS: Record<string, string> = {
   "^GSPC": "S&P 500",
   "^DJI": "Dow Jones",
