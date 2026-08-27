@@ -447,3 +447,81 @@ export type ChartPoint = {
 };
 
 export type StatementPeriod = "annual" | "quarter";
+
+export type FmpIndexConstituent = {
+  symbol: string;
+  name: string;
+  sector: string;
+  subSector: string;
+  headQuarter: string;
+  dateFirstAdded: string | null;
+  cik: string;
+  founded: string;
+};
+
+export type FmpInsiderTrade = {
+  symbol: string;
+  filingDate: string;
+  transactionDate: string;
+  reportingCik: string;
+  companyCik: string;
+  transactionType: string;
+  securitiesOwned: number;
+  reportingName: string;
+  typeOfOwner: string;
+  acquisitionOrDisposition: string;
+  directOrIndirect: string;
+  formType: string;
+  securitiesTransacted: number;
+  price: number;
+  securityName: string;
+  url: string;
+};
+
+export type FmpSplit = {
+  symbol: string;
+  date: string;
+  numerator: number;
+  denominator: number;
+  splitType: string;
+};
+
+export type FmpShareFloat = {
+  symbol: string;
+  date: string;
+  freeFloat: number;
+  floatShares: number;
+  outstandingShares: number;
+  source: string;
+};
+
+export type FmpHistoricalMarketCap = {
+  symbol: string;
+  date: string;
+  marketCap: number;
+};
+
+export type FmpIncomeGrowth = {
+  symbol: string;
+  date: string;
+  fiscalYear: string;
+  period: string;
+  growthRevenue: number;
+  growthNetIncome: number;
+  growthEPS: number;
+  growthEPSDiluted: number;
+  [key: string]: string | number | undefined;
+};
+
+export type FmpFullCandle = {
+  symbol?: string;
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  change: number;
+  changePercent: number;
+  vwap?: number;
+};

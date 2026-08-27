@@ -6,6 +6,7 @@ import { WatchlistLink } from "@/components/watchlist-button";
 const NAV = [
   { href: "/markets", label: "Markets" },
   { href: "/stocks", label: "Stocks" },
+  { href: "/list", label: "Lists" },
   { href: "/etf", label: "ETFs" },
   { href: "/screener", label: "Screener" },
   { href: "/news", label: "News" },

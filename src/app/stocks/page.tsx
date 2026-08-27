@@ -25,9 +25,11 @@ export default async function StocksListPage() {
       <SectionNav
         items={[
           { href: "/stocks", label: "All Stocks" },
+          { href: "/list/sp-500-stocks", label: "S&P 500" },
+          { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },
+          { href: "/list/dow-jones-stocks", label: "Dow Jones" },
           { href: "/list/biggest-companies", label: "Biggest Companies" },
-          { href: "/list/nasdaq-stocks", label: "NASDAQ" },
-          { href: "/list/nyse-stocks", label: "NYSE" },
+          { href: "/list", label: "All Lists" },
           { href: "/etf", label: "ETFs" },
         ]}
       />

@@ -4,11 +4,14 @@ import { Container } from "@/components/container";
 import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
-import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
+import { formatCompactUsd, formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import {
+  getCompanyEarnings,
   getDividends,
   getGradesConsensus,
+  getIncomeGrowth,
+  getIncomeStatements,
   getIncomeTtm,
   getPeers,
   getPriceTarget,
@@ -30,18 +33,25 @@ export default async function StockOverviewPage({
   const ticker = symbol.toUpperCase();
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points] = await Promise.all([
-    getQuote(ticker),
-    getProfile(ticker),
-    getIncomeTtm(ticker),
-    getRatiosTtm(ticker),
-    getPriceTarget(ticker),
-    getGradesConsensus(ticker),
-    getDividends(ticker, 1),
-    getSymbolNews(ticker, 12),
-    getPeers(ticker),
-    getChartData(ticker, range),
-  ]);
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings] =
+    await Promise.all([
+      getQuote(ticker),
+      getProfile(ticker),
+      getIncomeTtm(ticker),
+      getRatiosTtm(ticker),
+      getPriceTarget(ticker),
+      getGradesConsensus(ticker),
+      getDividends(ticker, 1),
+      getSymbolNews(ticker, 12),
+      getPeers(ticker),
+      getChartData(ticker, range),
+      getIncomeStatements(ticker, "annual", 2),
+      getIncomeGrowth(ticker, "annual", 1),
+      getCompanyEarnings(ticker, 1),
+    ]);
+  const latestYear = annual[0];
+  const priorYear = annual[1];
+  const growth = growthRows[0] ?? null;
 
   return (
     <Container>
@@ -67,6 +77,8 @@ export default async function StockOverviewPage({
           target={target}
           grades={grades}
           dividend={dividends[0] ?? null}
+          growth={growth}
+          earningsDate={earnings[0]?.date}
         />
       </div>
 
@@ -116,6 +128,29 @@ export default async function StockOverviewPage({
               </dd>
             </div>
           </dl>
+        </section>
+      ) : null}
+
+      {latestYear ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-header">Financial Performance</h2>
+          <p className="max-w-4xl text-sm leading-7 text-header/90">
+            In fiscal year {latestYear.fiscalYear}, {profile?.companyName ?? ticker} reported revenue of{" "}
+            {formatCompactUsd(latestYear.revenue)}
+            {typeof growth?.growthRevenue === "number" && priorYear
+              ? `, ${growth.growthRevenue >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthRevenue))} compared to the previous year's ${formatCompactUsd(priorYear.revenue)}`
+              : ""}
+            . Earnings were {formatCompactUsd(latestYear.netIncome)}
+            {typeof growth?.growthNetIncome === "number" && priorYear
+              ? `, ${growth.growthNetIncome >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthNetIncome))}`
+              : ""}
+            .
+          </p>
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials`} className="text-link hover:underline">
+              Financial statements
+            </Link>
+          </p>
         </section>
       ) : null}
 

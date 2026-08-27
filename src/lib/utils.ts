@@ -9,6 +9,14 @@ export function first<T>(items: T[] | null | undefined): T | null {
   return items?.[0] ?? null;
 }
 
+export function chunk<T>(items: T[], size: number) {
+  const groups: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    groups.push(items.slice(i, i + size));
+  }
+  return groups;
+}
+
 export function isoDate(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }

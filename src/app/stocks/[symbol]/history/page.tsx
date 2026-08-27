@@ -1,0 +1,127 @@
+import { Container } from "@/components/container";
+import { PageHeader } from "@/components/page-header";
+import { ChangePercent } from "@/components/change";
+import { formatCompactUsd, formatDate, formatInteger, formatPrice } from "@/lib/format";
+import { getFullDailyChart, getHistoricalMarketCap, getSplits } from "@/lib/fmp";
+import { addDays, isoDate, nyDateString } from "@/lib/utils";
+
+export default async function StockHistoryPage({ params }: { params: Promise<{ symbol: string }> }) {
+  const { symbol } = await params;
+  const ticker = symbol.toUpperCase();
+  const today = nyDateString();
+  const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -400));
+  const [prices, marketCaps, splits] = await Promise.all([
+    getFullDailyChart(ticker, from, today),
+    getHistoricalMarketCap(ticker, 90),
+    getSplits(ticker, 20),
+  ]);
+  const daily = [...prices].sort((a, b) => b.date.localeCompare(a.date));
+  const caps = [...marketCaps].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <Container>
+      <PageHeader
+        title={`${ticker} Historical Data`}
+        description="Daily prices, market capitalization, and stock split history."
+      />
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-header">Daily Prices</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th className="num">Open</th>
+                <th className="num">High</th>
+                <th className="num">Low</th>
+                <th className="num">Close</th>
+                <th className="num">Change</th>
+                <th className="num">Volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-muted">
+                    No price history available.
+                  </td>
+                </tr>
+              ) : (
+                daily.slice(0, 120).map((row) => (
+                  <tr key={row.date}>
+                    <td>{formatDate(row.date)}</td>
+                    <td className="num">{formatPrice(row.open)}</td>
+                    <td className="num">{formatPrice(row.high)}</td>
+                    <td className="num">{formatPrice(row.low)}</td>
+                    <td className="num">{formatPrice(row.close)}</td>
+                    <td className="num">
+                      <ChangePercent value={row.changePercent} />
+                    </td>
+                    <td className="num">{formatInteger(row.volume)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Market Cap</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th className="num">Market Cap</th>
+              </tr>
+            </thead>
+            <tbody>
+              {caps.slice(0, 60).map((row) => (
+                <tr key={row.date}>
+                  <td>{formatDate(row.date)}</td>
+                  <td className="num">{formatCompactUsd(row.marketCap)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Stock Splits</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Ratio</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {splits.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="text-muted">
+                    No split history.
+                  </td>
+                </tr>
+              ) : (
+                splits.map((row) => (
+                  <tr key={`${row.date}-${row.numerator}-${row.denominator}`}>
+                    <td>{formatDate(row.date)}</td>
+                    <td>
+                      {row.numerator}:{row.denominator}
+                    </td>
+                    <td className="capitalize">{row.splitType?.replace("-", " ") || "Stock split"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </Container>
+  );
+}

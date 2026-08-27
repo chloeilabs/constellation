@@ -15,6 +15,9 @@ const columns = [
     title: "Stocks",
     links: [
       ["/stocks", "Stock List"],
+      ["/list/sp-500-stocks", "S&P 500"],
+      ["/list/nasdaq-100-stocks", "Nasdaq 100"],
+      ["/list/dow-jones-stocks", "Dow Jones"],
       ["/list/biggest-companies", "Biggest Companies"],
       ["/list/nasdaq-stocks", "NASDAQ Stocks"],
       ["/list/nyse-stocks", "NYSE Stocks"],
@@ -29,6 +32,8 @@ const columns = [
       ["/calendar/earnings", "Earnings Calendar"],
       ["/calendar/ipos", "IPO Calendar"],
       ["/calendar/dividends", "Dividend Calendar"],
+      ["/calendar/splits", "Stock Splits"],
+      ["/insider-trading", "Insider Trading"],
     ],
   },
   {

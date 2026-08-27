@@ -12,6 +12,8 @@ const TABS = [
   { href: "/dividend", label: "Dividend" },
   { href: "/company", label: "Company" },
   { href: "/news", label: "News" },
+  { href: "/history", label: "History" },
+  { href: "/insiders", label: "Insiders" },
   { href: "/chart", label: "Chart" },
 ];
 

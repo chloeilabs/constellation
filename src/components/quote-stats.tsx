@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ChangePercent } from "@/components/change";
 import {
   formatCompactUsd,
   formatDate,
@@ -11,12 +12,22 @@ import {
 import type {
   FmpDividend,
   FmpGradesConsensus,
+  FmpIncomeGrowth,
   FmpIncomeStatement,
   FmpPriceTarget,
   FmpProfile,
   FmpQuote,
   FmpRatiosTtm,
 } from "@/lib/types";
+
+function withYoy(value: ReactNode, yoy: number | null | undefined) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {value}
+      {typeof yoy === "number" ? <ChangePercent value={yoy} alreadyPercent={false} className="text-xs" /> : null}
+    </span>
+  );
+}
 
 export function StatGrid({
   items,
@@ -46,6 +57,8 @@ export function QuoteStats({
   target,
   grades,
   dividend,
+  growth,
+  earningsDate,
 }: {
   quote: FmpQuote | null;
   profile: FmpProfile | null;
@@ -54,6 +67,8 @@ export function QuoteStats({
   target: FmpPriceTarget | null;
   grades: FmpGradesConsensus | null;
   dividend: FmpDividend | null;
+  growth?: FmpIncomeGrowth | null;
+  earningsDate?: string | null;
 }) {
   const pe = ratios?.priceToEarningsRatioTTM;
   const upside =
@@ -65,10 +80,10 @@ export function QuoteStats({
     <StatGrid
       items={[
         { label: "Market Cap", value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
-        { label: "Revenue (ttm)", value: formatCompactUsd(ttm?.revenue) },
-        { label: "Net Income (ttm)", value: formatCompactUsd(ttm?.netIncome) },
+        { label: "Revenue (ttm)", value: withYoy(formatCompactUsd(ttm?.revenue), growth?.growthRevenue) },
+        { label: "Net Income (ttm)", value: withYoy(formatCompactUsd(ttm?.netIncome), growth?.growthNetIncome) },
         { label: "Shares Out", value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
-        { label: "EPS (ttm)", value: formatPrice(ttm?.epsDiluted ?? ttm?.eps) },
+        { label: "EPS (ttm)", value: withYoy(formatPrice(ttm?.epsDiluted ?? ttm?.eps), growth?.growthEPSDiluted ?? growth?.growthEPS) },
         { label: "PE Ratio", value: formatRatio(typeof pe === "number" ? pe : null) },
         {
           label: "Dividend Yield",
@@ -93,6 +108,7 @@ export function QuoteStats({
             ? `${formatPrice(target.targetConsensus)}${upside != null ? ` (${upside > 0 ? "+" : ""}${upside.toFixed(1)}%)` : ""}`
             : "—",
         },
+        { label: "Earnings Date", value: formatDate(earningsDate) },
       ]}
     />
   );

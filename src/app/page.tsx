@@ -13,6 +13,7 @@ import {
   getIpos,
   getLosers,
   getMarketHours,
+  getMostActive,
   getQuotes,
   getStockNews,
   POPULAR_SYMBOLS,
@@ -68,7 +69,7 @@ export default async function HomePage() {
   const today = new Date(`${nyDateString()}T00:00:00Z`);
   const from = isoDate(addDays(today, -30));
   const to = isoDate(addDays(today, 30));
-  const [indexes, gainers, losers, news, ipos, hours, popular] = await Promise.all([
+  const [indexes, gainers, losers, news, ipos, hours, popular, actives] = await Promise.all([
     getIndexQuotes(),
     getGainers(),
     getLosers(),
@@ -76,6 +77,7 @@ export default async function HomePage() {
     getIpos(from, to),
     getMarketHours("NASDAQ"),
     getQuotes([...POPULAR_SYMBOLS]),
+    getMostActive(),
   ]);
 
   const todayStr = nyDateString();
@@ -97,6 +99,22 @@ export default async function HomePage() {
           <div className="mt-8">
             <SearchBox large autoFocus />
           </div>
+          {actives.length > 0 ? (
+            <p className="mt-6 text-sm text-muted">
+              Trending:{" "}
+              {actives.slice(0, 4).map((row, index) => (
+                <span key={row.symbol}>
+                  <Link href={`/stocks/${row.symbol}`} className="font-semibold text-header hover:text-brand">
+                    {row.symbol}
+                  </Link>
+                  {index < 3 ? ", " : " "}
+                </span>
+              ))}
+              <Link href="/markets/active" className="text-link hover:underline">
+                More
+              </Link>
+            </p>
+          ) : null}
           <PopularStocks quotes={popular} />
         </div>
       </section>

@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatNumber, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { getKeyMetricsTtm, getProfile, getQuote, getRatiosTtm, getScores } from "@/lib/fmp";
+import { getKeyMetricsTtm, getProfile, getQuote, getRatiosTtm, getScores, getShareFloat } from "@/lib/fmp";
 
 function num(value: unknown) {
   return typeof value === "number" ? value : null;
@@ -11,12 +11,13 @@ function num(value: unknown) {
 export default async function StatisticsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, profile, ratios, metrics, scores] = await Promise.all([
+  const [quote, profile, ratios, metrics, scores, shareFloat] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getRatiosTtm(ticker),
     getKeyMetricsTtm(ticker),
     getScores(ticker),
+    getShareFloat(ticker),
   ]);
 
   return (
@@ -81,6 +82,9 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Dividend Yield", value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
               { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Average Volume", value: formatNumber(profile?.averageVolume, 0) },
+              { label: "Shares Outstanding", value: formatNumber(shareFloat?.outstandingShares, 0) },
+              { label: "Float", value: formatNumber(shareFloat?.floatShares, 0) },
+              { label: "Free Float", value: formatPercentPlain(shareFloat?.freeFloat, { alreadyPercent: true }) },
             ]}
           />
         </section>

@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { first } from "@/lib/utils";
+import { chunk, first } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
   FmpBalanceSheet,
@@ -11,9 +11,14 @@ import type {
   FmpEtfInfo,
   FmpEtfSector,
   FmpExecutive,
+  FmpFullCandle,
   FmpGrade,
   FmpGradesConsensus,
+  FmpHistoricalMarketCap,
+  FmpIncomeGrowth,
   FmpIncomeStatement,
+  FmpIndexConstituent,
+  FmpInsiderTrade,
   FmpIntradayCandle,
   FmpIpo,
   FmpKeyMetricsTtm,
@@ -33,6 +38,8 @@ import type {
   FmpScreenerRow,
   FmpSearchResult,
   FmpSectorPerformance,
+  FmpShareFloat,
+  FmpSplit,
   StatementPeriod,
 } from "@/lib/types";
 
@@ -149,10 +156,15 @@ export function getQuote(symbol: string) {
   return fmpFirst<FmpQuote>("/quote", { symbol: symbol.toUpperCase() }, { revalidate: 30 });
 }
 
-export function getQuotes(symbols: string[]) {
+export async function getQuotes(symbols: string[]) {
   const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()).filter(Boolean))];
-  if (unique.length === 0) return Promise.resolve([] as FmpQuote[]);
-  return fmpList<FmpQuote>("/batch-quote", { symbols: unique.join(",") }, { revalidate: 30 });
+  if (unique.length === 0) return [] as FmpQuote[];
+  const groups = await Promise.all(
+    chunk(unique, 80).map((group) =>
+      fmpList<FmpQuote>("/batch-quote", { symbols: group.join(",") }, { revalidate: 30 }),
+    ),
+  );
+  return groups.flat();
 }
 
 export function getProfile(symbol: string) {
@@ -499,6 +511,71 @@ export function getEtfSectors(symbol: string) {
     "/etf/sector-weightings",
     { symbol: symbol.toUpperCase() },
     { revalidate: 3600 },
+  );
+}
+
+export function getIndexConstituents(index: "sp500" | "nasdaq" | "dow") {
+  const path = {
+    sp500: "/sp500-constituent",
+    nasdaq: "/nasdaq-constituent",
+    dow: "/dowjones-constituent",
+  }[index];
+  return fmpList<FmpIndexConstituent>(path, {}, { revalidate: 86400 });
+}
+
+export function getSplits(symbol: string, limit = 20) {
+  return fmpList<FmpSplit>("/splits", { symbol: symbol.toUpperCase(), limit }, { revalidate: 86400 });
+}
+
+export function getSplitsCalendar(from: string, to: string) {
+  return fmpList<FmpSplit>("/splits-calendar", { from, to }, { revalidate: 600 });
+}
+
+export function getInsiderTrades(symbol: string, limit = 50) {
+  return fmpList<FmpInsiderTrade>(
+    "/insider-trading/search",
+    { symbol: symbol.toUpperCase(), page: 0, limit },
+    { revalidate: 300 },
+  );
+}
+
+export function getLatestInsiderTrades(limit = 50) {
+  return fmpList<FmpInsiderTrade>(
+    "/insider-trading/latest",
+    { page: 0, limit },
+    { revalidate: 120 },
+  );
+}
+
+export function getShareFloat(symbol: string) {
+  return fmpFirst<FmpShareFloat>(
+    "/shares-float",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
+export function getHistoricalMarketCap(symbol: string, limit = 90, from?: string, to?: string) {
+  return fmpList<FmpHistoricalMarketCap>(
+    "/historical-market-capitalization",
+    { symbol: symbol.toUpperCase(), limit, from, to },
+    { revalidate: 3600 },
+  );
+}
+
+export function getIncomeGrowth(symbol: string, period: StatementPeriod = "annual", limit = 8) {
+  return fmpList<FmpIncomeGrowth>(
+    "/income-statement-growth",
+    { symbol: symbol.toUpperCase(), period, limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getFullDailyChart(symbol: string, from?: string, to?: string) {
+  return fmpList<FmpFullCandle>(
+    "/historical-price-eod/full",
+    { symbol: symbol.toUpperCase(), from, to },
+    { revalidate: 300 },
   );
 }
 
