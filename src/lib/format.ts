@@ -33,6 +33,17 @@ const CURRENCY_PREFIX: Record<string, string> = {
   INR: "₹",
   BRL: "R$",
   KRW: "₩",
+  TWD: "NT$",
+  SGD: "S$",
+  CHF: "CHF ",
+  MXN: "MX$",
+  NZD: "NZ$",
+  ILS: "₪",
+  ZAR: "R",
+  PLN: "zł",
+  SEK: "kr",
+  DKK: "kr",
+  NOK: "kr",
 };
 
 export function formatMoney(value: number | null | undefined, currency?: string | null, digits = 2) {
@@ -72,6 +83,24 @@ const COUNTRY_CURRENCY: Record<string, string> = {
   AU: "AUD",
   HK: "HKD",
   CN: "CNY",
+  KR: "KRW",
+  TW: "TWD",
+  CH: "CHF",
+  SG: "SGD",
+  NL: "EUR",
+  IT: "EUR",
+  ES: "EUR",
+  MX: "MXN",
+  SE: "SEK",
+  DK: "DKK",
+  NO: "NOK",
+  IL: "ILS",
+  ZA: "ZAR",
+  PL: "PLN",
+  BE: "EUR",
+  NZ: "NZD",
+  FI: "EUR",
+  AT: "EUR",
 };
 
 const SUFFIX_CURRENCY: Record<string, string> = {
@@ -85,6 +114,23 @@ const SUFFIX_CURRENCY: Record<string, string> = {
   NS: "INR",
   SA: "BRL",
   SW: "CHF",
+  KS: "KRW",
+  TW: "TWD",
+  SI: "SGD",
+  AS: "EUR",
+  MI: "EUR",
+  MC: "EUR",
+  MX: "MXN",
+  ST: "SEK",
+  CO: "DKK",
+  OL: "NOK",
+  TA: "ILS",
+  JO: "ZAR",
+  WA: "PLN",
+  BR: "EUR",
+  NZ: "NZD",
+  HE: "EUR",
+  VI: "EUR",
 };
 
 export function currencyForCountry(country?: string | null) {
@@ -97,6 +143,12 @@ export function currencyForSymbol(symbol?: string | null) {
   const parts = symbol.toUpperCase().split(".");
   if (parts.length < 2) return "USD";
   return SUFFIX_CURRENCY[parts[parts.length - 1]] ?? "USD";
+}
+
+export function currencyForListing(symbol?: string | null, country?: string | null) {
+  const fromSymbol = currencyForSymbol(symbol);
+  if (fromSymbol !== "USD") return fromSymbol;
+  return currencyForCountry(country);
 }
 
 export function compactMoneyFn(currency?: string | null) {

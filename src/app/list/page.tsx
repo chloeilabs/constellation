@@ -67,6 +67,17 @@ export default function ListsIndexPage() {
                     </Link>
                   </>
                 ) : null}
+                {category.id === "international" ? (
+                  <Link
+                    href="/stocks/country"
+                    className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                  >
+                    <h3 className="font-semibold text-header">All Country Stocks</h3>
+                    <p className="mt-2 text-sm text-muted">
+                      Korea, Taiwan, Switzerland, and other local exchanges ranked by market cap.
+                    </p>
+                  </Link>
+                ) : null}
               </div>
             </section>
           );

@@ -28,7 +28,9 @@ import type {
   FmpIncomeStatement,
   FmpIndexConstituent,
   FmpInsiderTrade,
+  FmpInsiderReportingName,
   FmpInsiderStatistics,
+  FmpIdentifierMatch,
   FmpIntradayCandle,
   FmpIpo,
   FmpKeyMetricsTtm,
@@ -249,6 +251,61 @@ export function searchName(query: string, limit = 10) {
   return fmpList<FmpSearchResult>("/search-name", { query, limit }, { revalidate: 120 });
 }
 
+export function searchCik(cik: string) {
+  return fmpList<FmpIdentifierMatch>("/search-cik", { cik }, { revalidate: 3600 });
+}
+
+export function searchCusip(cusip: string) {
+  return fmpList<FmpIdentifierMatch>("/search-cusip", { cusip }, { revalidate: 3600 });
+}
+
+export function searchIsin(isin: string) {
+  return fmpList<FmpIdentifierMatch>("/search-isin", { isin }, { revalidate: 3600 });
+}
+
+function identifierToSearchResult(row: FmpIdentifierMatch): FmpSearchResult | null {
+  const symbol = row.symbol?.trim();
+  if (!symbol) return null;
+  const dotted = symbol.includes(".");
+  const suffix = dotted ? symbol.split(".").pop() ?? "" : "";
+  const exchange = row.exchange || (dotted ? suffix : "NASDAQ");
+  const exchangeFullName = row.exchangeFullName || row.exchange || (dotted ? suffix : "NASDAQ");
+  return {
+    symbol,
+    name: row.companyName || row.name || symbol,
+    currency: row.currency || "USD",
+    exchange,
+    exchangeFullName,
+  };
+}
+
+function compactIdentifier(query: string) {
+  return query.replace(/[\s-]/g, "").toUpperCase();
+}
+
+function looksLikeCik(value: string) {
+  return /^\d{6,10}$/.test(value);
+}
+
+function looksLikeIsin(value: string) {
+  return /^[A-Z]{2}[A-Z0-9]{10}$/.test(value);
+}
+
+function looksLikeCusip(value: string) {
+  return /^[A-Z0-9]{9}$/.test(value) && /\d/.test(value);
+}
+
+async function identifierSearchResults(query: string) {
+  const compact = compactIdentifier(query);
+  const jobs: Promise<FmpIdentifierMatch[]>[] = [];
+  if (looksLikeCik(compact)) jobs.push(searchCik(compact));
+  if (looksLikeIsin(compact)) jobs.push(searchIsin(compact));
+  if (looksLikeCusip(compact)) jobs.push(searchCusip(compact));
+  if (jobs.length === 0) return [] as FmpSearchResult[];
+  const rows = (await Promise.all(jobs)).flat();
+  return rows.map(identifierToSearchResult).filter((row): row is FmpSearchResult => Boolean(row));
+}
+
 const MARKET_SEARCH_EXCHANGE: Record<string, { exchange: string; exchangeFullName: string }> = {
   crypto: { exchange: "CCC", exchangeFullName: "CRYPTO" },
   commodity: { exchange: "COMMODITY", exchangeFullName: "COMMODITY" },
@@ -285,15 +342,18 @@ export async function searchAll(query: string, limit = 8) {
   const trimmed = query.trim();
   if (!trimmed) return [] as FmpSearchResult[];
   const known = knownMarketAssetResults(trimmed);
-  const [bySymbol, byName, etfSymbols] = await Promise.all([
-    searchSymbol(trimmed, Math.max(limit, 12)),
-    searchName(trimmed, Math.max(limit, 12)),
+  const compact = compactIdentifier(trimmed);
+  const identifierQuery = looksLikeCik(compact) || looksLikeIsin(compact) || looksLikeCusip(compact);
+  const [bySymbol, byName, etfSymbols, byIdentifier] = await Promise.all([
+    identifierQuery ? Promise.resolve([] as FmpSearchResult[]) : searchSymbol(trimmed, Math.max(limit, 12)),
+    identifierQuery ? Promise.resolve([] as FmpSearchResult[]) : searchName(trimmed, Math.max(limit, 12)),
     getEtfSymbolSet(),
+    identifierSearchResults(trimmed),
   ]);
   const seen = new Set<string>();
   const merged: FmpSearchResult[] = [];
   const pinned = new Set(known.map((item) => item.symbol.toUpperCase()));
-  for (const item of [...known, ...bySymbol, ...byName]) {
+  for (const item of [...known, ...byIdentifier, ...bySymbol, ...byName]) {
     if (!item.symbol) continue;
     const key = `${item.symbol}-${item.exchange}`;
     if (seen.has(key)) continue;
@@ -312,8 +372,9 @@ export async function searchAll(query: string, limit = 8) {
       const pin = pinned.has(symbol) ? 0 : 1;
       const exact = symbol === needle ? 0 : 1;
       const us = usExchange.test(item.exchange) || usExchange.test(item.exchangeFullName) ? 0 : 1;
+      const listed = symbol.includes(".") ? 1 : 0;
       const prefix = symbol.startsWith(needle) ? 0 : 1;
-      return [pin, exact, us, prefix, symbol.length] as const;
+      return [pin, exact, us, listed, prefix, symbol.length] as const;
     };
     const left = score(a);
     const right = score(b);
@@ -518,6 +579,19 @@ export function getLatestSma(symbol: string, periodLength = 50) {
 
 export function getLatestEma(symbol: string, periodLength = 12) {
   return getLatestTechnical(symbol, "ema", periodLength);
+}
+
+export function getTechnicalSeries(
+  symbol: string,
+  indicator: "rsi" | "sma" | "ema",
+  periodLength: number,
+  from: string,
+) {
+  return fmpList<FmpTechnicalPoint>(
+    `/technical-indicators/${indicator}`,
+    { symbol: decodeTicker(symbol), periodLength, timeframe: "1day", from },
+    { revalidate: 300 },
+  );
 }
 
 export function getEtfList() {
@@ -900,6 +974,27 @@ export function getInsiderTrades(symbol: string, limit = 50) {
     "/insider-trading/search",
     { symbol: decodeTicker(symbol), page: 0, limit },
     { revalidate: 300 },
+  );
+}
+
+export function searchInsiderTrades(params: { symbol?: string; reportingCik?: string; limit?: number }) {
+  return fmpList<FmpInsiderTrade>(
+    "/insider-trading/search",
+    {
+      symbol: params.symbol ? decodeTicker(params.symbol) : undefined,
+      reportingCik: params.reportingCik || undefined,
+      page: 0,
+      limit: params.limit ?? 50,
+    },
+    { revalidate: 300 },
+  );
+}
+
+export function getInsiderReportingNames(name: string) {
+  return fmpList<FmpInsiderReportingName>(
+    "/insider-trading/reporting-name",
+    { name },
+    { revalidate: 600 },
   );
 }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatCompactUsd, formatDate, formatInteger, formatPrice } from "@/lib/format";
+import { padCik } from "@/lib/institutional";
 import { cn } from "@/lib/utils";
 import type { FmpInsiderTrade } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export function InsiderTable({
                   ? row.securitiesTransacted * row.price
                   : null;
               const side = sideLabel(row);
+              const cik = padCik(row.reportingCik);
               return (
                 <tr key={`${row.symbol}-${row.filingDate}-${row.reportingCik}-${index}`}>
                   <td>{formatDate(row.transactionDate || row.filingDate)}</td>
@@ -58,14 +60,26 @@ export function InsiderTable({
                       </Link>
                     </td>
                   ) : null}
-                  <td className="max-w-[220px] truncate">
+                  <td className="max-w-[260px]">
+                    <div className="truncate">
+                      {cik ? (
+                        <Link href={`/insider-trading?cik=${cik}`} className="text-link hover:underline">
+                          {row.reportingName}
+                        </Link>
+                      ) : (
+                        row.reportingName
+                      )}
+                    </div>
                     {row.url ? (
-                      <a href={row.url} className="text-link hover:underline" target="_blank" rel="noreferrer">
-                        {row.reportingName}
+                      <a
+                        href={row.url}
+                        className="text-xs text-muted hover:text-link hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Form 4
                       </a>
-                    ) : (
-                      row.reportingName
-                    )}
+                    ) : null}
                   </td>
                   <td className="max-w-[180px] truncate text-muted">{row.typeOfOwner || "—"}</td>
                   <td

@@ -5,7 +5,7 @@ import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
-import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
+import { loadQuoteChart } from "@/lib/chart";
 import {
   getDividends,
   getEtfCountryWeights,
@@ -32,9 +32,8 @@ export async function VehicleOverview({
   kind: VehicleKind;
 }) {
   const ticker = decodeTicker(symbol);
-  const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
   const noun = vehicleNoun(kind);
-  const [info, holdings, sectors, countries, quote, news, dividends, changes, points, ratios, profile] = await Promise.all([
+  const [info, holdings, sectors, countries, quote, news, dividends, changes, chart, ratios, profile] = await Promise.all([
     getEtfInfo(ticker),
     getEtfHoldings(ticker),
     getEtfSectors(ticker),
@@ -43,10 +42,11 @@ export async function VehicleOverview({
     getSymbolNews(ticker, 8),
     getDividends(ticker, 8),
     getPriceChange(ticker),
-    getChartData(ticker, range),
+    loadQuoteChart(ticker, rangeParam),
     getRatiosTtm(ticker),
     getProfile(ticker),
   ]);
+  const { range, points, ma50Series, ma200Series } = chart;
 
   const rankedSectors = [...sectors].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
   const rankedCountries = [...countries]
@@ -78,6 +78,8 @@ export async function VehicleOverview({
           chartHref={chartHref}
           ma50={quote?.priceAvg50}
           ma200={quote?.priceAvg200}
+          ma50Series={ma50Series}
+          ma200Series={ma200Series}
         />
         <ReturnsTable changes={changes} />
       </div>

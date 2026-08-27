@@ -6,7 +6,7 @@ import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
 import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice, formatRatio, reportingCurrency } from "@/lib/format";
-import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
+import { loadQuoteChart } from "@/lib/chart";
 import {
   getCompanyEarnings,
   getDcf,
@@ -46,12 +46,11 @@ export default async function StockOverviewPage({
   const { symbol } = await params;
   const { range: rangeParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
   if (isIndexTicker(ticker)) {
-    return <IndexQuote ticker={ticker} range={range} />;
+    return <IndexQuote ticker={ticker} range={rangeParam} />;
   }
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -62,7 +61,7 @@ export default async function StockOverviewPage({
       getDividends(ticker, 1),
       getSymbolNews(ticker, 12),
       getPeers(ticker),
-      getChartData(ticker, range),
+      loadQuoteChart(ticker, rangeParam),
       getIncomeStatements(ticker, "annual", 2),
       getIncomeGrowth(ticker, "annual", 1),
       getCompanyEarnings(ticker, 1),
@@ -71,6 +70,7 @@ export default async function StockOverviewPage({
       getPriceChange(ticker),
       getDcf(ticker),
     ]);
+  const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
   const growth = growthRows[0] ?? null;
@@ -124,6 +124,8 @@ export default async function StockOverviewPage({
               symbol={ticker}
               ma50={quote?.priceAvg50}
               ma200={quote?.priceAvg200}
+              ma50Series={ma50Series}
+              ma200Series={ma200Series}
             />
           </Suspense>
           <ReturnsTable changes={priceChange} />

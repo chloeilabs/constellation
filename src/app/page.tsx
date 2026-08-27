@@ -32,6 +32,7 @@ const MARKET_LINKS = [
   ["/markets/indexes", "Indexes"],
   ["/markets/heatmap", "Heatmap"],
   ["/markets/global", "World Markets"],
+  ["/stocks/country", "Countries"],
   ["/markets/sectors", "Sectors"],
   ["/markets/industries", "Industries"],
   ["/markets/treasury", "Treasury"],

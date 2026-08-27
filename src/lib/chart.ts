@@ -1,9 +1,9 @@
 import type { FmpIntradayCandle, FmpLightCandle, ChartPoint } from "@/lib/types";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
-import { getDailyChart, getIntradayChart } from "@/lib/fmp";
+import { getDailyChart, getIntradayChart, getTechnicalSeries } from "@/lib/fmp";
+import { resolveChartRange, type ChartRange } from "@/lib/chart-range";
 
-export const CHART_RANGES = ["1D", "5D", "1M", "YTD", "3M", "6M", "1Y", "5Y", "MAX"] as const;
-export type ChartRange = (typeof CHART_RANGES)[number];
+export { CHART_RANGES, defaultChartRange, resolveChartRange, type ChartRange } from "@/lib/chart-range";
 
 function toDailyPoints(rows: FmpLightCandle[]): ChartPoint[] {
   return [...rows]
@@ -37,6 +37,28 @@ function fromDateForRange(range: ChartRange) {
   }
 }
 
+function smaPoints(rows: Awaited<ReturnType<typeof getTechnicalSeries>>): ChartPoint[] {
+  return [...rows]
+    .filter((row) => typeof row.sma === "number" && Number.isFinite(row.sma))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({ time: row.date, value: row.sma as number }));
+}
+
+export async function getChartMovingAverages(symbol: string, range: ChartRange) {
+  if (range === "1D" || range === "5D" || range === "MAX") {
+    return { ma50: [] as ChartPoint[], ma200: [] as ChartPoint[] };
+  }
+  const chartFrom = fromDateForRange(range);
+  const smaFrom = chartFrom
+    ? isoDate(addDays(new Date(`${chartFrom}T00:00:00Z`), -280))
+    : isoDate(addDays(new Date(), -400));
+  const [sma50, sma200] = await Promise.all([
+    getTechnicalSeries(symbol, "sma", 50, smaFrom),
+    getTechnicalSeries(symbol, "sma", 200, smaFrom),
+  ]);
+  return { ma50: smaPoints(sma50), ma200: smaPoints(sma200) };
+}
+
 export async function getChartData(symbol: string, range: ChartRange): Promise<ChartPoint[]> {
   if (range === "1D") {
     return toIntradayPoints(await getIntradayChart(symbol, "5min")).slice(-90);
@@ -48,4 +70,10 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
     return toDailyPoints(await getDailyChart(symbol));
   }
   return toDailyPoints(await getDailyChart(symbol, fromDateForRange(range)));
+}
+
+export async function loadQuoteChart(symbol: string, rangeParam?: string | null) {
+  const range = resolveChartRange(rangeParam);
+  const [points, averages] = await Promise.all([getChartData(symbol, range), getChartMovingAverages(symbol, range)]);
+  return { range, points, ma50Series: averages.ma50, ma200Series: averages.ma200 };
 }

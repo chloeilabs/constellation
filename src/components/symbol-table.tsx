@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
-import { currencyForCountry, formatCompactMoney, formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
+import { currencyForListing, formatCompactMoney, formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
 import { industrySlug } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
 
@@ -115,7 +115,7 @@ export function SymbolTable({
                 {showFounded ? <td className="num">{row.founded ?? "—"}</td> : null}
                 <td className="num">
                   {localCurrency
-                    ? formatCompactMoney(row.marketCap, currencyForCountry(row.country))
+                    ? formatCompactMoney(row.marketCap, currencyForListing(row.symbol, row.country))
                     : formatCompactUsd(row.marketCap)}
                 </td>
                 {showRevenue ? <td className="num">{formatCompactUsd(row.revenue)}</td> : null}

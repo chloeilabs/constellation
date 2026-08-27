@@ -35,8 +35,9 @@ const GROUPS = [
   {
     title: "Lookup Tools",
     links: [
-      ["/search", "Symbol Lookup", "Search tickers, company names, ETFs, funds, crypto, and forex."],
+      ["/search", "Symbol Lookup", "Search tickers, company names, CIK, CUSIP, ISIN, ETFs, funds, crypto, and forex."],
       ["/etf/lookup", "ETF Reverse Lookup", "Find U.S. ETFs that hold a stock, ranked by position value."],
+      ["/stocks/country", "Country Stocks", "Largest listings on Korea, Taiwan, Switzerland, and other local exchanges."],
       ["/markets/hours", "Market Hours", "Live open/closed status, session times, and upcoming U.S. holidays."],
       ["/markets/indexes", "Market Indexes", "S&P 500, Dow, Nasdaq, and global indexes with live FMP quotes."],
     ],

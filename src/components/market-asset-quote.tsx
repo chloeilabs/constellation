@@ -9,7 +9,7 @@ import { SectionNav } from "@/components/section-nav";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { ChangeValue } from "@/components/change";
 import { formatCompact, formatCompactUsd, formatMoney, formatPrice } from "@/lib/format";
-import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
+import { loadQuoteChart } from "@/lib/chart";
 import { getCryptoNews, getForexNews, getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
 import { MARKET_NAV } from "@/lib/nav";
 import {
@@ -53,13 +53,13 @@ export async function MarketAssetQuote({
   range?: string;
 }) {
   const ticker = normalizeMarketTicker(symbol);
-  const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
-  const [quote, points, priceChange, news] = await Promise.all([
+  const [quote, chart, priceChange, news] = await Promise.all([
     getQuote(ticker),
-    getChartData(ticker, range),
+    loadQuoteChart(ticker, rangeParam),
     getPriceChange(ticker),
     kindNews(ticker, expected),
   ]);
+  const { range, points, ma50Series, ma200Series } = chart;
 
   if (!quote) {
     if (!hasFmpKey()) {
@@ -133,6 +133,8 @@ export async function MarketAssetQuote({
               chartHref={href}
               ma50={quote.priceAvg50}
               ma200={quote.priceAvg200}
+              ma50Series={ma50Series}
+              ma200Series={ma200Series}
             />
             <ReturnsTable changes={priceChange} />
           </div>

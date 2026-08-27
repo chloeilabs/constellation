@@ -10,7 +10,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const query = (q ?? "").trim();
   return {
     title: query ? `Search: ${query}` : "Search",
-    description: "Search stocks, ETFs, funds, and companies with live Financial Modeling Prep listings.",
+    description: "Search stocks, ETFs, funds, companies, CIK, CUSIP, and ISIN with live Financial Modeling Prep listings.",
   };
 }
 
@@ -25,7 +25,7 @@ export default async function SearchPage({
 
   return (
     <Container>
-      <PageHeader title={query ? `Search: ${query}` : "Search"} description="Find stocks, ETFs, funds, and companies." />
+      <PageHeader title={query ? `Search: ${query}` : "Search"} description="Find stocks, ETFs, funds, companies, CIK, CUSIP, or ISIN." />
       <div className="mb-6 max-w-xl">
         <SearchBox large autoFocus={!query} />
       </div>
@@ -61,7 +61,7 @@ export default async function SearchPage({
           </div>
         )
       ) : (
-        <p className="text-sm text-muted">Type a ticker or company name to search live FMP listings.</p>
+        <p className="text-sm text-muted">Type a ticker, company name, CIK, CUSIP, or ISIN to search live FMP listings.</p>
       )}
     </Container>
   );

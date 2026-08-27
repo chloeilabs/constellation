@@ -7,22 +7,23 @@ import { ReturnsTable } from "@/components/returns-table";
 import { SymbolTable } from "@/components/symbol-table";
 import { ChangePercent } from "@/components/change";
 import { formatCompact, formatInteger, formatPrice } from "@/lib/format";
-import { getChartData, type ChartRange } from "@/lib/chart";
+import { loadQuoteChart } from "@/lib/chart";
 import { getPriceChange, getQuoteSafe, getStockNews } from "@/lib/fmp";
 import { indexConstituentMeta, indexDisplayName } from "@/lib/indexes";
 import { stockPath } from "@/lib/listings";
 import { loadIndexMembers } from "@/lib/lists";
 
-export async function IndexQuote({ ticker, range }: { ticker: string; range: ChartRange }) {
+export async function IndexQuote({ ticker, range: rangeParam }: { ticker: string; range?: string }) {
   const name = indexDisplayName(ticker);
   const meta = indexConstituentMeta(ticker);
-  const [quote, points, priceChange, news, members] = await Promise.all([
+  const [quote, chart, priceChange, news, members] = await Promise.all([
     getQuoteSafe(ticker),
-    getChartData(ticker, range),
+    loadQuoteChart(ticker, rangeParam),
     getPriceChange(ticker),
     getStockNews(8),
     meta ? loadIndexMembers(meta.fmpIndex) : Promise.resolve(null),
   ]);
+  const { range, points, ma50Series, ma200Series } = chart;
   const level = quote?.price;
   const changePct = quote?.changePercentage;
   const topMembers = members?.rows.slice(0, 15) ?? [];
@@ -52,6 +53,8 @@ export async function IndexQuote({ ticker, range }: { ticker: string; range: Cha
             chartHref={stockPath(ticker, "/chart")}
             ma50={quote?.priceAvg50}
             ma200={quote?.priceAvg200}
+            ma50Series={ma50Series}
+            ma200Series={ma200Series}
           />
           <ReturnsTable changes={priceChange} />
         </div>

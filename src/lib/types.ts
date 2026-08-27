@@ -71,6 +71,19 @@ export type FmpSearchResult = {
   isFund?: boolean;
 };
 
+export type FmpIdentifierMatch = {
+  symbol: string;
+  companyName?: string;
+  name?: string;
+  cik?: string;
+  cusip?: string;
+  isin?: string;
+  exchange?: string;
+  exchangeFullName?: string;
+  currency?: string;
+  marketCap?: number;
+};
+
 export type FmpMover = {
   symbol: string;
   price: number;
@@ -572,6 +585,11 @@ export type FmpInsiderTrade = {
   price: number;
   securityName: string;
   url: string;
+};
+
+export type FmpInsiderReportingName = {
+  reportingCik: string;
+  reportingName: string;
 };
 
 export type FmpInsiderStatistics = {

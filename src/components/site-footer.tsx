@@ -29,6 +29,7 @@ const columns = [
       ["/stocks", "Stock List"],
       ["/stocks/sector", "Sectors"],
       ["/stocks/industry", "Sectors & Industries"],
+      ["/stocks/country", "Country Stocks"],
       ["/list/sp-500-stocks", "S&P 500"],
       ["/list/nasdaq-100-stocks", "Nasdaq 100"],
       ["/list/dow-jones-stocks", "Dow Jones"],

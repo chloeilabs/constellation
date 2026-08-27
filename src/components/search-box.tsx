@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export function SearchBox({
   large = false,
   autoFocus = false,
-  placeholder = "Search stocks, ETFs, funds, and companies",
+  placeholder = "Search ticker, name, CIK, CUSIP, or ISIN",
 }: {
   large?: boolean;
   autoFocus?: boolean;
