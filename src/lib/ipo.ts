@@ -52,16 +52,16 @@ export async function loadRecentPricedIpos(limit = 200) {
   return unique.map((row) => {
     const quote = quoteBySymbol.get(row.symbol.toUpperCase());
     const fromRange = parseIpoPrice(row.priceRange);
+    const implied =
+      row.marketCap && row.shares && row.shares > 0 ? row.marketCap / row.shares : null;
     const fromProspectus = prospectusPrice.get(row.symbol.toUpperCase()) ?? null;
-    const current = quote?.price ?? null;
-    const ipoPrice =
-      fromRange && plausibleIpoPrice(fromRange, current)
-        ? fromRange
-        : fromProspectus && plausibleIpoPrice(fromProspectus, current)
-          ? fromProspectus
-          : (fromRange ?? fromProspectus);
-    const ipoReturn =
-      ipoPrice && current && ipoPrice > 0 ? (current - ipoPrice) / ipoPrice : null;
+    const current = quote?.price && quote.price > 0 ? quote.price : null;
+    const candidates = [fromRange, implied, fromProspectus].filter(
+      (value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0,
+    );
+    const ipoPrice = candidates.find((value) => plausibleIpoPrice(value, current)) ?? candidates[0] ?? null;
+    const ipoReturn = ipoPrice && current && ipoPrice > 0 ? (current - ipoPrice) / ipoPrice : null;
+    const marketCap = quote?.marketCap && quote.marketCap > 0 ? quote.marketCap : row.marketCap && row.marketCap > 0 ? row.marketCap : null;
     return {
       date: row.date,
       symbol: row.symbol.toUpperCase(),
@@ -70,7 +70,7 @@ export async function loadRecentPricedIpos(limit = 200) {
       ipoPrice,
       current,
       ipoReturn,
-      marketCap: quote?.marketCap ?? row.marketCap,
+      marketCap,
     };
   });
 }

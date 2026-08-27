@@ -28,7 +28,7 @@ export default async function EarningsPage({
   const history = period === "quarter" ? quarterly : annual;
   const eps = ttm?.epsDiluted ?? ttm?.eps;
   const growth = yearOverYear(annual[0]?.epsDiluted ?? annual[0]?.eps, annual[1]?.epsDiluted ?? annual[1]?.eps);
-  const latestReport = reported[0];
+  const latestReport = reported.find((row) => row.epsActual != null) ?? reported[0];
   const surprise =
     latestReport?.epsActual != null && latestReport.epsEstimated
       ? (latestReport.epsActual - latestReport.epsEstimated) / Math.abs(latestReport.epsEstimated)
