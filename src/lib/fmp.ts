@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { looksLikeFund } from "@/lib/listings";
+import { decodeTicker, looksLikeFund } from "@/lib/listings";
 import { addDays, chunk, first, isoDate, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -198,11 +198,11 @@ export async function fmpFirst<T>(
 }
 
 export function getQuote(symbol: string) {
-  return fmpFirst<FmpQuote>("/quote", { symbol: symbol.toUpperCase() }, { revalidate: 30 });
+  return fmpFirst<FmpQuote>("/quote", { symbol: decodeTicker(symbol) }, { revalidate: 30 });
 }
 
 export async function getQuotes(symbols: string[]) {
-  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()).filter(Boolean))];
+  const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))];
   if (unique.length === 0) return [] as FmpQuote[];
   const groups = await Promise.all(
     chunk(unique, 80).map((group) =>
@@ -213,7 +213,7 @@ export async function getQuotes(symbols: string[]) {
 }
 
 export function getProfile(symbol: string) {
-  return fmpFirst<FmpProfile>("/profile", { symbol: symbol.toUpperCase() }, { revalidate: 3600 });
+  return fmpFirst<FmpProfile>("/profile", { symbol: decodeTicker(symbol) }, { revalidate: 3600 });
 }
 
 export function searchSymbol(query: string, limit = 10) {
@@ -308,7 +308,7 @@ export function getLatestPressReleases(limit = 20, page = 0) {
 export function getSymbolNews(symbol: string, limit = 20) {
   return fmpList<FmpNewsItem>(
     "/news/stock",
-    { symbols: symbol.toUpperCase(), limit },
+    { symbols: decodeTicker(symbol), limit },
     { revalidate: 120 },
   );
 }
@@ -316,7 +316,7 @@ export function getSymbolNews(symbol: string, limit = 20) {
 export function getPressReleases(symbol: string, limit = 10) {
   return fmpList<FmpNewsItem>(
     "/news/press-releases",
-    { symbols: symbol.toUpperCase(), limit },
+    { symbols: decodeTicker(symbol), limit },
     { revalidate: 300 },
   );
 }
@@ -332,7 +332,7 @@ export function getEarningsCalendar(from: string, to: string) {
 export function getCompanyEarnings(symbol: string, limit = 12) {
   return fmpList<FmpEarnings>(
     "/earnings",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 3600 },
   );
 }
@@ -340,7 +340,7 @@ export function getCompanyEarnings(symbol: string, limit = 12) {
 export function getDividends(symbol: string, limit = 40) {
   return fmpList<FmpDividend>(
     "/dividends",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 3600 },
   );
 }
@@ -352,7 +352,7 @@ export function getDividendCalendar(from: string, to: string) {
 export function getPriceChange(symbol: string) {
   return fmpFirst<FmpPriceChange>(
     "/stock-price-change",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 120 },
   );
 }
@@ -360,7 +360,7 @@ export function getPriceChange(symbol: string) {
 export function getAftermarketQuote(symbol: string) {
   return fmpFirst<FmpAftermarketQuote>(
     "/aftermarket-quote",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 15 },
   );
 }
@@ -368,13 +368,13 @@ export function getAftermarketQuote(symbol: string) {
 export function getAftermarketTrade(symbol: string) {
   return fmpFirst<FmpAftermarketTrade>(
     "/aftermarket-trade",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 15 },
   );
 }
 
 export async function getBatchAftermarketQuotes(symbols: string[]) {
-  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()).filter(Boolean))];
+  const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))];
   if (unique.length === 0) return [] as FmpAftermarketQuote[];
   const groups = await Promise.all(
     chunk(unique, 80).map((group) =>
@@ -385,7 +385,7 @@ export async function getBatchAftermarketQuotes(symbols: string[]) {
 }
 
 export async function getBatchAftermarketTrades(symbols: string[]) {
-  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()).filter(Boolean))];
+  const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))];
   if (unique.length === 0) return [] as FmpAftermarketTrade[];
   const groups = await Promise.all(
     chunk(unique, 80).map((group) =>
@@ -416,7 +416,7 @@ export async function getLatestRsi(symbol: string, periodLength = 14) {
   const from = isoDate(addDays(new Date(), -45));
   const rows = await fmpList<FmpTechnicalPoint>(
     "/technical-indicators/rsi",
-    { symbol: symbol.toUpperCase(), periodLength, timeframe: "1day", from },
+    { symbol: decodeTicker(symbol), periodLength, timeframe: "1day", from },
     { revalidate: 300 },
   );
   if (rows.length === 0) return null;
@@ -435,7 +435,7 @@ export async function getEtfSymbolSet() {
 export function getDailyChart(symbol: string, from?: string, to?: string) {
   return fmpList<FmpLightCandle>(
     "/historical-price-eod/light",
-    { symbol: symbol.toUpperCase(), from, to },
+    { symbol: decodeTicker(symbol), from, to },
     { revalidate: 300 },
   );
 }
@@ -443,7 +443,7 @@ export function getDailyChart(symbol: string, from?: string, to?: string) {
 export function getIntradayChart(symbol: string, interval: "1min" | "5min" | "15min" | "1hour") {
   return fmpList<FmpIntradayCandle>(
     `/historical-chart/${interval}`,
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 30 },
   );
 }
@@ -451,7 +451,7 @@ export function getIntradayChart(symbol: string, interval: "1min" | "5min" | "15
 export function getIncomeStatements(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpIncomeStatement>(
     "/income-statement",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -459,7 +459,7 @@ export function getIncomeStatements(symbol: string, period: StatementPeriod, lim
 export function getIncomeTtm(symbol: string) {
   return fmpFirst<FmpIncomeStatement>(
     "/income-statement-ttm",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -467,7 +467,7 @@ export function getIncomeTtm(symbol: string) {
 export function getBalanceSheets(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpBalanceSheet>(
     "/balance-sheet-statement",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -475,7 +475,7 @@ export function getBalanceSheets(symbol: string, period: StatementPeriod, limit 
 export function getCashFlows(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpCashFlow>(
     "/cash-flow-statement",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -483,7 +483,7 @@ export function getCashFlows(symbol: string, period: StatementPeriod, limit = 8)
 export function getCashFlowTtm(symbol: string) {
   return fmpFirst<FmpCashFlow>(
     "/cash-flow-statement-ttm",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -491,7 +491,7 @@ export function getCashFlowTtm(symbol: string) {
 export function getRatios(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpRatios>(
     "/ratios",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -499,7 +499,7 @@ export function getRatios(symbol: string, period: StatementPeriod, limit = 8) {
 export function getRatiosTtm(symbol: string) {
   return fmpFirst<FmpRatiosTtm>(
     "/ratios-ttm",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -507,7 +507,7 @@ export function getRatiosTtm(symbol: string) {
 export function getKeyMetricsTtm(symbol: string) {
   return fmpFirst<FmpKeyMetricsTtm>(
     "/key-metrics-ttm",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -515,7 +515,7 @@ export function getKeyMetricsTtm(symbol: string) {
 export function getKeyMetrics(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpKeyMetrics>(
     "/key-metrics",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -523,7 +523,7 @@ export function getKeyMetrics(symbol: string, period: StatementPeriod, limit = 8
 export function getPriceTarget(symbol: string) {
   return fmpFirst<FmpPriceTarget>(
     "/price-target-consensus",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -531,7 +531,7 @@ export function getPriceTarget(symbol: string) {
 export function getPriceTargetSummary(symbol: string) {
   return fmpFirst<FmpPriceTargetSummary>(
     "/price-target-summary",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -539,7 +539,7 @@ export function getPriceTargetSummary(symbol: string) {
 export function getGradesConsensus(symbol: string) {
   return fmpFirst<FmpGradesConsensus>(
     "/grades-consensus",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -547,7 +547,7 @@ export function getGradesConsensus(symbol: string) {
 export function getGrades(symbol: string, limit = 12) {
   return fmpList<FmpGrade>(
     "/grades",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 3600 },
   );
 }
@@ -555,7 +555,7 @@ export function getGrades(symbol: string, limit = 12) {
 export function getGradesHistorical(symbol: string, limit = 16) {
   return fmpList<FmpHistoricalGrade>(
     "/grades-historical",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 3600 },
   );
 }
@@ -563,7 +563,7 @@ export function getGradesHistorical(symbol: string, limit = 16) {
 export function getRatings(symbol: string) {
   return fmpFirst<FmpRatings>(
     "/ratings-snapshot",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -571,7 +571,7 @@ export function getRatings(symbol: string) {
 export function getRatingsHistorical(symbol: string, limit = 16) {
   return fmpList<FmpHistoricalRating>(
     "/ratings-historical",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 3600 },
   );
 }
@@ -579,7 +579,7 @@ export function getRatingsHistorical(symbol: string, limit = 16) {
 export function getScores(symbol: string) {
   return fmpFirst<FmpScores>(
     "/financial-scores",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -587,7 +587,7 @@ export function getScores(symbol: string) {
 export function getPeers(symbol: string) {
   return fmpList<FmpPeer>(
     "/stock-peers",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -595,7 +595,7 @@ export function getPeers(symbol: string) {
 export function getEstimates(symbol: string, period: StatementPeriod = "annual") {
   return fmpList<FmpEstimate>(
     "/analyst-estimates",
-    { symbol: symbol.toUpperCase(), period, limit: 8 },
+    { symbol: decodeTicker(symbol), period, limit: 8 },
     { revalidate: 3600 },
   );
 }
@@ -686,19 +686,19 @@ export function getMarketHours(exchange = "NASDAQ") {
 export function getKeyExecutives(symbol: string) {
   return fmpList<FmpExecutive>(
     "/key-executives",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 86400 },
   );
 }
 
 export function getEtfInfo(symbol: string) {
-  return fmpFirst<FmpEtfInfo>("/etf/info", { symbol: symbol.toUpperCase() }, { revalidate: 3600 });
+  return fmpFirst<FmpEtfInfo>("/etf/info", { symbol: decodeTicker(symbol) }, { revalidate: 3600 });
 }
 
 export function getEtfHoldings(symbol: string) {
   return fmpList<FmpEtfHolding>(
     "/etf/holdings",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -706,7 +706,7 @@ export function getEtfHoldings(symbol: string) {
 export function getEtfSectors(symbol: string) {
   return fmpList<FmpEtfSector>(
     "/etf/sector-weightings",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -714,7 +714,7 @@ export function getEtfSectors(symbol: string) {
 export function getEtfCountryWeights(symbol: string) {
   return fmpList<FmpEtfCountryWeight>(
     "/etf/country-weightings",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -722,7 +722,7 @@ export function getEtfCountryWeights(symbol: string) {
 export function getEtfAssetExposure(symbol: string) {
   return fmpList<FmpEtfExposure>(
     "/etf/asset-exposure",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -746,7 +746,7 @@ export function getHistoricalConstituents(index: "sp500" | "nasdaq" | "dow") {
 }
 
 export function getSplits(symbol: string, limit = 20) {
-  return fmpList<FmpSplit>("/splits", { symbol: symbol.toUpperCase(), limit }, { revalidate: 86400 });
+  return fmpList<FmpSplit>("/splits", { symbol: decodeTicker(symbol), limit }, { revalidate: 86400 });
 }
 
 export function getSplitsCalendar(from: string, to: string) {
@@ -756,7 +756,7 @@ export function getSplitsCalendar(from: string, to: string) {
 export function getInsiderTrades(symbol: string, limit = 50) {
   return fmpList<FmpInsiderTrade>(
     "/insider-trading/search",
-    { symbol: symbol.toUpperCase(), page: 0, limit },
+    { symbol: decodeTicker(symbol), page: 0, limit },
     { revalidate: 300 },
   );
 }
@@ -764,7 +764,7 @@ export function getInsiderTrades(symbol: string, limit = 50) {
 export function getInsiderStatistics(symbol: string) {
   return fmpList<FmpInsiderStatistics>(
     "/insider-trading/statistics",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -788,7 +788,7 @@ export function getHouseLatest(limit = 100) {
 export function getSenateTrades(symbol: string, limit = 50) {
   return fmpList<FmpCongressTrade>(
     "/senate-trades",
-    { symbol: symbol.toUpperCase(), page: 0, limit },
+    { symbol: decodeTicker(symbol), page: 0, limit },
     { revalidate: 600 },
   );
 }
@@ -796,7 +796,7 @@ export function getSenateTrades(symbol: string, limit = 50) {
 export function getHouseTrades(symbol: string, limit = 50) {
   return fmpList<FmpCongressTrade>(
     "/house-trades",
-    { symbol: symbol.toUpperCase(), page: 0, limit },
+    { symbol: decodeTicker(symbol), page: 0, limit },
     { revalidate: 600 },
   );
 }
@@ -804,7 +804,7 @@ export function getHouseTrades(symbol: string, limit = 50) {
 export function getShareFloat(symbol: string) {
   return fmpFirst<FmpShareFloat>(
     "/shares-float",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -812,7 +812,7 @@ export function getShareFloat(symbol: string) {
 export function getHistoricalMarketCap(symbol: string, limit = 90, from?: string, to?: string) {
   return fmpList<FmpHistoricalMarketCap>(
     "/historical-market-capitalization",
-    { symbol: symbol.toUpperCase(), limit, from, to },
+    { symbol: decodeTicker(symbol), limit, from, to },
     { revalidate: 3600 },
   );
 }
@@ -820,7 +820,7 @@ export function getHistoricalMarketCap(symbol: string, limit = 90, from?: string
 export function getIncomeGrowth(symbol: string, period: StatementPeriod = "annual", limit = 8) {
   return fmpList<FmpIncomeGrowth>(
     "/income-statement-growth",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -828,7 +828,7 @@ export function getIncomeGrowth(symbol: string, period: StatementPeriod = "annua
 export function getFullDailyChart(symbol: string, from?: string, to?: string) {
   return fmpList<FmpFullCandle>(
     "/historical-price-eod/full",
-    { symbol: symbol.toUpperCase(), from, to },
+    { symbol: decodeTicker(symbol), from, to },
     { revalidate: 300 },
   );
 }
@@ -836,7 +836,7 @@ export function getFullDailyChart(symbol: string, from?: string, to?: string) {
 export function getSecFilings(symbol: string, from: string, to: string, limit = 50) {
   return fmpList<FmpSecFiling>(
     "/sec-filings-search/symbol",
-    { symbol: symbol.toUpperCase(), from, to, page: 0, limit },
+    { symbol: decodeTicker(symbol), from, to, page: 0, limit },
     { revalidate: 600 },
   );
 }
@@ -844,7 +844,7 @@ export function getSecFilings(symbol: string, from: string, to: string, limit = 
 export function getTranscriptDates(symbol: string) {
   return fmpList<FmpTranscriptDate>(
     "/earning-call-transcript-dates",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
 }
@@ -852,7 +852,7 @@ export function getTranscriptDates(symbol: string) {
 export function getTranscript(symbol: string, year: number, quarter: number) {
   return fmpFirst<FmpTranscript>(
     "/earning-call-transcript",
-    { symbol: symbol.toUpperCase(), year, quarter },
+    { symbol: decodeTicker(symbol), year, quarter },
     { revalidate: 86400 },
   );
 }
@@ -883,7 +883,7 @@ function isPlausible13F(row: FmpInstitutionalSummary) {
 }
 
 export async function getLatestInstitutionalOwnership(symbol: string, holderLimit = 40) {
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   let backup: { year: number; quarter: number; row: FmpInstitutionalSummary } | null = null;
 
   for (const period of recentFiscalQuarters(6)) {
@@ -920,7 +920,7 @@ export async function getLatestInstitutionalOwnership(symbol: string, holderLimi
 export function getEmployeeCount(symbol: string, limit = 8) {
   return fmpList<FmpEmployeeCount>(
     "/employee-count",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 86400 },
   );
 }
@@ -928,7 +928,7 @@ export function getEmployeeCount(symbol: string, limit = 8) {
 export function getHistoricalEmployeeCount(symbol: string, limit = 40) {
   return fmpList<FmpEmployeeCount>(
     "/historical-employee-count",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 86400 },
   );
 }
@@ -942,7 +942,7 @@ function normalizeDcf(row: FmpDcf | null) {
 export async function getDcf(symbol: string) {
   const row = await fmpFirst<FmpDcf>(
     "/discounted-cash-flow",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
   return normalizeDcf(row);
@@ -951,7 +951,7 @@ export async function getDcf(symbol: string) {
 export async function getLeveredDcf(symbol: string) {
   const row = await fmpFirst<FmpDcf>(
     "/levered-discounted-cash-flow",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
   return normalizeDcf(row);
@@ -960,7 +960,7 @@ export async function getLeveredDcf(symbol: string) {
 export function getRevenueProductSegments(symbol: string, period: StatementPeriod = "annual") {
   return fmpList<FmpRevenueSegment>(
     "/revenue-product-segmentation",
-    { symbol: symbol.toUpperCase(), period, structure: "flat" },
+    { symbol: decodeTicker(symbol), period, structure: "flat" },
     { revalidate: 86400 },
   );
 }
@@ -968,7 +968,7 @@ export function getRevenueProductSegments(symbol: string, period: StatementPerio
 export function getRevenueGeographicSegments(symbol: string, period: StatementPeriod = "annual") {
   return fmpList<FmpRevenueSegment>(
     "/revenue-geographic-segmentation",
-    { symbol: symbol.toUpperCase(), period, structure: "flat" },
+    { symbol: decodeTicker(symbol), period, structure: "flat" },
     { revalidate: 86400 },
   );
 }
@@ -1048,7 +1048,7 @@ export function getIpoProspectuses(from: string, to: string) {
 export function getOwnerEarnings(symbol: string, limit = 20) {
   return fmpList<FmpOwnerEarnings>(
     "/owner-earnings",
-    { symbol: symbol.toUpperCase(), limit },
+    { symbol: decodeTicker(symbol), limit },
     { revalidate: 3600 },
   );
 }
@@ -1056,7 +1056,7 @@ export function getOwnerEarnings(symbol: string, limit = 20) {
 export function getEnterpriseValues(symbol: string, period: StatementPeriod = "annual", limit = 20) {
   return fmpList<FmpEnterpriseValue>(
     "/enterprise-values",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -1076,7 +1076,7 @@ export function getEconomicIndicator(name: string, from?: string, to?: string) {
 export function getFinancialGrowth(symbol: string, period: StatementPeriod = "annual", limit = 8) {
   return fmpList<FmpFinancialGrowth>(
     "/financial-growth",
-    { symbol: symbol.toUpperCase(), period, limit },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }
@@ -1092,7 +1092,7 @@ export function getDelistedCompanies(page = 0, limit = 100) {
 export function getEsgRatings(symbol: string) {
   return fmpList<FmpEsgRating>(
     "/esg-ratings",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 86400 },
   );
 }
@@ -1100,7 +1100,7 @@ export function getEsgRatings(symbol: string) {
 export function getEsgDisclosures(symbol: string) {
   return fmpList<FmpEsgDisclosure>(
     "/esg-disclosures",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 86400 },
   );
 }
@@ -1108,7 +1108,7 @@ export function getEsgDisclosures(symbol: string) {
 export function getCompanyNotes(symbol: string) {
   return fmpList<FmpCompanyNote>(
     "/company-notes",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 86400 },
   );
 }
@@ -1124,7 +1124,7 @@ export function getLatestInstitutionalFilings(limit = 80) {
 export function getExecutiveCompensation(symbol: string) {
   return fmpList<FmpExecutiveCompensation>(
     "/governance-executive-compensation",
-    { symbol: symbol.toUpperCase() },
+    { symbol: decodeTicker(symbol) },
     { revalidate: 86400 },
   );
 }

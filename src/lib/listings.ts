@@ -146,6 +146,14 @@ export function looksLikeFund(name?: string | null) {
   return FUND_NAME.test(name ?? "");
 }
 
+export function decodeTicker(symbol: string) {
+  try {
+    return decodeURIComponent(symbol).toUpperCase();
+  } catch {
+    return symbol.toUpperCase();
+  }
+}
+
 export function quoteHref(
   symbol: string,
   hint?: {

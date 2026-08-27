@@ -9,19 +9,12 @@ import {
   hasFmpKey,
   mergeAftermarketQuote,
 } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 import { INDEX_LABELS } from "@/lib/statements";
-
-function tickerFromParam(symbol: string) {
-  try {
-    return decodeURIComponent(symbol).toUpperCase();
-  } catch {
-    return symbol.toUpperCase();
-  }
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = tickerFromParam(symbol);
+  const ticker = decodeTicker(symbol);
   const profile = ticker.startsWith("^") ? null : await getProfile(ticker);
   const name = profile?.companyName ?? INDEX_LABELS[ticker] ?? ticker;
   return {
@@ -38,7 +31,7 @@ export default async function StockLayout({
   params: Promise<{ symbol: string }>;
 }) {
   const { symbol } = await params;
-  const ticker = tickerFromParam(symbol);
+  const ticker = decodeTicker(symbol);
   const isIndex = ticker.startsWith("^");
   const [quote, profile, afterHours, afterTrade] = await Promise.all([
     isIndex ? getQuotes([ticker]).then((rows) => rows[0] ?? null) : getQuote(ticker),

@@ -27,7 +27,7 @@ import {
   withQuoteChanges,
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
-import { isForeignListingSymbol, quoteHref } from "@/lib/listings";
+import { decodeTicker, isForeignListingSymbol, quoteHref } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { ChangePercent } from "@/components/change";
 import { QuoteFaq } from "@/components/quote-faq";
@@ -42,7 +42,7 @@ export default async function StockOverviewPage({
 }) {
   const { symbol } = await params;
   const { range: rangeParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
 
   const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf] =
@@ -283,15 +283,17 @@ export default async function StockOverviewPage({
         </section>
       ) : null}
 
-      <QuoteFaq
-        symbol={ticker}
-        quote={quote}
-        profile={profile}
-        ttm={ttm}
-        ratios={ratios}
-        target={target}
-        grades={grades}
-      />
+      {ticker.startsWith("^") ? null : (
+        <QuoteFaq
+          symbol={ticker}
+          quote={quote}
+          profile={profile}
+          ttm={ttm}
+          ratios={ratios}
+          target={target}
+          grades={grades}
+        />
+      )}
 
       {heldByEtfs.length > 0 ? (
         <section className="mt-10">
