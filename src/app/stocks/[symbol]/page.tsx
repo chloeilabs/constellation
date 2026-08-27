@@ -13,6 +13,7 @@ import {
   getDividends,
   getEstimates,
   getEtfAssetExposure,
+  listedUsEtfHolders,
   getGradesConsensus,
   getIncomeGrowth,
   getIncomeStatements,
@@ -27,7 +28,7 @@ import {
   withQuoteChanges,
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
-import { decodeTicker, quoteHref, usEtfHolders } from "@/lib/listings";
+import { decodeTicker, quoteHref } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { ChangePercent } from "@/components/change";
 import { QuoteFaq } from "@/components/quote-faq";
@@ -75,7 +76,7 @@ export default async function StockOverviewPage({
   const growth = growthRows[0] ?? null;
   const currency = reportingCurrency(profile?.currency, latestYear?.reportedCurrency, ttm?.reportedCurrency);
   const money = compactMoneyFn(currency);
-  const usEtfs = usEtfHolders(etfHolders);
+  const usEtfs = await listedUsEtfHolders(etfHolders);
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);

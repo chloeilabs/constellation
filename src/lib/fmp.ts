@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { decodeTicker, looksLikeFund } from "@/lib/listings";
+import { decodeTicker, looksLikeFund, usEtfHolders } from "@/lib/listings";
 import { addDays, chunk, first, isoDate, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -439,6 +439,11 @@ export function getEtfList() {
 export async function getEtfSymbolSet() {
   const rows = await getEtfList();
   return new Set(rows.map((row) => row.symbol.toUpperCase()).filter(Boolean));
+}
+
+export async function listedUsEtfHolders(rows: FmpEtfExposure[]) {
+  const etfs = await getEtfSymbolSet();
+  return usEtfHolders(rows).filter((row) => etfs.has(decodeTicker(row.symbol)));
 }
 
 export function getDailyChart(symbol: string, from?: string, to?: string) {

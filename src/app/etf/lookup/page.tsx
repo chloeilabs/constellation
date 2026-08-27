@@ -3,8 +3,8 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { formatCompactUsd, formatInteger, formatPercentPlain } from "@/lib/format";
-import { getEtfAssetExposure, getQuote } from "@/lib/fmp";
-import { decodeTicker, quoteHref, usEtfHolders } from "@/lib/listings";
+import { getEtfAssetExposure, getQuote, listedUsEtfHolders } from "@/lib/fmp";
+import { decodeTicker, quoteHref } from "@/lib/listings";
 import { ETF_NAV } from "@/lib/nav";
 
 const EXAMPLES = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"] as const;
@@ -27,7 +27,7 @@ export default async function EtfLookupPage({
   const [quote, exposure] = ticker
     ? await Promise.all([getQuote(ticker), getEtfAssetExposure(ticker)])
     : [null, []];
-  const holders = usEtfHolders(exposure)
+  const holders = (await listedUsEtfHolders(exposure))
     .slice()
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 200);
