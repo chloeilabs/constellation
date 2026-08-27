@@ -10,7 +10,7 @@ import { WatchlistButton } from "@/components/watchlist-button";
 import { ChangeValue } from "@/components/change";
 import { formatCompact, formatCompactUsd, formatMoney, formatPrice } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
-import { getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
+import { getCryptoNews, getForexNews, getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
 import { MARKET_NAV } from "@/lib/nav";
 import {
   MARKET_ASSET_LABEL,
@@ -24,6 +24,12 @@ import {
 function priceLabel(kind: MarketAssetKind, value: number | null | undefined, digits?: number) {
   if (kind === "forex") return formatPrice(value, digits ?? 4);
   return formatMoney(value, "USD", digits);
+}
+
+function kindNews(symbol: string, kind: MarketAssetKind) {
+  if (kind === "crypto") return getCryptoNews(symbol, 12);
+  if (kind === "forex") return getForexNews(symbol, 12);
+  return getSymbolNews(symbol, 12);
 }
 
 export async function marketAssetMetadata(symbol: string, expected: MarketAssetKind) {
@@ -52,7 +58,7 @@ export async function MarketAssetQuote({
     getQuote(ticker),
     getChartData(ticker, range),
     getPriceChange(ticker),
-    getSymbolNews(ticker, 12),
+    kindNews(ticker, expected),
   ]);
 
   if (!quote) {
@@ -168,8 +174,8 @@ export async function MarketAssetQuote({
         <section className="mt-10">
           <div className="mb-3 flex items-end justify-between">
             <h2 className="text-xl font-semibold text-header">News</h2>
-            <Link href={listHref} className="text-sm text-link hover:underline">
-              All {kindLabel.toLowerCase()}
+            <Link href={kind === "crypto" ? "/news/crypto" : kind === "forex" ? "/news/forex" : listHref} className="text-sm text-link hover:underline">
+              All {kindLabel.toLowerCase()} news
             </Link>
           </div>
           {news.length === 0 ? (

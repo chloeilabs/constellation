@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ApiBanner } from "@/components/api-banner";
+import { GlobalIndexTicker } from "@/components/global-index-ticker";
 import { hasFmpKey } from "@/lib/fmp";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <SiteHeader />
+        <GlobalIndexTicker />
         {!configured ? <ApiBanner /> : null}
         <main className="flex-1">{children}</main>
         <SiteFooter />

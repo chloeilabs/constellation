@@ -1,5 +1,16 @@
-import { getInstitutionalDates, getInstitutionalExtract, getLatestInstitutionalFilings } from "@/lib/fmp";
-import type { FmpInstitutionalExtract } from "@/lib/types";
+import { cache } from "react";
+import {
+  getInstitutionalDates,
+  getInstitutionalExtract,
+  getInstitutionalIndustryBreakdown,
+  getInstitutionalPerformance,
+  getLatestInstitutionalFilings,
+} from "@/lib/fmp";
+import type {
+  FmpInstitutionalExtract,
+  FmpInstitutionalIndustry,
+  FmpInstitutionalPerformance,
+} from "@/lib/types";
 
 export const WELL_KNOWN_FILERS = [
   { cik: "0001067983", name: "Berkshire Hathaway" },
@@ -28,27 +39,63 @@ export function filerName(cik: string, fallback?: string | null) {
   return WELL_KNOWN_FILERS.find((filer) => filer.cik === padded)?.name ?? fallback ?? null;
 }
 
-export async function loadInstitutionalPortfolio(cik: string) {
-  const padded = padCik(cik);
-  if (!padded) {
-    return { cik: "", name: null, period: null, holdings: [] as FmpInstitutionalExtract[], filing: null };
-  }
+export function titleCaseIndustry(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\bAnd\b/g, "and");
+}
 
-  const [dates, latestFilings] = await Promise.all([
+export const loadInstitutionalPortfolio = cache(async (cik: string) => {
+  const padded = padCik(cik);
+  const empty = {
+    cik: padded,
+    name: null as string | null,
+    period: null as { year: number; quarter: number } | null,
+    holdings: [] as FmpInstitutionalExtract[],
+    filing: null,
+    performance: [] as FmpInstitutionalPerformance[],
+    latestPerformance: null as FmpInstitutionalPerformance | null,
+    industries: [] as FmpInstitutionalIndustry[],
+  };
+  if (!padded) return { ...empty, cik: "" };
+
+  const [dates, latestFilings, performance] = await Promise.all([
     getInstitutionalDates(padded),
     getLatestInstitutionalFilings(100),
+    getInstitutionalPerformance(padded),
   ]);
   const filing = latestFilings.find((row) => padCik(row.cik) === padded) ?? null;
-  const name = filerName(padded, filing?.name);
+  const rankedPerformance = [...performance].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const name = filerName(padded, filing?.name ?? rankedPerformance[0]?.investorName);
   const period = [...dates].sort((a, b) => {
     if (b.year !== a.year) return b.year - a.year;
     return b.quarter - a.quarter;
   })[0] ?? null;
 
   if (!period) {
-    return { cik: padded, name, period: null, holdings: [] as FmpInstitutionalExtract[], filing };
+    return { ...empty, name, filing, performance: rankedPerformance, latestPerformance: rankedPerformance[0] ?? null };
   }
 
-  const holdings = await getInstitutionalExtract(padded, period.year, period.quarter);
-  return { cik: padded, name, period, holdings, filing };
-}
+  const [holdings, industries] = await Promise.all([
+    getInstitutionalExtract(padded, period.year, period.quarter),
+    getInstitutionalIndustryBreakdown(padded, period.year, period.quarter),
+  ]);
+  const periodDate = holdings[0]?.date || rankedPerformance[0]?.date || "";
+  const latestPerformance =
+    rankedPerformance.find((row) => periodDate && row.date?.startsWith(periodDate.slice(0, 10))) ??
+    rankedPerformance[0] ??
+    null;
+  const rankedIndustries = [...industries].sort((a, b) => (b.weight || 0) - (a.weight || 0));
+
+  return {
+    cik: padded,
+    name,
+    period,
+    holdings,
+    filing,
+    performance: rankedPerformance,
+    latestPerformance,
+    industries: rankedIndustries,
+  };
+});

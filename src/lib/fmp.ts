@@ -75,6 +75,10 @@ import type {
   FmpIpoDisclosure,
   FmpIpoProspectus,
   FmpCongressTrade,
+  FmpSenateProfile,
+  FmpLatestStatement,
+  FmpInstitutionalPerformance,
+  FmpInstitutionalIndustry,
   FmpOwnerEarnings,
   FmpEnterpriseValue,
   FmpTreasuryRate,
@@ -355,6 +359,30 @@ export function getLatestPressReleases(limit = 20, page = 0) {
 export function getSymbolNews(symbol: string, limit = 20) {
   return fmpList<FmpNewsItem>(
     "/news/stock",
+    { symbols: decodeTicker(symbol), limit },
+    { revalidate: 120 },
+  );
+}
+
+export function getCryptoNewsLatest(limit = 20, page = 0) {
+  return fmpList<FmpNewsItem>("/news/crypto-latest", { limit, page }, { revalidate: 120 });
+}
+
+export function getForexNewsLatest(limit = 20, page = 0) {
+  return fmpList<FmpNewsItem>("/news/forex-latest", { limit, page }, { revalidate: 120 });
+}
+
+export function getCryptoNews(symbol: string, limit = 20) {
+  return fmpList<FmpNewsItem>(
+    "/news/crypto",
+    { symbols: decodeTicker(symbol), limit },
+    { revalidate: 120 },
+  );
+}
+
+export function getForexNews(symbol: string, limit = 20) {
+  return fmpList<FmpNewsItem>(
+    "/news/forex",
     { symbols: decodeTicker(symbol), limit },
     { revalidate: 120 },
   );
@@ -853,6 +881,42 @@ export function getHouseTrades(symbol: string, limit = 50) {
   );
 }
 
+export function getSenateTradesByName(name: string) {
+  return fmpList<FmpCongressTrade>("/senate-trades-by-name", { name }, { revalidate: 600 });
+}
+
+export function getHouseTradesByName(name: string) {
+  return fmpList<FmpCongressTrade>("/house-trades-by-name", { name }, { revalidate: 600 });
+}
+
+export function getSenateProfile(senateID: string) {
+  return fmpFirst<FmpSenateProfile>("/senate-profile", { senateID }, { revalidate: 86400 });
+}
+
+export function getLatestFinancialStatements(page = 0, limit = 100) {
+  return fmpList<FmpLatestStatement>(
+    "/latest-financial-statements",
+    { page, limit },
+    { revalidate: 120 },
+  );
+}
+
+export function getLatestSecFilings8k(from: string, to: string, limit = 100) {
+  return fmpList<FmpSecFiling>(
+    "/sec-filings-8k",
+    { from, to, page: 0, limit },
+    { revalidate: 120 },
+  );
+}
+
+export function getLatestSecFilingsFinancials(from: string, to: string, limit = 100) {
+  return fmpList<FmpSecFiling>(
+    "/sec-filings-financials",
+    { from, to, page: 0, limit },
+    { revalidate: 120 },
+  );
+}
+
 export function getShareFloat(symbol: string) {
   return fmpFirst<FmpShareFloat>(
     "/shares-float",
@@ -1184,6 +1248,22 @@ export function getInstitutionalDates(cik: string) {
 export function getInstitutionalExtract(cik: string, year: number, quarter: number) {
   return fmpList<FmpInstitutionalExtract>(
     "/institutional-ownership/extract",
+    { cik, year, quarter },
+    { revalidate: 3600 },
+  );
+}
+
+export function getInstitutionalPerformance(cik: string) {
+  return fmpList<FmpInstitutionalPerformance>(
+    "/institutional-ownership/holder-performance-summary",
+    { cik },
+    { revalidate: 3600 },
+  );
+}
+
+export function getInstitutionalIndustryBreakdown(cik: string, year: number, quarter: number) {
+  return fmpList<FmpInstitutionalIndustry>(
+    "/institutional-ownership/holder-industry-breakdown",
     { cik, year, quarter },
     { revalidate: 3600 },
   );

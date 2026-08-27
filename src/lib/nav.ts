@@ -72,6 +72,9 @@ export const NEWS_NAV: NavItem[] = [
   { href: "/news", label: "Stocks" },
   { href: "/news/press-releases", label: "Press Releases" },
   { href: "/news/general", label: "General" },
+  { href: "/news/filings", label: "Filings" },
+  { href: "/news/crypto", label: "Crypto" },
+  { href: "/news/forex", label: "Forex" },
   { href: "/analysts", label: "Analysts" },
   { href: "/news/transcripts", label: "Transcripts" },
 ];

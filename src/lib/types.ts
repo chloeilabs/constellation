@@ -619,8 +619,17 @@ export type FmpSecFiling = {
   filingDate: string;
   acceptedDate: string;
   formType: string;
+  hasFinancials?: boolean;
   link: string;
   finalLink: string;
+};
+
+export type FmpLatestStatement = {
+  symbol: string;
+  calendarYear: number | string;
+  period: string;
+  date: string;
+  dateAdded: string;
 };
 
 export type FmpTranscriptDate = {
@@ -875,6 +884,19 @@ export type FmpCongressTrade = {
   link: string;
 };
 
+export type FmpSenateProfile = {
+  senateID: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  latestParty: string;
+  latestState: string;
+  latestPosition: string;
+  image: string;
+  active: boolean;
+  yearsActive: number;
+};
+
 export type FmpOwnerEarnings = {
   symbol: string;
   reportedCurrency: string;
@@ -1026,6 +1048,43 @@ export type FmpInstitutionalExtract = {
   value: number;
   link: string;
   finalLink: string;
+};
+
+export type FmpInstitutionalPerformance = {
+  date: string;
+  cik: string;
+  investorName: string;
+  portfolioSize: number;
+  securitiesAdded: number;
+  securitiesRemoved: number;
+  marketValue: number;
+  previousMarketValue: number;
+  changeInMarketValue: number;
+  changeInMarketValuePercentage: number;
+  averageHoldingPeriod: number;
+  turnover: number;
+  performance: number;
+  performancePercentage: number;
+  performancePercentage1year: number;
+  performancePercentage3year: number;
+  performancePercentage5year: number;
+  performanceRelativeToSP500Percentage: number;
+  performance1yearRelativeToSP500Percentage: number;
+  performance3yearRelativeToSP500Percentage: number;
+  performance5yearRelativeToSP500Percentage: number;
+};
+
+export type FmpInstitutionalIndustry = {
+  date: string;
+  cik: string;
+  investorName: string;
+  industryTitle: string;
+  weight: number;
+  lastWeight: number;
+  changeInWeight: number;
+  changeInWeightPercentage: number;
+  performance: number;
+  performancePercentage: number;
 };
 
 export type FmpExchangeVariant = {

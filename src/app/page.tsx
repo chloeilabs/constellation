@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { SearchBox } from "@/components/search-box";
-import { IndexTicker } from "@/components/index-ticker";
 import { MoversTable } from "@/components/movers-table";
 import { NewsList } from "@/components/news-list";
 import { Container } from "@/components/container";
@@ -13,10 +12,8 @@ import {
   getEarningsCalendar,
   getGainers,
   getIndexConstituents,
-  getIndexQuotes,
   getIpos,
   getLosers,
-  getMarketHours,
   getMostActive,
   getQuotes,
   getSectorPerformance,
@@ -145,14 +142,12 @@ export default async function HomePage() {
   const session = nySession();
   const showExtended = session !== "open";
   const extended = nyExtendedCopy();
-  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday, extendedRows, earnings, sp500] =
+  const [gainers, losers, news, ipos, popular, actives, sectorsToday, sectorsYesterday, extendedRows, earnings, sp500] =
     await Promise.all([
-      getIndexQuotes(),
       showExtended ? Promise.resolve([]) : getGainers(),
       showExtended ? Promise.resolve([]) : getLosers(),
       getStockNews(20),
       getIpos(from, to),
-      getMarketHours("NASDAQ"),
       getQuotes([...POPULAR_SYMBOLS]),
       getMostActive(),
       getSectorPerformance(todayStr),
@@ -170,7 +165,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <IndexTicker quotes={indexes} hours={hours} />
       <section className="border-b border-border bg-gradient-to-b from-muted-bg to-white">
         <div className="mx-auto max-w-3xl px-4 py-16 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-header md:text-5xl">

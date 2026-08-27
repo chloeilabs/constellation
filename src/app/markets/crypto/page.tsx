@@ -2,9 +2,10 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
+import { NewsList } from "@/components/news-list";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatCompact, formatInteger, formatPrice } from "@/lib/format";
-import { getCryptocurrencyList, getCryptoQuotes } from "@/lib/fmp";
+import { getCryptocurrencyList, getCryptoNewsLatest, getCryptoQuotes } from "@/lib/fmp";
 import { quoteHref } from "@/lib/listings";
 import { percentFromPriceChange } from "@/lib/utils";
 import Link from "next/link";
@@ -15,7 +16,11 @@ export const metadata = {
 };
 
 export default async function CryptoPage() {
-  const [names, quotes] = await Promise.all([getCryptocurrencyList(), getCryptoQuotes()]);
+  const [names, quotes, news] = await Promise.all([
+    getCryptocurrencyList(),
+    getCryptoQuotes(),
+    getCryptoNewsLatest(12),
+  ]);
   const bySymbol = new Map(quotes.map((row) => [row.symbol, row]));
   const rows = names
     .filter((row) => row.symbol.endsWith("USD") && !row.symbol.endsWith("USDT"))
@@ -87,6 +92,17 @@ export default async function CryptoPage() {
           </tbody>
         </table>
       </div>
+      {news.length > 0 ? (
+        <section className="mt-10">
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="text-xl font-semibold text-header">Crypto News</h2>
+            <Link href="/news/crypto" className="text-sm text-link hover:underline">
+              All crypto news
+            </Link>
+          </div>
+          <NewsList items={news} />
+        </section>
+      ) : null}
     </Container>
   );
 }

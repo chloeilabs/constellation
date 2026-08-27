@@ -72,6 +72,14 @@ const nextConfig: NextConfig = {
       { source: "/mutual-fund/:symbol", destination: "/funds/:symbol", permanent: false },
       { source: "/mutual-funds/:symbol", destination: "/funds/:symbol", permanent: false },
       { source: "/quote/compare", destination: "/compare", permanent: false },
+      { source: "/quote/congress/:slug", destination: "/congress/:slug", permanent: false },
+      { source: "/quote/13f/:cik", destination: "/institutional/:cik", permanent: false },
+      { source: "/news/sec-filings", destination: "/news/filings", permanent: false },
+      { source: "/news/8k", destination: "/news/filings", permanent: false },
+      { source: "/earnings", destination: "/calendar/earnings", permanent: false },
+      { source: "/earnings/reported", destination: "/calendar/earnings?view=reported", permanent: false },
+      { source: "/crypto", destination: "/markets/crypto", permanent: false },
+      { source: "/forex", destination: "/markets/forex", permanent: false },
     ];
   },
   images: {

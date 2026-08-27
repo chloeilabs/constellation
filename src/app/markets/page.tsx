@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
-import { IndexTicker } from "@/components/index-ticker";
 import { MarketQuotesTable } from "@/components/market-quotes-table";
 import { MoversTable } from "@/components/movers-table";
 import { PageHeader } from "@/components/page-header";
@@ -14,7 +13,6 @@ import {
   getGainers,
   getIndexQuotes,
   getLosers,
-  getMarketHours,
   getMostActive,
   getSectorPerformance,
   getWorldIndexQuotes,
@@ -82,7 +80,7 @@ export const metadata = {
 export default async function MarketsPage() {
   const today = nyDateString();
   const yesterday = isoDate(addDays(new Date(`${today}T00:00:00Z`), -1));
-  const [indexes, world, gainers, losers, active, sectorsToday, sectorsYesterday, hours, commodities, crypto, forex] =
+  const [indexes, world, gainers, losers, active, sectorsToday, sectorsYesterday, commodities, crypto, forex] =
     await Promise.all([
       getIndexQuotes(),
       getWorldIndexQuotes(),
@@ -91,7 +89,6 @@ export default async function MarketsPage() {
       getMostActive(),
       getSectorPerformance(today),
       getSectorPerformance(yesterday),
-      getMarketHours("NASDAQ"),
       getCommodityQuotes(),
       getCryptoQuotes(),
       getForexQuotes(),
@@ -102,7 +99,6 @@ export default async function MarketsPage() {
 
   return (
     <>
-      <IndexTicker quotes={indexes} hours={hours} />
       <Container>
         <PageHeader title="Stock Market" description="Indexes, movers, sectors, commodities, crypto, and forex." />
         <SectionNav items={MARKET_NAV} />

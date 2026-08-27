@@ -127,6 +127,17 @@ export function isForeignListingSymbol(symbol: string) {
   return !US_SHARE_CLASSES.has(suffix);
 }
 
+/** Common-stock-like U.S. tickers for market-wide filing and earnings hubs. */
+export function isPrimaryUsSymbol(symbol?: string | null) {
+  if (!symbol) return false;
+  const ticker = symbol.trim().toUpperCase();
+  if (!ticker || ticker === "NONE" || ticker === "NULL") return false;
+  if (isForeignListingSymbol(ticker)) return false;
+  if (ticker.includes("-")) return false;
+  if (/^[A-Z]{5}F$/.test(ticker)) return false;
+  return true;
+}
+
 export function isUsVenue(exchange?: string | null) {
   return Boolean(exchange && US_VENUE.test(exchange.toUpperCase()));
 }

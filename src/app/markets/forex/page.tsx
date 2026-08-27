@@ -2,9 +2,10 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
+import { NewsList } from "@/components/news-list";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatPrice } from "@/lib/format";
-import { getForexList, getForexQuotes } from "@/lib/fmp";
+import { getForexList, getForexNewsLatest, getForexQuotes } from "@/lib/fmp";
 import { FOREX_CURRENCIES, quoteHref } from "@/lib/listings";
 import { percentFromPriceChange } from "@/lib/utils";
 import Link from "next/link";
@@ -29,7 +30,7 @@ const PINNED = [
 ];
 
 export default async function ForexPage() {
-  const [pairs, quotes] = await Promise.all([getForexList(), getForexQuotes()]);
+  const [pairs, quotes, news] = await Promise.all([getForexList(), getForexQuotes(), getForexNewsLatest(12)]);
   const bySymbol = new Map(quotes.map((row) => [row.symbol, row]));
   const pinRank = new Map(PINNED.map((symbol, index) => [symbol, index]));
   const rows = pairs
@@ -104,6 +105,17 @@ export default async function ForexPage() {
           </tbody>
         </table>
       </div>
+      {news.length > 0 ? (
+        <section className="mt-10">
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="text-xl font-semibold text-header">Forex News</h2>
+            <Link href="/news/forex" className="text-sm text-link hover:underline">
+              All forex news
+            </Link>
+          </div>
+          <NewsList items={news} />
+        </section>
+      ) : null}
     </Container>
   );
 }

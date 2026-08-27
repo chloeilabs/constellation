@@ -50,6 +50,12 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
   if (exchange.toLowerCase() === "compare") {
     redirect(`/compare?symbols=${decodeURIComponent(second).toUpperCase()}`);
   }
+  if (exchange.toLowerCase() === "congress") {
+    redirect(`/congress/${decodeURIComponent(second)}`);
+  }
+  if (exchange.toLowerCase() === "13f") {
+    redirect(`/institutional/${decodeURIComponent(second)}`);
+  }
   const ticker = decodeURIComponent(second).toUpperCase();
   const suffix = EXCHANGE_SUFFIX[exchange.toLowerCase()];
   const candidates = ticker.includes(".")
