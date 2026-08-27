@@ -45,7 +45,17 @@ export default async function StockOverviewPage({
 
   return (
     <Container>
-      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+      {profile?.isEtf ? (
+        <p className="mb-4 rounded-md border border-border bg-muted-bg px-3 py-2 text-sm">
+          {ticker} is an ETF.{" "}
+          <Link href={`/etf/${ticker}`} className="text-link hover:underline">
+            View holdings and sector weights
+          </Link>
+          .
+        </p>
+      ) : null}
+
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
         <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>
           <PriceChart points={points} range={range} symbol={ticker} />
         </Suspense>
@@ -64,6 +74,11 @@ export default async function StockOverviewPage({
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">About {ticker}</h2>
           <p className="max-w-4xl text-sm leading-7 text-header/90">{profile.description}</p>
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/company`} className="text-link hover:underline">
+              Full company profile
+            </Link>
+          </p>
           <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
             <div>
               <dt className="text-muted">IPO Date</dt>

@@ -4,8 +4,19 @@ import { IndexTicker } from "@/components/index-ticker";
 import { MoversTable } from "@/components/movers-table";
 import { NewsList } from "@/components/news-list";
 import { Container } from "@/components/container";
+import { PopularStocks } from "@/components/popular-stocks";
+import { Toolkit } from "@/components/toolkit";
 import { formatDate } from "@/lib/format";
-import { getGainers, getIndexQuotes, getIpos, getLosers, getStockNews } from "@/lib/fmp";
+import {
+  getGainers,
+  getIndexQuotes,
+  getIpos,
+  getLosers,
+  getMarketHours,
+  getQuotes,
+  getStockNews,
+  POPULAR_SYMBOLS,
+} from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpIpo } from "@/lib/types";
 
@@ -57,12 +68,14 @@ export default async function HomePage() {
   const today = new Date(`${nyDateString()}T00:00:00Z`);
   const from = isoDate(addDays(today, -30));
   const to = isoDate(addDays(today, 30));
-  const [indexes, gainers, losers, news, ipos] = await Promise.all([
+  const [indexes, gainers, losers, news, ipos, hours, popular] = await Promise.all([
     getIndexQuotes(),
     getGainers(),
     getLosers(),
     getStockNews(20),
     getIpos(from, to),
+    getMarketHours("NASDAQ"),
+    getQuotes([...POPULAR_SYMBOLS]),
   ]);
 
   const todayStr = nyDateString();
@@ -71,7 +84,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <IndexTicker quotes={indexes} />
+      <IndexTicker quotes={indexes} hours={hours} />
       <section className="border-b border-border bg-gradient-to-b from-muted-bg to-white">
         <div className="mx-auto max-w-3xl px-4 py-16 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-header md:text-5xl">
@@ -84,12 +97,16 @@ export default async function HomePage() {
           <div className="mt-8">
             <SearchBox large autoFocus />
           </div>
+          <PopularStocks quotes={popular} />
         </div>
       </section>
       <Container>
         <div className="grid gap-8 lg:grid-cols-2">
           <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 10)} />
           <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 10)} />
+        </div>
+        <div className="mt-12">
+          <Toolkit />
         </div>
         <div className="mt-12 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
           <section>

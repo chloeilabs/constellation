@@ -1,6 +1,7 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
+import { SectionNav, MARKET_NAV } from "@/components/section-nav";
 import { getSectorPerformance } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export default async function SectorsPage() {
   return (
     <Container>
       <PageHeader title="Sector Performance" description="Average daily change by market sector." />
+      <SectionNav items={MARKET_NAV} />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

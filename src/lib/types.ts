@@ -372,13 +372,59 @@ export type FmpSectorPerformance = {
 };
 
 export type FmpMarketHours = {
-  stockExchangeName?: string;
-  stockMarketHours?: { openingHour: string; closingHour: string };
-  stockMarketHolidays?: unknown[];
-  isTheStockMarketOpen?: boolean;
-  isTheEuronextMarketOpen?: boolean;
-  isTheForexMarketOpen?: boolean;
-  isTheCryptoMarketOpen?: boolean;
+  exchange: string;
+  name: string;
+  openingHour: string;
+  closingHour: string;
+  timezone: string;
+  isMarketOpen: boolean;
+};
+
+export type FmpExecutive = {
+  title: string;
+  name: string;
+  pay: number | null;
+  currencyPay: string;
+  gender: string;
+  yearBorn: number | null;
+  titleSince: string | null;
+  active: boolean;
+};
+
+export type FmpEtfInfo = {
+  symbol: string;
+  name: string;
+  description: string;
+  isin: string;
+  assetClass: string;
+  domicile: string;
+  website: string;
+  etfCompany: string;
+  expenseRatio: number;
+  assetsUnderManagement: number;
+  avgVolume: number;
+  inceptionDate: string;
+  nav: number;
+  navCurrency: string;
+  holdingsCount: number;
+  isActivelyTrading: boolean;
+  sectorsList?: string;
+};
+
+export type FmpEtfHolding = {
+  symbol: string;
+  asset: string;
+  name: string;
+  sharesNumber: number;
+  weightPercentage: number;
+  marketValue: number;
+  updatedAt: string;
+};
+
+export type FmpEtfSector = {
+  symbol: string;
+  sector: string;
+  weightPercentage: number;
 };
 
 export type FmpEstimate = {

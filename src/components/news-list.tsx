@@ -17,7 +17,16 @@ export function NewsList({
     <ul className="divide-y divide-border">
       {items.map((item, index) => (
         <li key={`${item.url}-${index}`} className="flex gap-4 py-3">
-          <div className="w-14 shrink-0 text-xs text-muted">{formatRelativeTime(item.publishedDate)}</div>
+          <div className="w-12 shrink-0 pt-0.5 text-xs text-muted">{formatRelativeTime(item.publishedDate)}</div>
+          {item.image ? (
+            // News thumbnails come from many publisher CDNs.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.image}
+              alt=""
+              className="h-16 w-24 shrink-0 rounded object-cover bg-muted-bg"
+            />
+          ) : null}
           <div className="min-w-0">
             <a href={item.url} target="_blank" rel="noreferrer" className="font-medium text-header hover:text-link">
               {item.title}

@@ -5,25 +5,24 @@ import { SectionNav } from "@/components/section-nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
 
-export default async function StocksListPage() {
-  const raw = await getScreener({ country: "US" }, { limit: 50 });
+export default async function EtfListPage() {
+  const raw = await getScreener({ isEtf: true, isFund: false, country: "US" }, { limit: 50 });
   const sorted = [...raw].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
   const rows = await withQuoteChanges(sorted);
 
   return (
     <Container>
       <PageHeader
-        title="Stocks"
-        description="Largest actively traded U.S. stocks by market cap."
+        title="Exchange Traded Funds"
+        description="Largest U.S. ETFs by market value, with live quotes from Financial Modeling Prep."
         actions={
           <Link href="/screener" className="text-sm text-link hover:underline">
-            Open screener
+            Stock screener
           </Link>
         }
       />
       <SectionNav
         items={[
-          { href: "/stocks", label: "All Stocks" },
           { href: "/list/biggest-companies", label: "Biggest Companies" },
           { href: "/list/nasdaq-stocks", label: "NASDAQ" },
           { href: "/list/nyse-stocks", label: "NYSE" },
@@ -31,13 +30,15 @@ export default async function StocksListPage() {
         ]}
       />
       <SymbolTable
+        hrefBase="/etf"
+        showIndustry={false}
+        empty="No ETF data available."
         rows={rows.map((row) => ({
           symbol: row.symbol,
           name: row.companyName,
           marketCap: row.marketCap,
           price: row.price,
           changePercentage: row.changePercentage,
-          industry: row.industry,
           volume: row.volume,
         }))}
       />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav, CALENDAR_NAV } from "@/components/section-nav";
 import { formatCompactUsd, formatDate } from "@/lib/format";
 import { getIpos } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
@@ -14,12 +15,8 @@ export default async function IpoCalendarPage() {
       <PageHeader
         title="IPO Calendar"
         description="Recent and upcoming initial public offerings."
-        actions={
-          <Link href="/calendar/earnings" className="text-sm text-link hover:underline">
-            Earnings calendar
-          </Link>
-        }
       />
+      <SectionNav items={CALENDAR_NAV} />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

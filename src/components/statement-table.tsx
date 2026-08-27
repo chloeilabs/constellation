@@ -1,8 +1,13 @@
 import {
+  changeClass,
+  formatCompact,
   formatCompactUsd,
+  formatMillions,
   formatNumber,
+  formatPercent,
   formatPercentPlain,
   formatPrice,
+  yearOverYear,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { StatementRow } from "@/lib/statements";
@@ -10,13 +15,14 @@ import type { StatementRow } from "@/lib/statements";
 function formatCell(
   value: unknown,
   format: StatementRow["format"],
+  scale?: "millions",
 ) {
   if (typeof value !== "number" || Number.isNaN(value)) return "—";
   switch (format) {
     case "money":
-      return formatCompactUsd(value);
+      return scale === "millions" ? formatMillions(value) : formatCompactUsd(value);
     case "share":
-      return formatCompactUsd(value).replace("$", "");
+      return scale === "millions" ? formatMillions(value) : formatCompact(value);
     case "eps":
       return formatPrice(value);
     case "percent":
@@ -25,47 +31,73 @@ function formatCell(
     case "number":
       return formatNumber(value);
     default:
-      return formatCompactUsd(value);
+      return scale === "millions" ? formatMillions(value) : formatCompactUsd(value);
   }
 }
 
 export function StatementTable({
   rows,
   columns,
+  scale,
+  caption,
 }: {
   rows: StatementRow[];
   columns: { key: string; label: string; values: Record<string, unknown> }[];
+  scale?: "millions";
+  caption?: string;
 }) {
   if (columns.length === 0) {
     return <p className="text-sm text-muted">No statement data available for this period.</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="sa-table sa-statement">
-        <thead>
-          <tr>
-            <th>Line item</th>
-            {columns.map((column) => (
-              <th key={column.key} className="num">
-                {column.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.key} className={row.emphasize ? "bg-muted-bg/60 font-semibold" : undefined}>
-              <td style={{ paddingLeft: `${12 + (row.indent ?? 0) * 16}px` }}>{row.label}</td>
+    <div>
+      {caption ? <p className="mb-2 text-xs text-muted">{caption}</p> : null}
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="sa-table sa-statement">
+          <thead>
+            <tr>
+              <th>Fiscal Year</th>
               {columns.map((column) => (
-                <td key={column.key} className={cn("num", formatCell(column.values[row.key], row.format) === "—" ? "text-muted" : "")}>
-                  {formatCell(column.values[row.key], row.format)}
-                </td>
+                <th key={column.key} className="num">
+                  {column.label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const showYoy = row.format === "money" || row.format === "share";
+              return (
+                <tr key={row.key} className={row.emphasize ? "bg-muted-bg/60 font-semibold" : undefined}>
+                  <td
+                    className="whitespace-normal"
+                    style={{ paddingLeft: `${12 + (row.indent ?? 0) * 16}px` }}
+                  >
+                    {row.label}
+                  </td>
+                  {columns.map((column, index) => {
+                    const value = column.values[row.key];
+                    const previous = columns[index + 1]?.values[row.key];
+                    const yoy = showYoy ? yearOverYear(value, previous) : null;
+                    const text = formatCell(value, row.format, scale);
+                    return (
+                      <td key={column.key} className={cn("num align-top", text === "—" ? "text-muted" : "")}>
+                        <div>{text}</div>
+                        {yoy != null ? (
+                          <div className={cn("text-[11px] font-medium", changeClass(yoy))}>
+                            {formatPercent(yoy)}
+                          </div>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

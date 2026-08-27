@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav, CALENDAR_NAV } from "@/components/section-nav";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getDividendCalendar } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
@@ -12,6 +13,7 @@ export default async function DividendCalendarPage() {
   return (
     <Container>
       <PageHeader title="Dividend Calendar" description="Upcoming ex-dividend dates." />
+      <SectionNav items={CALENDAR_NAV} />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

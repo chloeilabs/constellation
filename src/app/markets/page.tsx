@@ -4,27 +4,30 @@ import { IndexTicker } from "@/components/index-ticker";
 import { MoversTable } from "@/components/movers-table";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { getGainers, getIndexQuotes, getLosers, getMostActive, getSectorPerformance } from "@/lib/fmp";
+import { SectionNav, MARKET_NAV } from "@/components/section-nav";
+import { getGainers, getIndexQuotes, getLosers, getMarketHours, getMostActive, getSectorPerformance } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function MarketsPage() {
   const today = nyDateString();
   const yesterday = isoDate(addDays(new Date(`${today}T00:00:00Z`), -1));
-  const [indexes, gainers, losers, active, sectorsToday, sectorsYesterday] = await Promise.all([
+  const [indexes, gainers, losers, active, sectorsToday, sectorsYesterday, hours] = await Promise.all([
     getIndexQuotes(),
     getGainers(),
     getLosers(),
     getMostActive(),
     getSectorPerformance(today),
     getSectorPerformance(yesterday),
+    getMarketHours("NASDAQ"),
   ]);
   const sectors = sectorsToday.length ? sectorsToday : sectorsYesterday;
 
   return (
     <>
-      <IndexTicker quotes={indexes} />
+      <IndexTicker quotes={indexes} hours={hours} />
       <Container>
         <PageHeader title="Stock Market" description="Indexes, movers, and sector performance." />
+        <SectionNav items={MARKET_NAV} />
         <div className="grid gap-8 lg:grid-cols-3">
           <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 8)} />
           <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 8)} />

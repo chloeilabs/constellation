@@ -1,6 +1,6 @@
 # Stock Analysis
 
-A [stockanalysis.com](https://stockanalysis.com/) clone: search, quotes, financial statements, ratios, news, a stock screener, market movers, and earnings/IPO calendars. Market data comes from the [Financial Modeling Prep](https://site.financialmodelingprep.com/api-docs.md) stable API.
+A [stockanalysis.com](https://stockanalysis.com/) clone: search, quotes, financial statements, ratios, news, a stock screener, market movers, ETF holdings, and earnings/IPO calendars. Market data comes from the [Financial Modeling Prep](https://site.financialmodelingprep.com/api-docs.md) stable API.
 
 ## Setup
 
@@ -26,12 +26,15 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Route | Source |
 | --- | --- |
-| `/` | Index quotes, top gainers/losers, market news, IPOs |
+| `/` | Index quotes, popular stocks, gainers/losers, news, IPOs |
 | `/stocks/[symbol]` | Quote, chart, key stats, about, analysts, peers, news |
-| `/stocks/[symbol]/financials` | Income, balance sheet, cash flow, ratios (annual/quarterly) |
+| `/stocks/[symbol]/financials` | Income, balance sheet, cash flow, ratios (annual/quarterly, millions + YoY) |
 | `/stocks/[symbol]/statistics` | TTM valuation and profitability |
 | `/stocks/[symbol]/forecast` | Price targets, grades, estimates |
 | `/stocks/[symbol]/dividend` | Dividend history |
+| `/stocks/[symbol]/company` | Profile and key executives |
+| `/etf` and `/etf/[symbol]` | ETF list, holdings, and sector weights |
+| `/list/*` | Biggest companies, NASDAQ, NYSE |
 | `/screener` | FMP company screener |
 | `/markets` | Gainers, losers, most active, sectors |
 | `/news` | Latest stock news |

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
@@ -20,17 +19,18 @@ export function StockHeader({
   const name = profile?.companyName ?? quote?.name ?? symbol;
   const price = quote?.price;
   const afterPrice = afterHours?.bidPrice || afterHours?.askPrice;
-  const afterChange =
-    afterPrice && price ? afterPrice - price : null;
+  const afterChange = afterPrice && price ? afterPrice - price : null;
   const afterPct = afterChange != null && price ? (afterChange / price) * 100 : null;
 
   return (
-    <div className="border-b border-border bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-5">
+    <div className="bg-white">
+      <div className="mx-auto max-w-7xl px-4 pt-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex gap-3">
             {profile?.image ? (
-              <Image
+              // Company logos are hosted by FMP and other CDNs.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={profile.image}
                 alt=""
                 width={48}
@@ -39,23 +39,32 @@ export function StockHeader({
               />
             ) : null}
             <div>
-            <h1 className="text-2xl font-bold text-header md:text-3xl">
-              {name} <span className="text-muted">({symbol})</span>
-            </h1>
-            <p className="mt-1 text-sm text-muted">
-              {profile?.exchangeFullName ?? quote?.exchange ?? "—"}
-              {profile?.currency ? ` · ${profile.currency}` : null}
-            </p>
-            <div className="mt-3 flex flex-wrap items-end gap-4">
-              <div className="text-4xl font-semibold tabular">{price != null ? formatUsd(price) : "—"}</div>
-              <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
-            </div>
-            {afterPrice ? (
+              <h1 className="text-2xl font-bold text-header md:text-3xl">
+                {name} <span className="text-muted">({symbol})</span>
+                {profile?.isEtf ? (
+                  <Link
+                    href={`/etf/${symbol}`}
+                    className="ml-2 align-middle rounded bg-chip px-1.5 py-0.5 text-xs font-semibold text-header"
+                  >
+                    ETF
+                  </Link>
+                ) : null}
+              </h1>
               <p className="mt-1 text-sm text-muted">
-                After hours {formatPrice(afterPrice)}{" "}
-                <ChangeValue change={afterChange} percent={afterPct} />
+                {profile?.exchangeFullName ?? quote?.exchange ?? "—"}
+                {profile?.currency ? ` · ${profile.currency}` : null}
+                {profile?.sector ? ` · ${profile.sector}` : null}
               </p>
-            ) : null}
+              <div className="mt-3 flex flex-wrap items-end gap-4">
+                <div className="text-4xl font-semibold tabular">{price != null ? formatUsd(price) : "—"}</div>
+                <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
+              </div>
+              {afterPrice ? (
+                <p className="mt-1 text-sm text-muted">
+                  After hours {formatPrice(afterPrice)}{" "}
+                  <ChangeValue change={afterChange} percent={afterPct} />
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="flex gap-2">

@@ -7,6 +7,10 @@ import type {
   FmpDividend,
   FmpEarnings,
   FmpEstimate,
+  FmpEtfHolding,
+  FmpEtfInfo,
+  FmpEtfSector,
+  FmpExecutive,
   FmpGrade,
   FmpGradesConsensus,
   FmpIncomeStatement,
@@ -452,6 +456,62 @@ export function getMarketHours(exchange = "NASDAQ") {
     { revalidate: 60 },
   );
 }
+
+export function getKeyExecutives(symbol: string) {
+  return fmpList<FmpExecutive>(
+    "/key-executives",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 86400 },
+  );
+}
+
+export function getEtfInfo(symbol: string) {
+  return fmpFirst<FmpEtfInfo>("/etf/info", { symbol: symbol.toUpperCase() }, { revalidate: 3600 });
+}
+
+export function getEtfHoldings(symbol: string) {
+  return fmpList<FmpEtfHolding>(
+    "/etf/holdings",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
+export function getEtfSectors(symbol: string) {
+  return fmpList<FmpEtfSector>(
+    "/etf/sector-weightings",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
+export async function withQuoteChanges<T extends { symbol: string; price?: number }>(rows: T[]) {
+  if (rows.length === 0) return [] as Array<T & { changePercentage?: number; change?: number }>;
+  const quotes = await getQuotes(rows.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  return rows.map((row) => {
+    const quote = bySymbol.get(row.symbol);
+    return {
+      ...row,
+      price: quote?.price ?? row.price,
+      changePercentage: quote?.changePercentage,
+      change: quote?.change,
+    };
+  });
+}
+
+export const POPULAR_SYMBOLS = [
+  "AAPL",
+  "MSFT",
+  "NVDA",
+  "GOOGL",
+  "AMZN",
+  "META",
+  "TSLA",
+  "BRK.B",
+  "JPM",
+  "V",
+] as const;
 
 export const INDEX_SYMBOLS = [
   { symbol: "^GSPC", label: "S&P 500" },

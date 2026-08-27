@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav, CALENDAR_NAV } from "@/components/section-nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { getEarningsCalendar } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
@@ -21,17 +22,8 @@ export default async function EarningsCalendarPage({
       <PageHeader
         title="Earnings Calendar"
         description="Upcoming and recent earnings announcements."
-        actions={
-          <div className="flex gap-3 text-sm">
-            <Link href="/calendar/ipos" className="text-link hover:underline">
-              IPOs
-            </Link>
-            <Link href="/calendar/dividends" className="text-link hover:underline">
-              Dividends
-            </Link>
-          </div>
-        }
       />
+      <SectionNav items={CALENDAR_NAV} />
       <form className="mb-6 flex flex-wrap items-end gap-3">
         <label className="text-sm">
           <span className="mb-1 block text-muted">From</span>

@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { ChangePercent } from "@/components/change";
+import { formatPrice } from "@/lib/format";
+import { POPULAR_SYMBOLS } from "@/lib/fmp";
+import type { FmpQuote } from "@/lib/types";
+
+export function PopularStocks({ quotes }: { quotes: FmpQuote[] }) {
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  return (
+    <div className="mt-8 flex flex-wrap justify-center gap-2">
+      {POPULAR_SYMBOLS.map((symbol) => {
+        const quote = bySymbol.get(symbol);
+        return (
+          <Link
+            key={symbol}
+            href={`/stocks/${symbol}`}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-sm hover:border-border-strong hover:bg-muted-bg"
+          >
+            <span className="font-semibold text-header">{symbol}</span>
+            {quote ? (
+              <>
+                <span className="tabular text-muted">{formatPrice(quote.price)}</span>
+                <ChangePercent value={quote.changePercentage} className="text-xs" />
+              </>
+            ) : null}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

@@ -1,35 +1,32 @@
-import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
+import { isStockListSlug, STOCK_LISTS } from "@/lib/lists";
 
-export default async function StocksListPage() {
-  const raw = await getScreener({ country: "US" }, { limit: 50 });
+export default async function StockListPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  if (!isStockListSlug(slug)) notFound();
+  const list = STOCK_LISTS[slug];
+  const raw = await getScreener(list.filters, { limit: list.limit });
   const sorted = [...raw].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
   const rows = await withQuoteChanges(sorted);
 
   return (
     <Container>
-      <PageHeader
-        title="Stocks"
-        description="Largest actively traded U.S. stocks by market cap."
-        actions={
-          <Link href="/screener" className="text-sm text-link hover:underline">
-            Open screener
-          </Link>
-        }
-      />
+      <PageHeader title={list.title} description={list.description} />
       <SectionNav
         items={[
-          { href: "/stocks", label: "All Stocks" },
           { href: "/list/biggest-companies", label: "Biggest Companies" },
           { href: "/list/nasdaq-stocks", label: "NASDAQ" },
           { href: "/list/nyse-stocks", label: "NYSE" },
           { href: "/etf", label: "ETFs" },
+          { href: "/screener", label: "Screener" },
         ]}
       />
+      <p className="mb-3 text-sm text-muted">{rows.length} stocks</p>
       <SymbolTable
         rows={rows.map((row) => ({
           symbol: row.symbol,

@@ -115,3 +115,14 @@ export const INDEX_LABELS: Record<string, string> = {
   "^RUT": "Russell 2000",
   "^VIX": "VIX",
 };
+
+export function toStatementColumns(
+  rows: Array<{ fiscalYear: string; period: string; date: string }>,
+  period: "annual" | "quarter",
+) {
+  return rows.map((row) => ({
+    key: `${row.fiscalYear}-${row.period}-${row.date}`,
+    label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : row.fiscalYear,
+    values: row as unknown as Record<string, unknown>,
+  }));
+}

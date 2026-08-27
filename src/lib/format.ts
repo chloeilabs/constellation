@@ -37,6 +37,28 @@ export function formatCompactUsd(value: number | null | undefined) {
   return `${sign}$${formatCompact(Math.abs(value))}`;
 }
 
+export function formatMillions(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return "—";
+  const millions = value / 1e6;
+  const abs = Math.abs(millions);
+  const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+  return millions.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  });
+}
+
+export function yearOverYear(current: unknown, previous: unknown) {
+  if (typeof current !== "number" || typeof previous !== "number") return null;
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;
+  return (current - previous) / Math.abs(previous);
+}
+
+export function formatClock(value: string | null | undefined) {
+  if (!value) return "";
+  return value.replace(/\s*[-+][0-9]{2}:[0-9]{2}$/, "").replace(/^0/, "").trim();
+}
+
 export function formatPercent(
   value: number | null | undefined,
   { alreadyPercent = false, digits = 2 }: { alreadyPercent?: boolean; digits?: number } = {},

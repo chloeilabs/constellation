@@ -15,10 +15,11 @@ const columns = [
     title: "Stocks",
     links: [
       ["/stocks", "Stock List"],
+      ["/list/biggest-companies", "Biggest Companies"],
+      ["/list/nasdaq-stocks", "NASDAQ Stocks"],
+      ["/list/nyse-stocks", "NYSE Stocks"],
+      ["/etf", "ETFs"],
       ["/screener", "Stock Screener"],
-      ["/stocks/AAPL", "Apple"],
-      ["/stocks/MSFT", "Microsoft"],
-      ["/stocks/NVDA", "NVIDIA"],
     ],
   },
   {

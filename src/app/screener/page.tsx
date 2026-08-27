@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
-import { formatCompactUsd, formatInteger, formatPrice, formatRatio } from "@/lib/format";
-import { getScreener, getSectors } from "@/lib/fmp";
+import { SymbolTable } from "@/components/symbol-table";
+import { getScreener, getSectors, withQuoteChanges } from "@/lib/fmp";
 
 const SECTOR_FALLBACK = [
   "Technology",
@@ -46,6 +46,7 @@ export default async function ScreenerPage({
   ]);
   const sectorOptions = sectors.length ? sectors : SECTOR_FALLBACK;
   const sorted = [...rows].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  const withChanges = await withQuoteChanges(sorted);
 
   return (
     <Container>
@@ -112,47 +113,19 @@ export default async function ScreenerPage({
           </button>
         </div>
       </form>
-      <p className="mb-3 text-sm text-muted">{sorted.length} stocks on this page</p>
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="sa-table">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Company Name</th>
-              <th className="num">Market Cap</th>
-              <th className="num">Price</th>
-              <th>Industry</th>
-              <th className="num">Volume</th>
-              <th className="num">Beta</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-muted">
-                  No stocks matched these filters.
-                </td>
-              </tr>
-            ) : (
-              sorted.map((row) => (
-                <tr key={row.symbol}>
-                  <td className="symbol">
-                    <Link href={`/stocks/${row.symbol}`} className="text-link hover:underline">
-                      {row.symbol}
-                    </Link>
-                  </td>
-                  <td>{row.companyName}</td>
-                  <td className="num">{formatCompactUsd(row.marketCap)}</td>
-                  <td className="num">{formatPrice(row.price)}</td>
-                  <td className="text-muted">{row.industry}</td>
-                  <td className="num">{formatInteger(row.volume)}</td>
-                  <td className="num">{formatRatio(row.beta)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <p className="mb-3 text-sm text-muted">{withChanges.length} stocks on this page</p>
+      <SymbolTable
+        empty="No stocks matched these filters."
+        rows={withChanges.map((row) => ({
+          symbol: row.symbol,
+          name: row.companyName,
+          marketCap: row.marketCap,
+          price: row.price,
+          changePercentage: row.changePercentage,
+          industry: row.industry,
+          volume: row.volume,
+        }))}
+      />
       <div className="mt-4 flex gap-3 text-sm">
         {page > 0 ? (
           <Link

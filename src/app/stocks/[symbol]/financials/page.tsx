@@ -3,7 +3,7 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
 import { getIncomeStatements } from "@/lib/fmp";
-import { INCOME_ROWS } from "@/lib/statements";
+import { INCOME_ROWS, toStatementColumns } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 function periodFrom(value?: string): StatementPeriod {
@@ -22,17 +22,12 @@ export default async function IncomePage({
   const ticker = symbol.toUpperCase();
   const period = periodFrom(periodParam);
   const rows = await getIncomeStatements(ticker, period, 8);
-  const columns = rows.map((row) => ({
-    key: `${row.fiscalYear}-${row.period}-${row.date}`,
-    label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : row.fiscalYear,
-    values: row as unknown as Record<string, unknown>,
-  }));
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Income Statement`}
-        description="Revenue, expenses, and profitability from Financial Modeling Prep."
+        description="Revenue, expenses, and profitability. Figures in millions of USD except per-share items."
         actions={
           <PeriodToggle
             period={period}
@@ -42,7 +37,12 @@ export default async function IncomePage({
         }
       />
       <FinancialsNav symbol={ticker} />
-      <StatementTable rows={INCOME_ROWS} columns={columns} />
+      <StatementTable
+        rows={INCOME_ROWS}
+        columns={toStatementColumns(rows, period)}
+        scale="millions"
+        caption="Values in millions. Green/red percentages are year-over-year change."
+      />
     </Container>
   );
 }
