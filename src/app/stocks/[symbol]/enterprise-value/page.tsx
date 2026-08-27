@@ -63,7 +63,7 @@ export default async function EnterpriseValuePage({
           { label: "Total Debt", value: money(latest?.addTotalDebt) },
           { label: "Cash", value: money(latest?.minusCashAndCashEquivalents) },
           { label: "Net Debt", value: money(netDebt) },
-          { label: "EV / Sales", value: evSales == null ? "—" : evSales.toFixed(2) },
+          { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: evSales == null ? "—" : evSales.toFixed(2) },
         ]}
       />
       {chartItems.length > 1 ? (

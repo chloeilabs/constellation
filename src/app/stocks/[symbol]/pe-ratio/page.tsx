@@ -56,7 +56,7 @@ export default async function PeRatioPage({
       <MetricCards
         items={[
           { label: "PE Ratio (ttm)", value: formatRatio(peValue) },
-          { label: "Forward PE", value: formatRatio(forwardPeFromEstimates(quote?.price, estimates)) },
+          { label: "Forward PE", href: stockPath(ticker, "/forward-pe"), value: formatRatio(forwardPeFromEstimates(quote?.price, estimates)) },
           {
             label: "Sector PE",
             href: profile?.sector ? sectorHref(profile.sector) : undefined,

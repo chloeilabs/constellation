@@ -287,6 +287,11 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Discounted Cash Flow</h2>
+        <p className="mb-3 text-sm">
+          <Link href={stockPath(ticker, "/fair-value")} className="text-link hover:underline">
+            Full fair value
+          </Link>
+        </p>
         <MetricCards
           items={[
             {

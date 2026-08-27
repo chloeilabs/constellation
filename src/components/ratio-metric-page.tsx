@@ -26,6 +26,7 @@ export async function RatioMetricPage({
   formula,
   format = "ratio",
   source = "ratios",
+  zeroAsEmpty = false,
 }: {
   symbol: string;
   period: StatementPeriod;
@@ -38,6 +39,7 @@ export async function RatioMetricPage({
   formula?: string;
   format?: "ratio" | "percent";
   source?: "ratios" | "metrics";
+  zeroAsEmpty?: boolean;
 }) {
   const ticker = decodeTicker(symbol);
   const path = stockPath(ticker, `/${slug}`);
@@ -48,7 +50,11 @@ export async function RatioMetricPage({
   );
   const history = period === "quarter" ? quarterly : annual;
   const latestTtm = num((ttm as Record<string, unknown> | null)?.[ttmField]);
-  const formatValue = format === "percent" ? (value: number | null | undefined) => formatPercentPlain(value) : formatRatio;
+  const display = (value: number | null) => (zeroAsEmpty && value === 0 ? null : value);
+  const formatValue =
+    format === "percent"
+      ? (value: number | null | undefined) => formatPercentPlain(display(num(value)))
+      : (value: number | null | undefined) => formatRatio(display(num(value)));
 
   return (
     <Container>
@@ -67,7 +73,7 @@ export async function RatioMetricPage({
           key: `${row.date}-${row.period}`,
           date: row.date,
           label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
-          value: num(row[field]),
+          value: display(num(row[field])),
         }))}
       />
       {formula ? <p className="mt-4 text-sm text-muted">{formula}</p> : null}

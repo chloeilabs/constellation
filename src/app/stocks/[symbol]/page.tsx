@@ -36,6 +36,7 @@ import {
 import { ReturnsTable } from "@/components/returns-table";
 import { decodeTicker, quoteHref, stockPath } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
+import { listedPeers } from "@/lib/peers";
 import { ChangePercent } from "@/components/change";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { QuoteFaq } from "@/components/quote-faq";
@@ -126,9 +127,7 @@ export default async function StockOverviewPage({
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
-  const peerList = peers
-    .filter((peer) => (peer.mktCap ?? 0) >= 1_000_000_000)
-    .slice(0, 8);
+  const peerList = listedPeers(peers, ticker, 8);
   const [peerRows, peerRatioRows] = await Promise.all([
     withQuoteChanges(
       peerList.map((peer) => ({
@@ -342,7 +341,12 @@ export default async function StockOverviewPage({
 
       {peerRows.length > 0 ? (
         <section className="mt-10">
-          <h2 className="mb-3 text-xl font-semibold text-header">Peers</h2>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <h2 className="text-xl font-semibold text-header">Peers</h2>
+            <Link href={stockPath(ticker, "/peers")} className="text-sm text-link hover:underline">
+              Full peer comparison
+            </Link>
+          </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">
               <thead>

@@ -155,7 +155,7 @@ export function QuoteStats({
         { label: "PEG Ratio", href: `${base}/peg-ratio`, value: formatRatio(peg) },
         { label: "PS Ratio", href: `${base}/ps-ratio`, value: formatRatio(typeof ratios?.priceToSalesRatioTTM === "number" ? ratios.priceToSalesRatioTTM : null) },
         { label: "PB Ratio", href: `${base}/pb-ratio`, value: formatRatio(typeof ratios?.priceToBookRatioTTM === "number" ? ratios.priceToBookRatioTTM : null) },
-        { label: "Forward PE", value: formatRatio(forwardPe) },
+        { label: "Forward PE", href: `${base}/forward-pe`, value: formatRatio(forwardPe) },
         { label: "Dividend", href: `${base}/dividend`, value: dividendValue },
         { label: "Dividend Yield", href: `${base}/dividend-yield`, value: formatPercentPlain(dividendYield) },
         { label: "Buyback Yield", href: `${base}/buybacks`, value: formatPercentPlain(buybackYield) },
@@ -172,7 +172,7 @@ export function QuoteStats({
         { label: "Beta", value: formatRatio(profile?.beta) },
         { label: "50-Day Average", value: px(quote?.priceAvg50) },
         { label: "200-Day Average", value: px(quote?.priceAvg200) },
-        { label: "Profit Margin", value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
+        { label: "Profit Margin", href: `${base}/profit-margin`, value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
         { label: "Analysts", href: `${base}/ratings`, value: formatAnalystConsensus(grades) },
         {
           label: "Price Target",
@@ -183,7 +183,7 @@ export function QuoteStats({
         },
         {
           label: "DCF Fair Value",
-          href: `${base}/forecast`,
+          href: `${base}/fair-value`,
           value:
             dcf != null
               ? `${px(dcf)}${dcfUpside != null ? ` (${dcfUpside > 0 ? "+" : ""}${dcfUpside.toFixed(1)}%)` : ""}`

@@ -6,7 +6,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
-import { getCashFlows, getCashFlowTtm, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getCashFlows, getCashFlowTtm, getIncomeTtm, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
 
@@ -21,12 +21,13 @@ export default async function FreeCashFlowPage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [annual, quarterly, ttm, ratios, quote] = await Promise.all([
+  const [annual, quarterly, ttm, ratios, quote, income] = await Promise.all([
     getCashFlows(ticker, "annual", 20),
     getCashFlows(ticker, "quarter", 12),
     getCashFlowTtm(ticker),
     getRatiosTtm(ticker),
     getQuote(ticker),
+    getIncomeTtm(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const fyGrowth = yearOverYear(annual[0]?.freeCashFlow, annual[1]?.freeCashFlow);
@@ -62,9 +63,18 @@ export default async function FreeCashFlowPage({
           },
           {
             label: "P/FCF",
+            href: `/stocks/${ticker}/pfcf-ratio`,
             value:
               typeof ratios?.priceToFreeCashFlowRatioTTM === "number"
                 ? ratios.priceToFreeCashFlowRatioTTM.toFixed(2)
+                : "—",
+          },
+          {
+            label: "FCF Margin",
+            href: `/stocks/${ticker}/fcf-margin`,
+            value:
+              ttm?.freeCashFlow != null && income?.revenue
+                ? `${((ttm.freeCashFlow / income.revenue) * 100).toFixed(2)}%`
                 : "—",
           },
         ]}
