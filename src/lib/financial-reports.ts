@@ -114,6 +114,8 @@ export function sortReportDates(rows: FmpFinancialReportDate[]) {
 }
 
 export function statementSections(sections: ReportSection[]) {
-  const preferred = sections.filter((section) => /consolidated statements|balance sheets|cover page/i.test(section.title));
-  return preferred.length ? preferred : sections.slice(0, 8);
+  const preferred = sections.filter((section) =>
+    /consolidated statements|balance sheets/i.test(section.title),
+  );
+  return preferred.length ? preferred : sections.filter((section) => !/cover page/i.test(section.title)).slice(0, 8);
 }
