@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DownloadCsvButton } from "@/components/download-csv";
 import { ChangePercent } from "@/components/change";
-import { formatMillions, formatPrice, formatRatio, formatPercentPlain } from "@/lib/format";
+import { formatDate, formatMillions, formatPrice, formatRatio, formatPercentPlain } from "@/lib/format";
 
 export type YearMetricFormat = "money" | "eps" | "percent" | "ratio" | "margin";
 
@@ -16,6 +16,7 @@ export type YearMetricRow = {
 export type YearMetricColumn = {
   key: string;
   label: string;
+  ended?: string | null;
   values: Record<string, number | null | undefined>;
 };
 
@@ -72,7 +73,8 @@ export function YearMetricTable({
               <th>Fiscal Year</th>
               {columns.map((column) => (
                 <th key={column.key} className="num">
-                  {column.label}
+                  <div>{column.label}</div>
+                  {column.ended ? <div className="text-[11px] font-normal text-muted">{formatDate(column.ended)}</div> : null}
                 </th>
               ))}
             </tr>

@@ -45,6 +45,7 @@ import { decodeTicker } from "@/lib/listings";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
 import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { consecutiveDividendGrowthYears, dividendTtmGrowth } from "@/lib/dividends";
 import { estimatedWacc } from "@/lib/wacc";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { ChangePercent } from "@/components/change";
@@ -99,7 +100,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getCashFlowTtm(ticker),
     getBalanceSheets(ticker, "quarter", 1),
     getCompanyEarnings(ticker, 12),
-    getDividends(ticker, 1),
+    getDividends(ticker, 40),
     getSplits(ticker, 5),
     getEmployeeCount(ticker, 1),
     getEstimates(ticker, "annual"),
@@ -157,6 +158,20 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const buybackYield =
     marketCap && marketCap > 0 && repurchase != null && repurchase !== 0 ? Math.abs(repurchase) / marketCap : null;
   const dividendYield = num(ratios?.dividendYieldTTM);
+  const dpsGrowth = dividendTtmGrowth(dividends);
+  const dividendsByCalendarYear = new Map<string, number>();
+  for (const row of dividends) {
+    const year = String(row.date).slice(0, 4);
+    dividendsByCalendarYear.set(year, (dividendsByCalendarYear.get(year) ?? 0) + (row.adjDividend || row.dividend || 0));
+  }
+  const completeDividendYears = [...dividendsByCalendarYear.keys()]
+    .filter((year) => year < nyDateString().slice(0, 4))
+    .sort();
+  const dividendGrowthYears = consecutiveDividendGrowthYears(dividendsByCalendarYear, completeDividendYears);
+  const debtFcf =
+    totalDebt != null && num(cash?.freeCashFlow) != null && cash!.freeCashFlow !== 0
+      ? totalDebt / cash!.freeCashFlow
+      : null;
   const shareholderYield =
     buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
   const fcfMargin =
@@ -319,18 +334,16 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Enterprise Valuation</h2>
           <StatGrid
             items={[
-              {
-                label: "EV / Earnings",
-                value: formatRatio(
+              { label: "EV / Earnings", href: `/stocks/${ticker}/ev-earnings`, value: formatRatio(
                   enterpriseValue != null && num(ttm?.netIncome) != null && ttm!.netIncome !== 0
                     ? enterpriseValue / ttm!.netIncome
                     : null,
-                ),
-              },
+                ) },
               { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: formatRatio(num(metrics?.evToSalesTTM)) },
               { label: "EV / EBITDA", href: `/stocks/${ticker}/ev-ebitda`, value: formatRatio(num(metrics?.evToEBITDATTM)) },
               {
                 label: "EV / EBIT",
+                href: `/stocks/${ticker}/ev-ebit`,
                 value: formatRatio(
                   enterpriseValue != null && num(ttm?.ebit) != null && ttm!.ebit !== 0
                     ? enterpriseValue / ttm!.ebit
@@ -353,6 +366,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
                 value: formatRatio(
                   totalDebt != null && num(ttm?.ebitda) != null && ttm!.ebitda !== 0 ? totalDebt / ttm!.ebitda : null,
                 ),
+              },
+              {
+                label: "Debt / FCF",
+                href: `/stocks/${ticker}/debt-fcf`,
+                value: formatRatio(debtFcf),
               },
               { label: "Interest Coverage", href: `/stocks/${ticker}/interest-coverage`, value: formatRatio(interestCoverage != null && interestCoverage > 0 ? interestCoverage : null) },
               { label: "Cash & Marketable Securities", href: `/stocks/${ticker}/cash`, value: money(cashAndInvestments) },
@@ -399,7 +417,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Taxes</h2>
           <StatGrid
             items={[
-              { label: "Income Tax", value: money(ttm?.incomeTaxExpense) },
+              { label: "Income Tax", href: `/stocks/${ticker}/income-tax`, value: money(ttm?.incomeTaxExpense) },
               { label: "Effective Tax Rate", href: `/stocks/${ticker}/effective-tax-rate`, value: formatPercentPlain(num(ratios?.effectiveTaxRateTTM)) },
             ]}
           />
@@ -411,8 +429,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Revenue", href: `/stocks/${ticker}/revenue`, value: money(ttm?.revenue) },
               { label: "Gross Profit", href: `/stocks/${ticker}/gross-profit`, value: money(ttm?.grossProfit) },
               { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: money(ttm?.operatingIncome) },
-              { label: "EBIT", value: money(ttm?.ebit) },
-              { label: "Pretax Income", value: money(ttm?.incomeBeforeTax) },
+              { label: "EBIT", href: `/stocks/${ticker}/ebit`, value: money(ttm?.ebit) },
+              { label: "Pretax Income", href: `/stocks/${ticker}/pretax-income`, value: money(ttm?.incomeBeforeTax) },
               { label: "Net Income", href: `/stocks/${ticker}/net-income`, value: money(ttm?.netIncome) },
               { label: "EBITDA", href: `/stocks/${ticker}/ebitda`, value: money(ttm?.ebitda) },
               { label: "EPS", href: `/stocks/${ticker}/earnings`, value: formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency) },
@@ -428,7 +446,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Depreciation & Amortization", value: money(cash?.depreciationAndAmortization) },
               { label: "Net Borrowing", value: money(cash?.netDebtIssuance) },
               { label: "Free Cash Flow", href: `/stocks/${ticker}/free-cash-flow`, value: money(cash?.freeCashFlow) },
-              { label: "FCF / Share", value: shares && cash?.freeCashFlow ? formatMoney(cash.freeCashFlow / shares, currency) : "—" },
+              { label: "FCF / Share", href: `/stocks/${ticker}/free-cash-flow`, value: shares && cash?.freeCashFlow ? formatMoney(cash.freeCashFlow / shares, currency) : "—" },
               { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
             ]}
           />
@@ -453,6 +471,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: formatMoney(indicatedAnnualDividend(dividends[0], profile?.lastDividend), currency) },
               { label: "Dividend Yield", href: `/stocks/${ticker}/dividend-yield`, value: formatPercentPlain(dividendYield) },
+              { label: "Dividend Growth (1Y)", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(dpsGrowth) },
+              { label: "Years of Dividend Growth", href: `/stocks/${ticker}/dividend`, value: dividendGrowthYears > 0 ? formatNumber(dividendGrowthYears, 0) : "—" },
               { label: "Payout Ratio", href: `/stocks/${ticker}/payout-ratio`, value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Buyback Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(buybackYield) },
               { label: "Shareholder Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(shareholderYield) },

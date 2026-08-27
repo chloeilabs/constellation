@@ -64,6 +64,22 @@ export default async function EnterpriseValuePage({
           { label: "Cash", value: money(latest?.minusCashAndCashEquivalents) },
           { label: "Net Debt", value: money(netDebt) },
           { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: evSales == null ? "—" : evSales.toFixed(2) },
+          {
+            label: "EV / EBIT",
+            href: `/stocks/${ticker}/ev-ebit`,
+            value:
+              latest?.enterpriseValue && ttm?.ebit
+                ? (latest.enterpriseValue / ttm.ebit).toFixed(2)
+                : "—",
+          },
+          {
+            label: "EV / Earnings",
+            href: `/stocks/${ticker}/ev-earnings`,
+            value:
+              latest?.enterpriseValue && ttm?.netIncome
+                ? (latest.enterpriseValue / ttm.netIncome).toFixed(2)
+                : "—",
+          },
         ]}
       />
       {chartItems.length > 1 ? (

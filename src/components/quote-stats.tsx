@@ -73,6 +73,7 @@ export function QuoteStats({
   target,
   grades,
   dividend,
+  dividendGrowth,
   growth,
   earningsDate,
   nextEarningsDate,
@@ -97,6 +98,7 @@ export function QuoteStats({
   target: FmpPriceTarget | null;
   grades: FmpGradesConsensus | null;
   dividend: FmpDividend | null;
+  dividendGrowth?: number | null;
   growth?: FmpIncomeGrowth | null;
   earningsDate?: string | null;
   nextEarningsDate?: string | null;
@@ -158,6 +160,7 @@ export function QuoteStats({
         { label: "Forward PE", href: `${base}/forward-pe`, value: formatRatio(forwardPe) },
         { label: "Dividend", href: `${base}/dividend`, value: dividendValue },
         { label: "Dividend Yield", href: `${base}/dividend-yield`, value: formatPercentPlain(dividendYield) },
+        { label: "Dividend Growth", href: `${base}/dividend`, value: formatPercentPlain(dividendGrowth) },
         { label: "Buyback Yield", href: `${base}/buybacks`, value: formatPercentPlain(buybackYield) },
         { label: "Shareholder Yield", href: `${base}/buybacks`, value: formatPercentPlain(shareholderYield) },
         { label: "FCF Yield", href: `${base}/fcf-yield`, value: formatPercentPlain(fcfYield) },

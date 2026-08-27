@@ -46,6 +46,7 @@ import { IndexQuote } from "@/components/index-quote";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { overviewSecFilings } from "@/lib/filings";
 import { addDays, cashOutlay, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { dividendTtmGrowth } from "@/lib/dividends";
 import { ttmChange } from "@/lib/statements";
 
 export default async function StockOverviewPage({
@@ -72,7 +73,7 @@ export default async function StockOverviewPage({
       getRatiosTtm(ticker),
       getPriceTarget(ticker),
       getGradesConsensus(ticker),
-      getDividends(ticker, 1),
+      getDividends(ticker, 8),
       getSymbolNews(ticker, 12),
       getPeers(ticker),
       loadQuoteChart(ticker, rangeParam),
@@ -190,6 +191,7 @@ export default async function StockOverviewPage({
           target={target}
           grades={grades}
           dividend={dividends[0] ?? null}
+          dividendGrowth={dividendTtmGrowth(dividends)}
           earningsDate={earningsDate}
           nextEarningsDate={nextEarningsDate}
           earningsSurprise={earningsSurprise(lastReported)}

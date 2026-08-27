@@ -21,7 +21,8 @@ import {
 } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { canonicalSegmentName, spanFrom, statementHref, statementLimit, trailingSum, ttmSegmentMap } from "@/lib/statements";
-import { cashAndInvestments } from "@/lib/utils";
+import { cashAndInvestments, indicatedAnnualDividend, nyDateString } from "@/lib/utils";
+import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
@@ -31,6 +32,10 @@ function n(value: unknown) {
 
 function fyLabel(year: string | number | undefined) {
   return year != null ? `FY ${year}` : "—";
+}
+
+function withEnded(column: YearMetricColumn, ended?: string | null): YearMetricColumn {
+  return ended ? { ...column, ended } : column;
 }
 
 function incomeColumn(label: string, key: string, row: FmpIncomeStatement | null, prior: FmpIncomeStatement | null): YearMetricColumn {
@@ -71,6 +76,7 @@ function balanceColumn(
   row: FmpBalanceSheet | null,
   prior: FmpBalanceSheet | null,
   shares: number | null,
+  priorShares: number | null,
 ): YearMetricColumn {
   const cash = cashAndInvestments(row);
   const debt = n(row?.totalDebt);
@@ -78,15 +84,21 @@ function balanceColumn(
   const priorDebt = n(prior?.totalDebt);
   const netCash = cash != null && debt != null ? cash - debt : null;
   const priorNet = priorCash != null && priorDebt != null ? priorCash - priorDebt : null;
+  const netCashPerShare = netCash != null && shares != null && shares > 0 ? netCash / shares : null;
+  const priorNetPerShare =
+    priorNet != null && priorShares != null && priorShares > 0 ? priorNet / priorShares : null;
   return {
     key,
     label,
     values: {
       cash,
+      cashGrowth: yearOverYear(cash, priorCash),
       totalDebt: debt,
+      debtGrowth: yearOverYear(debt, priorDebt),
       netCash,
       netCashGrowth: yearOverYear(netCash, priorNet),
-      netCashPerShare: netCash != null && shares != null && shares > 0 ? netCash / shares : null,
+      netCashPerShare,
+      netCashPerShareGrowth: yearOverYear(netCashPerShare, priorNetPerShare),
     },
   };
 }
@@ -214,7 +226,7 @@ export default async function FinancialsOverviewPage({
       getRevenueProductSegments(ticker, "quarter"),
       getRevenueGeographicSegments(ticker, "annual"),
       getRevenueGeographicSegments(ticker, "quarter"),
-      getDividends(ticker, span === "5" ? 24 : 80),
+      getDividends(ticker, span === "5" ? 40 : 80),
       getQuote(ticker),
       getEstimates(ticker, "annual"),
     ]);
@@ -247,9 +259,14 @@ export default async function FinancialsOverviewPage({
 
   const profitColumns = [
     ...(ttmIncomeSynthetic
-      ? [incomeColumn("TTM", "ttm", ttmIncomeSynthetic, priorTtmIncome)]
+      ? [withEnded(incomeColumn("TTM", "ttm", ttmIncomeSynthetic, priorTtmIncome), quarterlyIncome[0]?.date)]
       : []),
-    ...incomeYears.map((row, index) => incomeColumn(fyLabel(row.fiscalYear), row.date, row, incomeYears[index + 1] ?? null)),
+    ...incomeYears.map((row, index) =>
+      withEnded(
+        incomeColumn(fyLabel(row.fiscalYear), row.date, row, annualIncome[index + 1] ?? null),
+        row.date,
+      ),
+    ),
   ];
 
   const cashYears = annualCash.slice(0, yearCount);
@@ -272,8 +289,10 @@ export default async function FinancialsOverviewPage({
         } as FmpCashFlow)
       : null);
   const cashColumns = [
-    ...(ttmCashRow ? [cashColumn("TTM", "ttm-cf", ttmCashRow, priorTtmCash)] : []),
-    ...cashYears.map((row, index) => cashColumn(fyLabel(row.fiscalYear), row.date, row, cashYears[index + 1] ?? null)),
+    ...(ttmCashRow ? [withEnded(cashColumn("TTM", "ttm-cf", ttmCashRow, priorTtmCash), quarterlyCash[0]?.date)] : []),
+    ...cashYears.map((row, index) =>
+      withEnded(cashColumn(fyLabel(row.fiscalYear), row.date, row, annualCash[index + 1] ?? null), row.date),
+    ),
   ];
 
   const balanceYears = annualBalance.slice(0, yearCount);
@@ -283,17 +302,35 @@ export default async function FinancialsOverviewPage({
     n(quarterlyIncome[0]?.weightedAverageShsOutDil) ??
     n(incomeYears[0]?.weightedAverageShsOutDil);
   const sharesByYear = new Map(
-    incomeYears.map((row) => [String(row.fiscalYear), n(row.weightedAverageShsOutDil)]),
+    annualIncome.map((row) => [String(row.fiscalYear), n(row.weightedAverageShsOutDil)]),
   );
   const cashDebtColumns = [
-    ...(latestBalance ? [balanceColumn("Current", "current", latestBalance, balanceYears[0] ?? null, currentShares)] : []),
+    ...(latestBalance
+      ? [
+          withEnded(
+            balanceColumn(
+              "Current",
+              "current",
+              latestBalance,
+              balanceYears[0] ?? null,
+              currentShares,
+              sharesByYear.get(String(balanceYears[0]?.fiscalYear)) ?? null,
+            ),
+            latestBalance.date,
+          ),
+        ]
+      : []),
     ...balanceYears.map((row, index) =>
-      balanceColumn(
-        fyLabel(row.fiscalYear),
+      withEnded(
+        balanceColumn(
+          fyLabel(row.fiscalYear),
+          row.date,
+          row,
+          annualBalance[index + 1] ?? null,
+          sharesByYear.get(String(row.fiscalYear)) ?? null,
+          sharesByYear.get(String(annualBalance[index + 1]?.fiscalYear)) ?? null,
+        ),
         row.date,
-        row,
-        balanceYears[index + 1] ?? null,
-        sharesByYear.get(String(row.fiscalYear)) ?? null,
       ),
     ),
   ];
@@ -323,8 +360,12 @@ export default async function FinancialsOverviewPage({
   };
   const marginColumns = fillMarginGaps(
     [
-      ...(ttmRatios ? [ratioColumn("TTM", "ttm-m", ttmRatios as Record<string, unknown>, ttmRatioMap)] : []),
-      ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
+      ...(ttmRatios
+        ? [withEnded(ratioColumn("TTM", "ttm-m", ttmRatios as Record<string, unknown>, ttmRatioMap), quarterlyIncome[0]?.date)]
+        : []),
+      ...ratioYears.map((row) =>
+        withEnded(ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap), row.date),
+      ),
     ],
     [
       { label: "TTM", row: ttmIncomeSynthetic },
@@ -336,8 +377,12 @@ export default async function FinancialsOverviewPage({
     ],
   );
   const valuationColumns = [
-    ...(ttmRatios ? [ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap)] : []),
-    ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
+    ...(ttmRatios
+      ? [withEnded(ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap), nyDateString())]
+      : []),
+    ...ratioYears.map((row) =>
+      withEnded(ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap), row.date),
+    ),
   ];
   if (valuationColumns[0]) {
     valuationColumns[0] = {
@@ -370,37 +415,43 @@ export default async function FinancialsOverviewPage({
     .filter((row) => typeof row.revenue === "number")
     .map((row) => ({ label: String(row.fiscalYear), value: row.revenue }));
 
-  const ttmDividend = dividends.slice(0, 4).reduce((sum, row) => sum + (row.dividend || 0), 0);
-  const dividendByYear = new Map<string, number>();
-  for (const row of dividends) {
-    const year = String(row.date).slice(0, 4);
-    dividendByYear.set(year, (dividendByYear.get(year) ?? 0) + (row.dividend || 0));
-  }
-  const dividendYears = [...dividendByYear.keys()].sort((a, b) => b.localeCompare(a)).slice(0, yearCount);
+  const today = nyDateString();
+  const indicatedDividend = indicatedAnnualDividend(dividends[0], null);
+  const ttmDividendGrowth = dividendTtmGrowth(dividends);
+  const fiscalEnds = annualIncome.map((row) => ({ fiscalYear: row.fiscalYear, date: row.date }));
+  const dividendByYear = dividendsByFiscalYear(dividends, fiscalEnds);
   const dividendColumns: YearMetricColumn[] = [
     {
       key: "current-div",
       label: "Current",
+      ended: today,
       values: {
-        dividend: ttmDividend || null,
+        dividend: indicatedDividend,
+        dividendGrowth: ttmDividendGrowth,
         yield: n((ttmRatios as Record<string, unknown> | null)?.dividendYieldTTM),
       },
     },
-    ...dividendYears.map((year) => ({
-      key: year,
-      label: fyLabel(year),
-      values: {
-        dividend: dividendByYear.get(year) ?? null,
-        yield: n(ratioYears.find((row) => String(row.fiscalYear) === year)?.dividendYield),
-      },
-    })),
+    ...incomeYears.map((row, index) => {
+      const year = String(row.fiscalYear);
+      const priorYear = String(annualIncome[index + 1]?.fiscalYear ?? "");
+      return {
+        key: year,
+        label: fyLabel(year),
+        ended: row.date,
+        values: {
+          dividend: dividendByYear.get(year) ?? null,
+          dividendGrowth: yearOverYear(dividendByYear.get(year), priorYear ? dividendByYear.get(priorYear) : null),
+          yield: n(ratioYears.find((ratio) => String(ratio.fiscalYear) === year)?.dividendYield),
+        },
+      };
+    }),
   ];
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Financials Overview`}
-        description={`Revenue, profits, segments, cash, and valuation in millions of ${currency} except ratios and per-share items.`}
+        description={`Revenue, profits, segments, cash, and valuation in millions of ${currency} except ratios and per-share items. Period ending dates follow company filings.`}
         actions={
           <YearToggle
             span={span}
@@ -489,10 +540,13 @@ export default async function FinancialsOverviewPage({
           columns={cashDebtColumns}
           rows={[
             { key: "cash", label: "Cash & Investments", format: "money", href: `/stocks/${ticker}/cash` },
+            { key: "cashGrowth", label: "Cash & Investments Growth", format: "percent" },
             { key: "totalDebt", label: "Total Debt", format: "money", href: `/stocks/${ticker}/debt` },
+            { key: "debtGrowth", label: "Total Debt Growth", format: "percent" },
             { key: "netCash", label: "Net Cash (Debt)", format: "money", emphasize: true },
             { key: "netCashGrowth", label: "Net Cash Growth", format: "percent" },
             { key: "netCashPerShare", label: "Net Cash Per Share", format: "eps" },
+            { key: "netCashPerShareGrowth", label: "Net Cash Per Share Growth", format: "percent" },
           ]}
         />
       </section>
@@ -545,6 +599,7 @@ export default async function FinancialsOverviewPage({
           columns={dividendColumns}
           rows={[
             { key: "dividend", label: "Dividend Per Share", format: "eps" },
+            { key: "dividendGrowth", label: "Dividend Per Share Growth", format: "percent" },
             { key: "yield", label: "Dividend Yield", format: "margin" },
           ]}
         />

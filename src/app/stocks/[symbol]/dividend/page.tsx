@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getDividends, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { consecutiveDividendGrowthYears, dividendTtmGrowth } from "@/lib/dividends";
 import { indicatedAnnualDividend, nyDateString } from "@/lib/utils";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -28,6 +29,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
       ? (ratios as { dividendPayoutRatioTTM: number }).dividendPayoutRatioTTM
       : null;
 
+  const ttmGrowth = dividendTtmGrowth(dividends);
   const byYear = new Map<string, number>();
   for (const row of dividends) {
     const year = String(row.date).slice(0, 4);
@@ -43,13 +45,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const last = five.at(-1) ? byYear.get(five.at(-1)!) : null;
   const span = five.length - 1;
   const cagr = first && last && first > 0 && span > 0 ? Math.pow(last / first, 1 / span) - 1 : null;
-  let growthYears = 0;
-  for (let i = complete.length - 1; i > 0; i -= 1) {
-    const current = byYear.get(complete[i]) ?? 0;
-    const previous = byYear.get(complete[i - 1]) ?? 0;
-    if (previous > 0 && current > previous) growthYears += 1;
-    else break;
-  }
+  const growthYears = consecutiveDividendGrowthYears(byYear, complete);
   const currency = profile?.currency || "USD";
   const px = (value: number | null | undefined) => formatMoney(value, currency);
   const today = nyDateString();
@@ -134,6 +130,10 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Frequency</div>
           <div className="mt-1 text-2xl font-semibold">{latest?.frequency ?? "—"}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">Dividend Growth (1Y)</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(ttmGrowth)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">5Y Dividend CAGR</div>
