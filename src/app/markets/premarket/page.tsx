@@ -1,7 +1,7 @@
 import { ExtendedHoursOverviewPage } from "@/components/extended-hours-page";
 
 export const metadata = {
-  title: "Premarket Stock Movers",
+  title: "Pre-Market Stock Movers",
   description: "Premarket and extended-hours stock movers from live Financial Modeling Prep aftermarket prints.",
 };
 

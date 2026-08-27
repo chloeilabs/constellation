@@ -117,6 +117,6 @@ export function nyExtendedKind(now = new Date()): "premarket" | "afterhours" {
 
 export function nyExtendedCopy(kind: "premarket" | "afterhours" = nyExtendedKind()) {
   return kind === "premarket"
-    ? { label: "Pre-market", title: "Premarket", href: "/markets/premarket" as const }
+    ? { label: "Pre-market", title: "Pre-Market", href: "/markets/premarket" as const }
     : { label: "After hours", title: "After Hours", href: "/markets/afterhours" as const };
 }

@@ -34,7 +34,7 @@ const TOOLS = [
   },
   {
     href: "/markets/premarket",
-    title: "Premarket & After Hours",
+    title: "Pre-Market & After Hours",
     body: "Extended-hours last sale versus the regular close, from FMP aftermarket prints.",
     icon: Clock,
   },

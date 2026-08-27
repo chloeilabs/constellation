@@ -27,7 +27,7 @@ import { addDays, isoDate, nyDateString, nyExtendedCopy, nySession } from "@/lib
 import type { FmpIpo } from "@/lib/types";
 
 const MARKET_LINKS = [
-  ["/markets/premarket", "Premarket"],
+  ["/markets/premarket", "Pre-Market"],
   ["/markets/afterhours", "After Hours"],
   ["/markets/heatmap", "Heatmap"],
   ["/markets/sectors", "Sectors"],

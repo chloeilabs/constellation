@@ -7,7 +7,7 @@ import { extendedHoursNav, MARKET_NAV } from "@/lib/nav";
 
 const COPY = {
   premarket: {
-    title: "Premarket",
+    title: "Pre-Market",
     href: "/markets/premarket" as const,
     description:
       "Latest extended-hours prints versus the regular-session last price. FMP serves the same aftermarket feed before the open and after the close.",

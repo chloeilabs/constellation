@@ -1,7 +1,7 @@
 import { ExtendedHoursKindPage } from "@/components/extended-hours-page";
 
 export const metadata = {
-  title: "Premarket Most Active",
+  title: "Pre-Market Most Active",
   description: "Most active premarket and extended-hours stocks from live FMP aftermarket volume.",
 };
 

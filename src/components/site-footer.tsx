@@ -9,7 +9,7 @@ const columns = [
       ["/markets/losers", "Top Losers"],
       ["/markets/active", "Most Active"],
       ["/markets/heatmap", "Heatmap"],
-      ["/markets/premarket", "Premarket"],
+      ["/markets/premarket", "Pre-Market"],
       ["/markets/afterhours", "After Hours"],
       ["/markets/index-changes", "Index Changes"],
       ["/markets/sectors", "Sectors"],
