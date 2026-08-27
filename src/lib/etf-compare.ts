@@ -38,7 +38,7 @@ export async function loadEtfCompare(symbols: string[]) {
         changes,
         latestDividend: dividends[0] ?? null,
         ttmDividend,
-        holdingsCount: info?.holdingsCount ?? holdings.length,
+        holdingsCount: info?.holdingsCount || holdings.length,
         topHoldings: top,
       };
     }),

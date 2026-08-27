@@ -18,7 +18,7 @@ export async function VehicleHoldings({ symbol, kind }: { symbol: string; kind: 
     <Container>
       <PageHeader
         title={`${ticker} Holdings`}
-        description={`${formatInteger(info?.holdingsCount ?? ranked.length)} positions. Showing the largest ${shown.length} by weight (${formatPercentPlain(coverage, { alreadyPercent: true })} of assets).`}
+        description={`${formatInteger(info?.holdingsCount || ranked.length)} positions. Showing the largest ${shown.length} by weight (${formatPercentPlain(coverage, { alreadyPercent: true })} of assets).`}
       />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
