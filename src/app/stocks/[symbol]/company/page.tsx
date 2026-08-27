@@ -2,6 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { formatCompactUsd, formatDate, formatInteger } from "@/lib/format";
 import { getKeyExecutives, getProfile } from "@/lib/fmp";
+import { industrySlug } from "@/lib/industries";
 import Link from "next/link";
 
 export default async function CompanyPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -51,6 +52,14 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
             <dd className="text-sm font-medium">
               {label === "Employees" && profile?.fullTimeEmployees ? (
                 <Link href={`/stocks/${ticker}/employees`} className="text-link hover:underline">
+                  {value}
+                </Link>
+              ) : label === "Industry" && profile?.industry ? (
+                <Link href={`/stocks/industry/${industrySlug(profile.industry)}`} className="text-link hover:underline">
+                  {value}
+                </Link>
+              ) : label === "Sector" && profile?.sector ? (
+                <Link href={`/stocks/industry#${industrySlug(profile.sector)}`} className="text-link hover:underline">
                   {value}
                 </Link>
               ) : (

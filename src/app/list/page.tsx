@@ -30,6 +30,15 @@ export default function ListsIndexPage() {
                 {category.id === "popular" ? (
                   <>
                     <Link
+                      href="/stocks/industry"
+                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    >
+                      <h3 className="font-semibold text-header">Sectors & Industries</h3>
+                      <p className="mt-2 text-sm text-muted">
+                        Every industry grouped by sector, with combined market cap and performance.
+                      </p>
+                    </Link>
+                    <Link
                       href="/etf"
                       className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
                     >

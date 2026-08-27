@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
+import { industrySlug } from "@/lib/industries";
 
 export type SymbolTableRow = {
   symbol: string;
@@ -66,7 +67,17 @@ export function SymbolTable({
                   <ChangePercent value={row.changePercentage} />
                 </td>
                 {showYield ? <td className="num">{formatPercentPlain(row.dividendYield)}</td> : null}
-                {showIndustry ? <td className="text-muted">{row.industry || row.exchange || "—"}</td> : null}
+                {showIndustry ? (
+                  <td className="text-muted">
+                    {row.industry ? (
+                      <Link href={`/stocks/industry/${industrySlug(row.industry)}`} className="hover:text-link hover:underline">
+                        {row.industry}
+                      </Link>
+                    ) : (
+                      row.exchange || "—"
+                    )}
+                  </td>
+                ) : null}
                 <td className="num">{formatInteger(row.volume)}</td>
               </tr>
             ))

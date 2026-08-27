@@ -35,10 +35,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
               { label: "DCF Fair Value", value: dcf?.dcf != null ? `$${formatPrice(dcf.dcf)}` : "—" },
               { label: "Enterprise Value", value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
-              { label: "PE Ratio (ttm)", value: formatRatio(num(ratios?.priceToEarningsRatioTTM)) },
+              { label: "PE Ratio (ttm)", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(num(ratios?.priceToEarningsRatioTTM)) },
               { label: "PB Ratio", value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
               { label: "PS Ratio", value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
-              { label: "P/FCF", value: formatRatio(num(ratios?.priceToFreeCashFlowRatioTTM)) },
+              { label: "P/FCF", href: `/stocks/${ticker}/free-cash-flow`, value: formatRatio(num(ratios?.priceToFreeCashFlowRatioTTM)) },
               { label: "EV / Sales", value: formatRatio(num(metrics?.evToSalesTTM)) },
               { label: "EV / EBITDA", value: formatRatio(num(metrics?.evToEBITDATTM)) },
             ]}
@@ -50,7 +50,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Gross Margin", value: formatPercentPlain(num(ratios?.grossProfitMarginTTM)) },
               { label: "Operating Margin", value: formatPercentPlain(num(ratios?.operatingProfitMarginTTM)) },
-              { label: "Profit Margin", value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
+              { label: "Profit Margin", href: `/stocks/${ticker}/net-income`, value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
               { label: "EBITDA Margin", value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
               { label: "ROA", value: formatPercentPlain(num(metrics?.returnOnAssetsTTM)) },
               { label: "ROE", value: formatPercentPlain(num(metrics?.returnOnEquityTTM)) },

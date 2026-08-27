@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
-import { CALENDAR_NAV } from "@/lib/nav";
+import { CALENDAR_NAV, IPO_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { getIpoDisclosures, getIpoProspectuses, getIpos } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
@@ -32,6 +32,7 @@ export default async function IpoCalendarPage() {
         description="Recent and upcoming initial public offerings, plus S-1 filings and prospectuses."
       />
       <SectionNav items={CALENDAR_NAV} />
+      <SectionNav items={IPO_NAV} />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

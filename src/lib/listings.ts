@@ -11,6 +11,18 @@ export function isForeignListingSymbol(symbol: string) {
   return !US_SHARE_CLASSES.has(suffix);
 }
 
+export function uniqueBySymbol<T extends { symbol: string }>(rows: T[]) {
+  const seen = new Set<string>();
+  const unique: T[] = [];
+  for (const row of rows) {
+    const key = row.symbol.toUpperCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(row);
+  }
+  return unique;
+}
+
 export function preferPrimaryListings<T extends { symbol: string; marketCap?: number | null; exchange?: string; exchangeShortName?: string }>(
   rows: T[],
 ) {
@@ -21,5 +33,5 @@ export function preferPrimaryListings<T extends { symbol: string; marketCap?: nu
     if (exchange.trim() && !US_EXCHANGE.test(exchange) && !/CBOE/.test(exchange)) return false;
     return true;
   });
-  return (primary.length ? primary : rows).sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  return uniqueBySymbol(primary.length ? primary : rows).sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
 }

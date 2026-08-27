@@ -72,24 +72,32 @@ export function MarketHeatmap({ rows }: { rows: HeatmapStock[] }) {
 export function IndustryTiles({
   rows,
 }: {
-  rows: { industry: string; averageChange: number }[];
+  rows: { industry: string; averageChange: number; href?: string }[];
 }) {
   if (rows.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1">
       {rows.map((row) => {
         const style = heatStyle(row.averageChange);
-        return (
-          <div
-            key={row.industry}
-            className="min-w-[140px] flex-1 rounded-md px-3 py-2"
-            style={style}
-            title={row.industry}
-          >
+        const inner = (
+          <>
             <div className="truncate text-xs font-medium">{row.industry}</div>
             <div className="mt-1 text-sm tabular font-semibold">
               {formatPercent(row.averageChange, { alreadyPercent: true })}
             </div>
+          </>
+        );
+        const className = "min-w-[140px] flex-1 rounded-md px-3 py-2";
+        if (row.href) {
+          return (
+            <Link key={row.industry} href={row.href} className={className} style={style} title={row.industry}>
+              {inner}
+            </Link>
+          );
+        }
+        return (
+          <div key={row.industry} className={className} style={style} title={row.industry}>
+            {inner}
           </div>
         );
       })}

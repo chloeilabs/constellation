@@ -3,6 +3,7 @@ import { WatchlistButton } from "@/components/watchlist-button";
 import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
 import { formatPrice, formatUsd } from "@/lib/format";
+import { industrySlug } from "@/lib/industries";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
 
 export function StockHeader({
@@ -61,7 +62,22 @@ export function StockHeader({
               <p className="mt-1 text-sm text-muted">
                 {profile?.exchangeFullName ?? quote?.exchange ?? "—"}
                 {profile?.currency ? ` · ${profile.currency}` : null}
-                {profile?.sector ? ` · ${profile.sector}` : null}
+                {profile?.sector ? (
+                  <>
+                    {" · "}
+                    <Link href={`/stocks/industry#${industrySlug(profile.sector)}`} className="hover:text-link hover:underline">
+                      {profile.sector}
+                    </Link>
+                  </>
+                ) : null}
+                {profile?.industry ? (
+                  <>
+                    {" · "}
+                    <Link href={`/stocks/industry/${industrySlug(profile.industry)}`} className="hover:text-link hover:underline">
+                      {profile.industry}
+                    </Link>
+                  </>
+                ) : null}
               </p>
               <div className="mt-3 flex flex-wrap items-end gap-4">
                 <div className="text-4xl font-semibold tabular">{price != null ? formatUsd(price) : "—"}</div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { STOCKS_NAV } from "@/lib/nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
 import { preferPrimaryListings } from "@/lib/listings";
@@ -22,17 +23,7 @@ export default async function StocksListPage() {
           </Link>
         }
       />
-      <SectionNav
-        items={[
-          { href: "/stocks", label: "All Stocks" },
-          { href: "/list/sp-500-stocks", label: "S&P 500" },
-          { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },
-          { href: "/list/dow-jones-stocks", label: "Dow Jones" },
-          { href: "/list/biggest-companies", label: "Biggest Companies" },
-          { href: "/list", label: "All Lists" },
-          { href: "/etf", label: "ETFs" },
-        ]}
-      />
+      <SectionNav items={STOCKS_NAV} />
       <SymbolTable
         rows={rows.map((row) => ({
           symbol: row.symbol,

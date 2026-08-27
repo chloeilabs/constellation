@@ -663,6 +663,13 @@ export type FmpIndustryPerformance = {
   averageChange: number;
 };
 
+export type FmpIndustryPe = {
+  date: string;
+  industry: string;
+  exchange: string;
+  pe: number;
+};
+
 export type FmpMerger = {
   symbol: string;
   companyName: string;

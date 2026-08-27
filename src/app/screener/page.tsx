@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SymbolTable } from "@/components/symbol-table";
-import { getScreener, getSectors, withQuoteChanges } from "@/lib/fmp";
+import { getIndustryNames, getScreener, getSectors, withQuoteChanges } from "@/lib/fmp";
 import { preferPrimaryListings } from "@/lib/listings";
 
 const SECTOR_FALLBACK = [
@@ -24,6 +24,7 @@ export default async function ScreenerPage({
 }: {
   searchParams: Promise<{
     sector?: string;
+    industry?: string;
     country?: string;
     exchange?: string;
     minCap?: string;
@@ -37,13 +38,15 @@ export default async function ScreenerPage({
   const filters = {
     country,
     sector: params.sector,
+    industry: params.industry,
     exchange: params.exchange,
     marketCapMoreThan: params.minCap ? Number(params.minCap) * 1e9 : undefined,
     priceMoreThan: params.minPrice ? Number(params.minPrice) : undefined,
   };
-  const [rows, sectors] = await Promise.all([
+  const [rows, sectors, industries] = await Promise.all([
     getScreener(filters, { page, limit: country === "US" && !params.exchange ? 100 : 50 }),
     getSectors(),
+    getIndustryNames(),
   ]);
   const sectorOptions = sectors.length ? sectors : SECTOR_FALLBACK;
   const sorted = preferPrimaryListings(rows).slice(0, 50);
@@ -53,9 +56,9 @@ export default async function ScreenerPage({
     <Container>
       <PageHeader
         title="Stock Screener"
-        description="Filter stocks by country, sector, market cap, and price using FMP data."
+        description="Filter stocks by country, sector, industry, market cap, and price using FMP data."
       />
-      <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-5">
+      <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <label className="text-sm">
           <span className="mb-1 block text-muted">Country</span>
           <select name="country" defaultValue={country} className="h-9 w-full rounded-md border border-border bg-white px-2">
@@ -73,6 +76,17 @@ export default async function ScreenerPage({
             {sectorOptions.map((sector) => (
               <option key={sector} value={sector}>
                 {sector}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Industry</span>
+          <select name="industry" defaultValue={params.industry ?? ""} className="h-9 w-full rounded-md border border-border bg-white px-2">
+            <option value="">All industries</option>
+            {industries.map((industry) => (
+              <option key={industry} value={industry}>
+                {industry}
               </option>
             ))}
           </select>
@@ -108,7 +122,7 @@ export default async function ScreenerPage({
             className="h-9 w-full rounded-md border border-border bg-white px-2"
           />
         </label>
-        <div className="sm:col-span-2 lg:col-span-5">
+        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-6">
           <button type="submit" className="rounded-md bg-header px-4 py-2 text-sm font-medium text-white">
             Apply filters
           </button>

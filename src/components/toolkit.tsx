@@ -1,12 +1,18 @@
 import Link from "next/link";
-import { BarChart3, Building2, CalendarDays, GitCompareArrows } from "lucide-react";
+import { BarChart3, Building2, CalendarDays, GitCompareArrows, Layers } from "lucide-react";
 
 const TOOLS = [
   {
     href: "/screener",
     title: "Stock Screener",
-    body: "Filter thousands of stocks by market cap, sector, exchange, and price.",
+    body: "Filter thousands of stocks by market cap, sector, industry, exchange, and price.",
     icon: BarChart3,
+  },
+  {
+    href: "/stocks/industry",
+    title: "Sectors & Industries",
+    body: "Browse every industry grouped by sector, with combined market cap and daily moves.",
+    icon: Layers,
   },
   {
     href: "/list/biggest-companies",
@@ -32,7 +38,7 @@ export function Toolkit() {
   return (
     <section>
       <h2 className="mb-4 text-xl font-semibold text-header">Stock Analysis Toolkit</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {TOOLS.map((tool) => (
           <Link
             key={tool.href}

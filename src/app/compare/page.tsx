@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatPrice, formatRatio } from "@/lib/format";
+import { formatCompactUsd, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { getProfilesAndQuotes } from "@/lib/compare";
+import { industrySlug } from "@/lib/industries";
 
 export default async function ComparePage({
   searchParams,
@@ -22,7 +23,7 @@ export default async function ComparePage({
     <Container>
       <PageHeader
         title="Compare Stocks"
-        description="Side-by-side quotes and company data."
+        description="Side-by-side quotes, valuation, and trailing financials."
         actions={
           <form className="flex gap-2">
             <input
@@ -85,6 +86,50 @@ export default async function ComparePage({
               ))}
             </tr>
             <tr>
+              <td>Revenue (ttm)</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatCompactUsd(row.ttm?.revenue)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>Net Income (ttm)</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatCompactUsd(row.ttm?.netIncome)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>EPS (ttm)</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {row.ttm?.epsDiluted != null || row.ttm?.eps != null
+                    ? `$${formatPrice(row.ttm.epsDiluted ?? row.ttm.eps)}`
+                    : "—"}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>PE Ratio</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatRatio(row.ratios?.priceToEarningsRatioTTM)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>Profit Margin</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatPercentPlain(
+                    typeof row.ratios?.netProfitMarginTTM === "number" ? row.ratios.netProfitMarginTTM : null,
+                  )}
+                </td>
+              ))}
+            </tr>
+            <tr>
               <td>Sector</td>
               {rows.map((row) => (
                 <td key={row.symbol} className="num">
@@ -96,7 +141,13 @@ export default async function ComparePage({
               <td>Industry</td>
               {rows.map((row) => (
                 <td key={row.symbol} className="num">
-                  {row.profile?.industry ?? "—"}
+                  {row.profile?.industry ? (
+                    <Link href={`/stocks/industry/${industrySlug(row.profile.industry)}`} className="text-link hover:underline">
+                      {row.profile.industry}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </td>
               ))}
             </tr>

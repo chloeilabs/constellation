@@ -50,6 +50,7 @@ import type {
   FmpDcf,
   FmpRevenueSegment,
   FmpIndustryPerformance,
+  FmpIndustryPe,
   FmpMerger,
   FmpIpoDisclosure,
   FmpIpoProspectus,
@@ -361,6 +362,14 @@ export function getCashFlows(symbol: string, period: StatementPeriod, limit = 8)
   );
 }
 
+export function getCashFlowTtm(symbol: string) {
+  return fmpFirst<FmpCashFlow>(
+    "/cash-flow-statement-ttm",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+}
+
 export function getRatios(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpRatios>(
     "/ratios",
@@ -451,7 +460,11 @@ export function getEstimates(symbol: string, period: StatementPeriod = "annual")
 
 export function getScreener(
   params: Record<string, QueryValue> = {},
-  { page = 0, limit = 50 }: { page?: number; limit?: number } = {},
+  {
+    page = 0,
+    limit = 50,
+    revalidate = 300,
+  }: { page?: number; limit?: number; revalidate?: number } = {},
 ) {
   return fmpList<FmpScreenerRow>(
     "/company-screener",
@@ -463,8 +476,21 @@ export function getScreener(
       page,
       limit,
     },
-    { revalidate: 300 },
+    { revalidate },
   );
+}
+
+export async function getScreenerPages(
+  params: Record<string, QueryValue> = {},
+  { pages = 2, limit = 1000, revalidate = 1800 }: { pages?: number; limit?: number; revalidate?: number } = {},
+) {
+  const rows: FmpScreenerRow[] = [];
+  for (let page = 0; page < pages; page++) {
+    const batch = await getScreener(params, { page, limit, revalidate });
+    rows.push(...batch);
+    if (batch.length < limit) break;
+  }
+  return rows;
 }
 
 export async function getSectors() {
@@ -474,6 +500,13 @@ export async function getSectors() {
 
 export function getIndustries() {
   return fmpList<{ industry?: string }>("/available-industries", {}, { revalidate: 86400 });
+}
+
+export async function getIndustryNames() {
+  const rows = await getIndustries();
+  return [...new Set(rows.map((row) => row.industry).filter((name): name is string => Boolean(name)))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 }
 
 export function getExchanges() {
@@ -736,6 +769,14 @@ export function getRevenueGeographicSegments(symbol: string, period: StatementPe
 export function getIndustryPerformance(date: string) {
   return fmpList<FmpIndustryPerformance>(
     "/industry-performance-snapshot",
+    { date },
+    { revalidate: 300 },
+  );
+}
+
+export function getIndustryPeSnapshot(date: string) {
+  return fmpList<FmpIndustryPe>(
+    "/industry-pe-snapshot",
     { date },
     { revalidate: 300 },
   );

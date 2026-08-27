@@ -4,7 +4,9 @@ import { ChangePercent } from "@/components/change";
 import { SectionNav } from "@/components/section-nav";
 import { MARKET_NAV } from "@/lib/nav";
 import { getSectorPerformance } from "@/lib/fmp";
+import { industrySlug } from "@/lib/industries";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import Link from "next/link";
 
 export default async function SectorsPage() {
   const today = nyDateString();
@@ -33,7 +35,11 @@ export default async function SectorsPage() {
           <tbody>
             {rows.map((row) => (
               <tr key={`${row.sector}-${row.exchange}`}>
-                <td>{row.sector}</td>
+                <td>
+                  <Link href={`/stocks/industry#${industrySlug(row.sector)}`} className="text-link hover:underline">
+                    {row.sector}
+                  </Link>
+                </td>
                 <td className="text-muted">{row.exchange}</td>
                 <td className="num">
                   <ChangePercent value={row.averageChange} alreadyPercent />

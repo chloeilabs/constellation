@@ -10,12 +10,14 @@ const columns = [
       ["/markets/active", "Most Active"],
       ["/markets/heatmap", "Heatmap"],
       ["/markets/sectors", "Sectors"],
+      ["/stocks/industry", "Industries"],
     ],
   },
   {
     title: "Stocks",
     links: [
       ["/stocks", "Stock List"],
+      ["/stocks/industry", "Sectors & Industries"],
       ["/list/sp-500-stocks", "S&P 500"],
       ["/list/nasdaq-100-stocks", "Nasdaq 100"],
       ["/list/dow-jones-stocks", "Dow Jones"],
@@ -31,6 +33,7 @@ const columns = [
     title: "News & Calendar",
     links: [
       ["/news", "Market News"],
+      ["/ipos", "Recent IPOs"],
       ["/calendar/earnings", "Earnings Calendar"],
       ["/calendar/ipos", "IPO Calendar"],
       ["/calendar/dividends", "Dividend Calendar"],
