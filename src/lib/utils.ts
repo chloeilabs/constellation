@@ -35,3 +35,31 @@ export function nyDateString(d = new Date()) {
     day: "2-digit",
   }).format(d);
 }
+
+export function recentFiscalQuarters(count = 6) {
+  const now = new Date();
+  let year = now.getUTCFullYear();
+  let quarter = Math.floor(now.getUTCMonth() / 3) + 1;
+  const periods: { year: number; quarter: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    periods.push({ year, quarter });
+    quarter -= 1;
+    if (quarter < 1) {
+      quarter = 4;
+      year -= 1;
+    }
+  }
+  return periods;
+}
+
+export function yearEndSnapshots<T extends { date: string }>(rows: T[]) {
+  const newestFirst = [...rows].sort((a, b) => b.date.localeCompare(a.date));
+  const byYear = new Map<string, T>();
+  for (const row of newestFirst) {
+    const year = row.date.slice(0, 4);
+    if (!byYear.has(year)) byYear.set(year, row);
+  }
+  return [...byYear.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([, row]) => row);
+}

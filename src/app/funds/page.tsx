@@ -4,21 +4,20 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
-import { preferPrimaryListings } from "@/lib/listings";
 
-export default async function EtfListPage() {
-  const raw = await getScreener({ isEtf: true, isFund: false, country: "US" }, { limit: 100 });
-  const sorted = preferPrimaryListings(raw).slice(0, 50);
-  const rows = await withQuoteChanges(sorted);
+export default async function FundsPage() {
+  const raw = await getScreener({ isFund: true, isEtf: false, country: "US" }, { limit: 80 });
+  const ranked = [...raw].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 50);
+  const rows = await withQuoteChanges(ranked);
 
   return (
     <Container>
       <PageHeader
-        title="Exchange Traded Funds"
-        description="Largest U.S. ETFs by market value, with live quotes from Financial Modeling Prep."
+        title="Mutual Funds"
+        description="Largest U.S. mutual funds by assets, with live prices from Financial Modeling Prep."
         actions={
-          <Link href="/screener" className="text-sm text-link hover:underline">
-            Stock screener
+          <Link href="/etf" className="text-sm text-link hover:underline">
+            Largest ETFs
           </Link>
         }
       />
@@ -30,9 +29,9 @@ export default async function EtfListPage() {
         ]}
       />
       <SymbolTable
-        hrefBase="/etf"
+        hrefBase="/stocks"
         showIndustry={false}
-        empty="No ETF data available."
+        empty="No mutual fund data available."
         rows={rows.map((row) => ({
           symbol: row.symbol,
           name: row.companyName,

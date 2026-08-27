@@ -1,22 +1,29 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { MetricCards } from "@/components/metric-cards";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
-import { getCompanyEarnings, getEstimates, getGrades, getGradesConsensus, getPriceTarget, getQuote } from "@/lib/fmp";
+import { getCompanyEarnings, getDcf, getEstimates, getGrades, getGradesConsensus, getLeveredDcf, getPriceTarget, getQuote } from "@/lib/fmp";
 
 export default async function ForecastPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, target, grades, history, estimates, earnings] = await Promise.all([
+  const [quote, target, grades, history, estimates, earnings, dcf, levered] = await Promise.all([
     getQuote(ticker),
     getPriceTarget(ticker),
     getGradesConsensus(ticker),
     getGrades(ticker, 16),
     getEstimates(ticker, "annual"),
     getCompanyEarnings(ticker, 8),
+    getDcf(ticker),
+    getLeveredDcf(ticker),
   ]);
 
   const upside =
     target && quote?.price ? ((target.targetConsensus - quote.price) / quote.price) * 100 : null;
+  const dcfGap =
+    dcf?.dcf && quote?.price ? ((dcf.dcf - quote.price) / quote.price) * 100 : null;
+  const leveredGap =
+    levered?.dcf && quote?.price ? ((levered.dcf - quote.price) / quote.price) * 100 : null;
 
   return (
     <Container>
@@ -47,6 +54,33 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
           <p className="mt-2 text-sm text-muted">From last price ${formatPrice(quote?.price)}</p>
         </div>
       </div>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Discounted Cash Flow</h2>
+        <MetricCards
+          items={[
+            {
+              label: "Unlevered DCF",
+              value: dcf?.dcf != null ? `$${formatPrice(dcf.dcf)}` : "—",
+              hint: dcfGap == null ? undefined : `${dcfGap > 0 ? "+" : ""}${dcfGap.toFixed(1)}% vs price`,
+            },
+            {
+              label: "Levered DCF",
+              value: levered?.dcf != null ? `$${formatPrice(levered.dcf)}` : "—",
+              hint: leveredGap == null ? undefined : `${leveredGap > 0 ? "+" : ""}${leveredGap.toFixed(1)}% vs price`,
+            },
+            {
+              label: "Last Price",
+              value: `$${formatPrice(quote?.price ?? dcf?.stockPrice)}`,
+              hint: dcf?.date ? `Model date ${formatDate(dcf.date)}` : undefined,
+            },
+          ]}
+        />
+        <p className="mt-3 text-sm text-muted">
+          FMP discounted-cash-flow estimates of intrinsic value. A DCF below the market price means the model sees the
+          stock as expensive relative to projected cash flows.
+        </p>
+      </section>
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Analyst Actions</h2>

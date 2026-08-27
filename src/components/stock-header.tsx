@@ -49,6 +49,14 @@ export function StockHeader({
                     ETF
                   </Link>
                 ) : null}
+                {profile?.isFund && !profile?.isEtf ? (
+                  <Link
+                    href="/funds"
+                    className="ml-2 align-middle rounded bg-chip px-1.5 py-0.5 text-xs font-semibold text-header"
+                  >
+                    Fund
+                  </Link>
+                ) : null}
               </h1>
               <p className="mt-1 text-sm text-muted">
                 {profile?.exchangeFullName ?? quote?.exchange ?? "—"}

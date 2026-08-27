@@ -2,6 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { formatCompactUsd, formatDate, formatInteger } from "@/lib/format";
 import { getKeyExecutives, getProfile } from "@/lib/fmp";
+import Link from "next/link";
 
 export default async function CompanyPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -47,7 +48,15 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
         {details.map(([label, value]) => (
           <div key={label}>
             <dt className="text-xs text-muted">{label}</dt>
-            <dd className="text-sm font-medium">{value || "—"}</dd>
+            <dd className="text-sm font-medium">
+              {label === "Employees" && profile?.fullTimeEmployees ? (
+                <Link href={`/stocks/${ticker}/employees`} className="text-link hover:underline">
+                  {value}
+                </Link>
+              ) : (
+                value || "—"
+              )}
+            </dd>
           </div>
         ))}
       </dl>

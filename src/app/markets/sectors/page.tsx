@@ -1,7 +1,8 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { SectionNav, MARKET_NAV } from "@/components/section-nav";
+import { SectionNav } from "@/components/section-nav";
+import { MARKET_NAV } from "@/lib/nav";
 import { getSectorPerformance } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 

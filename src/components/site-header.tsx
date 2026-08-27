@@ -8,6 +8,7 @@ const NAV = [
   { href: "/stocks", label: "Stocks" },
   { href: "/list", label: "Lists" },
   { href: "/etf", label: "ETFs" },
+  { href: "/funds", label: "Funds" },
   { href: "/screener", label: "Screener" },
   { href: "/news", label: "News" },
   { href: "/calendar/earnings", label: "Calendar" },

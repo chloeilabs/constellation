@@ -1,6 +1,7 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
-import { SectionNav, CALENDAR_NAV } from "@/components/section-nav";
+import { SectionNav } from "@/components/section-nav";
+import { CALENDAR_NAV } from "@/lib/nav";
 import { formatDate, formatNumber } from "@/lib/format";
 import { getEconomicCalendar } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";

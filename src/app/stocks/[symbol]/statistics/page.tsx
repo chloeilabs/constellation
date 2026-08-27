@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatNumber, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { getKeyMetricsTtm, getProfile, getQuote, getRatiosTtm, getScores, getShareFloat } from "@/lib/fmp";
+import { getDcf, getKeyMetricsTtm, getProfile, getQuote, getRatiosTtm, getScores, getShareFloat } from "@/lib/fmp";
 
 function num(value: unknown) {
   return typeof value === "number" ? value : null;
@@ -11,13 +11,14 @@ function num(value: unknown) {
 export default async function StatisticsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, profile, ratios, metrics, scores, shareFloat] = await Promise.all([
+  const [quote, profile, ratios, metrics, scores, shareFloat, dcf] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getRatiosTtm(ticker),
     getKeyMetricsTtm(ticker),
     getScores(ticker),
     getShareFloat(ticker),
+    getDcf(ticker),
   ]);
 
   return (
@@ -31,7 +32,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Valuation</h2>
           <StatGrid
             items={[
-              { label: "Market Cap", value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
+              { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
+              { label: "DCF Fair Value", value: dcf?.dcf != null ? `$${formatPrice(dcf.dcf)}` : "—" },
               { label: "Enterprise Value", value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
               { label: "PE Ratio (ttm)", value: formatRatio(num(ratios?.priceToEarningsRatioTTM)) },
               { label: "PB Ratio", value: formatRatio(num(ratios?.priceToBookRatioTTM)) },

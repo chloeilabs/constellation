@@ -14,6 +14,7 @@ const TABS = [
   { href: "/news", label: "News" },
   { href: "/history", label: "History" },
   { href: "/insiders", label: "Insiders" },
+  { href: "/ownership", label: "Ownership" },
   { href: "/filings", label: "Filings" },
   { href: "/transcripts", label: "Transcripts" },
   { href: "/chart", label: "Chart" },

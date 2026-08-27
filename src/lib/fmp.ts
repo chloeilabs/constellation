@@ -44,8 +44,18 @@ import type {
   FmpSecFiling,
   FmpTranscript,
   FmpTranscriptDate,
+  FmpInstitutionalSummary,
+  FmpInstitutionalHolder,
+  FmpEmployeeCount,
+  FmpDcf,
+  FmpRevenueSegment,
+  FmpIndustryPerformance,
+  FmpMerger,
+  FmpIpoDisclosure,
+  FmpIpoProspectus,
   StatementPeriod,
 } from "@/lib/types";
+import { recentFiscalQuarters } from "@/lib/utils";
 
 const FMP_BASE = "https://financialmodelingprep.com/stable";
 
@@ -621,6 +631,130 @@ export function getEconomicCalendar(from: string, to: string, country = "US") {
     { from, to, country },
     { revalidate: 300 },
   );
+}
+
+function isPlausible13F(row: FmpInstitutionalSummary) {
+  const previous = row.lastNumberOf13Fshares;
+  const jump =
+    typeof previous === "number" &&
+    previous > 0 &&
+    row.numberOf13Fshares / previous > 1.75;
+  return !(jump && row.ownershipPercent > 95);
+}
+
+export async function getLatestInstitutionalOwnership(symbol: string, holderLimit = 40) {
+  const ticker = symbol.toUpperCase();
+  let backup: { year: number; quarter: number; row: FmpInstitutionalSummary } | null = null;
+
+  for (const period of recentFiscalQuarters(6)) {
+    const rows = await fmpList<FmpInstitutionalSummary>(
+      "/institutional-ownership/symbol-positions-summary",
+      { symbol: ticker, year: period.year, quarter: period.quarter },
+      { revalidate: 3600 },
+    );
+    const row = rows[0];
+    if (!row) continue;
+    if (isPlausible13F(row)) {
+      const holders = await fmpList<FmpInstitutionalHolder>(
+        "/institutional-ownership/extract-analytics/holder",
+        { symbol: ticker, year: period.year, quarter: period.quarter, page: 0, limit: holderLimit },
+        { revalidate: 3600 },
+      );
+      return { summary: row, year: period.year, quarter: period.quarter, holders };
+    }
+    backup ??= { ...period, row };
+  }
+
+  if (!backup) {
+    return { summary: null, year: null, quarter: null, holders: [] as FmpInstitutionalHolder[] };
+  }
+
+  const holders = await fmpList<FmpInstitutionalHolder>(
+    "/institutional-ownership/extract-analytics/holder",
+    { symbol: ticker, year: backup.year, quarter: backup.quarter, page: 0, limit: holderLimit },
+    { revalidate: 3600 },
+  );
+  return { summary: backup.row, year: backup.year, quarter: backup.quarter, holders };
+}
+
+export function getEmployeeCount(symbol: string, limit = 8) {
+  return fmpList<FmpEmployeeCount>(
+    "/employee-count",
+    { symbol: symbol.toUpperCase(), limit },
+    { revalidate: 86400 },
+  );
+}
+
+export function getHistoricalEmployeeCount(symbol: string, limit = 40) {
+  return fmpList<FmpEmployeeCount>(
+    "/historical-employee-count",
+    { symbol: symbol.toUpperCase(), limit },
+    { revalidate: 86400 },
+  );
+}
+
+function normalizeDcf(row: FmpDcf | null) {
+  if (!row) return null;
+  const stockPrice = typeof row.stockPrice === "number" ? row.stockPrice : row["Stock Price"];
+  return { symbol: row.symbol, date: row.date, dcf: row.dcf, stockPrice };
+}
+
+export async function getDcf(symbol: string) {
+  const row = await fmpFirst<FmpDcf>(
+    "/discounted-cash-flow",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+  return normalizeDcf(row);
+}
+
+export async function getLeveredDcf(symbol: string) {
+  const row = await fmpFirst<FmpDcf>(
+    "/levered-discounted-cash-flow",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
+  );
+  return normalizeDcf(row);
+}
+
+export function getRevenueProductSegments(symbol: string, period: StatementPeriod = "annual") {
+  return fmpList<FmpRevenueSegment>(
+    "/revenue-product-segmentation",
+    { symbol: symbol.toUpperCase(), period, structure: "flat" },
+    { revalidate: 86400 },
+  );
+}
+
+export function getRevenueGeographicSegments(symbol: string, period: StatementPeriod = "annual") {
+  return fmpList<FmpRevenueSegment>(
+    "/revenue-geographic-segmentation",
+    { symbol: symbol.toUpperCase(), period, structure: "flat" },
+    { revalidate: 86400 },
+  );
+}
+
+export function getIndustryPerformance(date: string) {
+  return fmpList<FmpIndustryPerformance>(
+    "/industry-performance-snapshot",
+    { date },
+    { revalidate: 300 },
+  );
+}
+
+export function getLatestMergers(limit = 50) {
+  return fmpList<FmpMerger>(
+    "/mergers-acquisitions-latest",
+    { page: 0, limit },
+    { revalidate: 300 },
+  );
+}
+
+export function getIpoDisclosures(from: string, to: string) {
+  return fmpList<FmpIpoDisclosure>("/ipos-disclosure", { from, to }, { revalidate: 600 });
+}
+
+export function getIpoProspectuses(from: string, to: string) {
+  return fmpList<FmpIpoProspectus>("/ipos-prospectus", { from, to }, { revalidate: 600 });
 }
 
 export async function withQuoteChanges<T extends { symbol: string; price?: number }>(rows: T[]) {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
@@ -68,7 +69,12 @@ export default async function StockHistoryPage({ params }: { params: Promise<{ s
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Market Cap</h2>
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="text-lg font-semibold text-header">Market Cap</h2>
+          <Link href={`/stocks/${ticker}/market-cap`} className="text-sm text-link hover:underline">
+            Full history
+          </Link>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
             <thead>

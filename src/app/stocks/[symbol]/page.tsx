@@ -70,6 +70,7 @@ export default async function StockOverviewPage({
           <PriceChart points={points} range={range} symbol={ticker} />
         </Suspense>
         <QuoteStats
+          symbol={ticker}
           quote={quote}
           profile={profile}
           ttm={ttm}
@@ -113,7 +114,11 @@ export default async function StockOverviewPage({
             </div>
             <div>
               <dt className="text-muted">Employees</dt>
-              <dd>{profile.fullTimeEmployees || "—"}</dd>
+              <dd>
+                <Link href={`/stocks/${ticker}/employees`} className="text-link hover:underline">
+                  {profile.fullTimeEmployees || "Headcount"}
+                </Link>
+              </dd>
             </div>
             <div>
               <dt className="text-muted">Website</dt>
@@ -149,6 +154,10 @@ export default async function StockOverviewPage({
           <p className="mt-2 text-sm">
             <Link href={`/stocks/${ticker}/financials`} className="text-link hover:underline">
               Financial statements
+            </Link>
+            {" · "}
+            <Link href={`/stocks/${ticker}/revenue`} className="text-link hover:underline">
+              Revenue history
             </Link>
           </p>
         </section>

@@ -563,3 +563,140 @@ export type FmpEconomicEvent = {
   changePercentage: number | null;
   unit: string;
 };
+
+export type FmpInstitutionalSummary = {
+  symbol: string;
+  cik: string;
+  date: string;
+  investorsHolding: number;
+  lastInvestorsHolding: number;
+  investorsHoldingChange: number;
+  numberOf13Fshares: number;
+  lastNumberOf13Fshares: number;
+  numberOf13FsharesChange: number;
+  totalInvested: number;
+  lastTotalInvested: number;
+  totalInvestedChange: number;
+  ownershipPercent: number;
+  lastOwnershipPercent: number;
+  ownershipPercentChange: number;
+  newPositions: number;
+  lastNewPositions: number;
+  newPositionsChange: number;
+  increasedPositions: number;
+  lastIncreasedPositions: number;
+  increasedPositionsChange: number;
+  closedPositions: number;
+  lastClosedPositions: number;
+  closedPositionsChange: number;
+  reducedPositions: number;
+  lastReducedPositions: number;
+  reducedPositionsChange: number;
+  totalCalls: number;
+  lastTotalCalls: number;
+  totalCallsChange: number;
+  totalPuts: number;
+  lastTotalPuts: number;
+  totalPutsChange: number;
+  putCallRatio: number;
+  lastPutCallRatio: number;
+  putCallRatioChange: number;
+};
+
+export type FmpInstitutionalHolder = {
+  date: string;
+  cik: string;
+  filingDate: string;
+  investorName: string;
+  symbol: string;
+  securityName: string;
+  sharesNumber: number;
+  lastSharesNumber: number;
+  changeInSharesNumber: number;
+  changeInSharesNumberPercentage: number;
+  marketValue: number;
+  lastMarketValue: number;
+  changeInMarketValue: number;
+  ownership: number;
+  lastOwnership: number;
+  changeInOwnership: number;
+  weight: number;
+  isNew: boolean;
+  isSoldOut: boolean;
+  firstAdded: string;
+  holdingPeriod: number;
+};
+
+export type FmpEmployeeCount = {
+  symbol: string;
+  cik: string;
+  acceptanceTime: string;
+  periodOfReport: string;
+  companyName: string;
+  formType: string;
+  filingDate: string;
+  employeeCount: number;
+  source: string;
+};
+
+export type FmpDcf = {
+  symbol: string;
+  date: string;
+  dcf: number;
+  stockPrice?: number;
+  "Stock Price"?: number;
+};
+
+export type FmpRevenueSegment = {
+  symbol: string;
+  fiscalYear: number | string;
+  period: string;
+  reportedCurrency: string;
+  date: string;
+  data: Record<string, number>;
+};
+
+export type FmpIndustryPerformance = {
+  date: string;
+  industry: string;
+  exchange: string;
+  averageChange: number;
+};
+
+export type FmpMerger = {
+  symbol: string;
+  companyName: string;
+  cik: string;
+  targetedCompanyName: string;
+  targetedCik: string;
+  targetedSymbol: string;
+  transactionDate: string;
+  acceptedDate: string;
+  link: string;
+};
+
+export type FmpIpoDisclosure = {
+  symbol: string;
+  filingDate: string;
+  acceptedDate: string;
+  effectivenessDate: string;
+  cik: string;
+  form: string;
+  url: string;
+};
+
+export type FmpIpoProspectus = {
+  symbol: string;
+  acceptedDate: string;
+  filingDate: string;
+  ipoDate: string;
+  cik: string;
+  pricePublicPerShare: number | null;
+  pricePublicTotal: number | null;
+  discountsAndCommissionsPerShare: number | null;
+  discountsAndCommissionsTotal: number | null;
+  proceedsBeforeExpensesPerShare: number | null;
+  proceedsBeforeExpensesTotal: number | null;
+  form: string;
+  url: string;
+};

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
-import { SectionNav, CALENDAR_NAV } from "@/components/section-nav";
+import { SectionNav } from "@/components/section-nav";
+import { CALENDAR_NAV } from "@/lib/nav";
 import { formatDate } from "@/lib/format";
 import { getSplitsCalendar } from "@/lib/fmp";
 import { isForeignListingSymbol } from "@/lib/listings";

@@ -4,7 +4,8 @@ import { IndexTicker } from "@/components/index-ticker";
 import { MoversTable } from "@/components/movers-table";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { SectionNav, MARKET_NAV } from "@/components/section-nav";
+import { SectionNav } from "@/components/section-nav";
+import { MARKET_NAV } from "@/lib/nav";
 import { getGainers, getIndexQuotes, getLosers, getMarketHours, getMostActive, getSectorPerformance } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
@@ -34,11 +35,16 @@ export default async function MarketsPage() {
           <MoversTable title="Most Active" href="/markets/active" rows={active.slice(0, 8)} />
         </div>
         <section className="mt-12">
-          <div className="mb-3 flex items-end justify-between">
+          <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-xl font-semibold text-header">Sector Performance</h2>
-            <Link href="/markets/sectors" className="text-sm text-link hover:underline">
-              Full table
-            </Link>
+            <div className="flex gap-4">
+              <Link href="/markets/heatmap" className="text-sm text-link hover:underline">
+                Heatmap
+              </Link>
+              <Link href="/markets/sectors" className="text-sm text-link hover:underline">
+                Full table
+              </Link>
+            </div>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">

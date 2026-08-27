@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import {
   formatCompactUsd,
@@ -32,7 +33,7 @@ function withYoy(value: ReactNode, yoy: number | null | undefined) {
 export function StatGrid({
   items,
 }: {
-  items: { label: string; value: ReactNode }[];
+  items: { label: string; value: ReactNode; href?: string }[];
 }) {
   return (
     <dl className="grid grid-cols-1 overflow-hidden rounded-lg border border-border sm:grid-cols-2">
@@ -41,7 +42,15 @@ export function StatGrid({
           key={item.label}
           className="flex items-center justify-between gap-3 border-b border-border px-3 py-1.5 last:border-b-0 sm:odd:border-r"
         >
-          <dt className="text-[13px] text-muted">{item.label}</dt>
+          <dt className="text-[13px] text-muted">
+            {item.href ? (
+              <Link href={item.href} className="text-link hover:underline">
+                {item.label}
+              </Link>
+            ) : (
+              item.label
+            )}
+          </dt>
           <dd className="tabular text-[13px] font-medium">{item.value}</dd>
         </div>
       ))}
@@ -50,6 +59,7 @@ export function StatGrid({
 }
 
 export function QuoteStats({
+  symbol,
   quote,
   profile,
   ttm,
@@ -60,6 +70,7 @@ export function QuoteStats({
   growth,
   earningsDate,
 }: {
+  symbol: string;
   quote: FmpQuote | null;
   profile: FmpProfile | null;
   ttm: FmpIncomeStatement | null;
@@ -75,12 +86,13 @@ export function QuoteStats({
     target?.targetConsensus && quote?.price
       ? ((target.targetConsensus - quote.price) / quote.price) * 100
       : null;
+  const base = `/stocks/${symbol}`;
 
   return (
     <StatGrid
       items={[
-        { label: "Market Cap", value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
-        { label: "Revenue (ttm)", value: withYoy(formatCompactUsd(ttm?.revenue), growth?.growthRevenue) },
+        { label: "Market Cap", href: `${base}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
+        { label: "Revenue (ttm)", href: `${base}/revenue`, value: withYoy(formatCompactUsd(ttm?.revenue), growth?.growthRevenue) },
         { label: "Net Income (ttm)", value: withYoy(formatCompactUsd(ttm?.netIncome), growth?.growthNetIncome) },
         { label: "Shares Out", value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
         { label: "EPS (ttm)", value: withYoy(formatPrice(ttm?.epsDiluted ?? ttm?.eps), growth?.growthEPSDiluted ?? growth?.growthEPS) },

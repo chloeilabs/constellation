@@ -4,21 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-export const MARKET_NAV = [
-  { href: "/markets", label: "Overview" },
-  { href: "/markets/gainers", label: "Gainers" },
-  { href: "/markets/losers", label: "Losers" },
-  { href: "/markets/active", label: "Most Active" },
-  { href: "/markets/sectors", label: "Sectors" },
-];
-
-export const CALENDAR_NAV = [
-  { href: "/calendar/earnings", label: "Earnings" },
-  { href: "/calendar/ipos", label: "IPOs" },
-  { href: "/calendar/dividends", label: "Dividends" },
-  { href: "/calendar/splits", label: "Splits" },
-  { href: "/calendar/economy", label: "Economy" },
-];
+export { MARKET_NAV, CALENDAR_NAV, quoteFundamentalsNav } from "@/lib/nav";
 
 export function SectionNav({
   items,

@@ -28,15 +28,26 @@ export default function ListsIndexPage() {
                   </Link>
                 ))}
                 {category.id === "popular" ? (
-                  <Link
-                    href="/etf"
-                    className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
-                  >
-                    <h3 className="font-semibold text-header">Largest ETFs</h3>
-                    <p className="mt-2 text-sm text-muted">
-                      Exchange-traded funds ranked by assets under management.
-                    </p>
-                  </Link>
+                  <>
+                    <Link
+                      href="/etf"
+                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    >
+                      <h3 className="font-semibold text-header">Largest ETFs</h3>
+                      <p className="mt-2 text-sm text-muted">
+                        Exchange-traded funds ranked by assets under management.
+                      </p>
+                    </Link>
+                    <Link
+                      href="/funds"
+                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    >
+                      <h3 className="font-semibold text-header">Mutual Funds</h3>
+                      <p className="mt-2 text-sm text-muted">
+                        Actively traded U.S. mutual funds ranked by total assets.
+                      </p>
+                    </Link>
+                  </>
                 ) : null}
               </div>
             </section>
