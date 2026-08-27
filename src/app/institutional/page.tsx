@@ -11,13 +11,12 @@ export const metadata = {
 };
 
 export default async function InstitutionalFilingsPage() {
-  const raw = await getLatestInstitutionalFilings(80);
+  const raw = await getLatestInstitutionalFilings(100);
   const seen = new Set<string>();
   const rows = raw.filter((row) => {
-    const key = `${row.cik}|${row.date}|${row.formType}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return Boolean(row.name);
+    if (!row.name || !row.cik || seen.has(row.cik)) return false;
+    seen.add(row.cik);
+    return true;
   });
 
   return (
