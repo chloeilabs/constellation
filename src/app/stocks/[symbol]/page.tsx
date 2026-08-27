@@ -8,6 +8,7 @@ import { SectionNav } from "@/components/section-nav";
 import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPlausiblePe, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
 import {
+  getCashFlowTtm,
   getCompanyEarnings,
   getDcf,
   getDividends,
@@ -43,7 +44,7 @@ import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { overviewSecFilings } from "@/lib/filings";
-import { addDays, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { addDays, cashOutlay, isoDate, nyDateString, relativeChange } from "@/lib/utils";
 import { ttmChange } from "@/lib/statements";
 
 export default async function StockOverviewPage({
@@ -62,7 +63,7 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings, ratings, scores] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings, ratings, scores, cash] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -87,6 +88,7 @@ export default async function StockOverviewPage({
       getSecFilings(ticker, filingFrom, filingTo, 40),
       getRatings(ticker),
       getScores(ticker),
+      getCashFlowTtm(ticker),
     ]);
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
@@ -98,6 +100,15 @@ export default async function StockOverviewPage({
   const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
   const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
   const sharesYoy = relativeChange(latestYear?.weightedAverageShsOutDil, priorYear?.weightedAverageShsOutDil);
+  const ttmBuybacks = cashOutlay(cash?.commonStockRepurchased);
+  const buybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
+  const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
+  const shareholderYield =
+    buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
+  const fcfYield =
+    cash?.freeCashFlow != null && marketCap ? cash.freeCashFlow / marketCap : null;
+  const peForYield = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe;
+  const earningsYield = peForYield && peForYield > 0 ? 1 / peForYield : null;
   const quarterlyRows = quarterly as Array<Record<string, unknown>>;
   const ttmYoy = {
     revenue: ttmChange(quarterlyRows, "revenue"),
@@ -190,6 +201,10 @@ export default async function StockOverviewPage({
           ttmYoy={ttmYoy}
           ratings={ratings}
           scores={scores}
+          buybackYield={buybackYield}
+          shareholderYield={shareholderYield}
+          fcfYield={fcfYield}
+          earningsYield={earningsYield}
         />
       </div>
 

@@ -57,6 +57,7 @@ export default async function FreeCashFlowPage({
           },
           {
             label: "FCF Yield",
+            href: `/stocks/${ticker}/fcf-yield`,
             value: fcfYield == null ? "—" : `${(fcfYield * 100).toFixed(2)}%`,
           },
           {

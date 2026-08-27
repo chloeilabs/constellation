@@ -151,6 +151,7 @@ export function quoteFundamentalsNav(symbol: string) {
   return [
     { href: `${base}/market-cap`, label: "Market Cap" },
     { href: `${base}/shares`, label: "Shares" },
+    { href: `${base}/buybacks`, label: "Buybacks" },
     { href: `${base}/revenue`, label: "Revenue" },
     { href: `${base}/gross-profit`, label: "Gross Profit" },
     { href: `${base}/operating-income`, label: "Operating Income" },
@@ -158,6 +159,7 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `${base}/net-income`, label: "Net Income" },
     { href: `${base}/earnings`, label: "EPS" },
     { href: `${base}/free-cash-flow`, label: "FCF" },
+    { href: `${base}/fcf-yield`, label: "FCF Yield" },
     { href: `${base}/capex`, label: "Capex" },
     { href: `${base}/cash`, label: "Cash" },
     { href: `${base}/assets`, label: "Assets" },
@@ -165,9 +167,12 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `${base}/debt`, label: "Debt" },
     { href: `${base}/equity`, label: "Equity" },
     { href: `${base}/pe-ratio`, label: "PE Ratio" },
+    { href: `${base}/earnings-yield`, label: "Earnings Yield" },
     { href: `${base}/peg-ratio`, label: "PEG Ratio" },
     { href: `${base}/ps-ratio`, label: "PS Ratio" },
     { href: `${base}/pb-ratio`, label: "PB Ratio" },
+    { href: `${base}/dividend-yield`, label: "Dividend Yield" },
+    { href: `${base}/payout-ratio`, label: "Payout" },
     { href: `${base}/current-ratio`, label: "Current Ratio" },
     { href: `${base}/roe`, label: "ROE" },
     { href: `${base}/roa`, label: "ROA" },
@@ -175,6 +180,7 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `${base}/enterprise-value`, label: "EV" },
     { href: `${base}/owner-earnings`, label: "Owner Earnings" },
     { href: `${base}/employees`, label: "Employees" },
+    { href: `${base}/splits`, label: "Splits" },
     { href: `${base}/ownership`, label: "Ownership" },
   ];
 }

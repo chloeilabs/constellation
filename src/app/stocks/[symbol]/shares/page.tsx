@@ -83,7 +83,11 @@ export default async function SharesPage({
       />
       <p className="mt-4 text-sm text-muted">
         As of {formatDate(shareFloat?.date)}. Float is the shares available to trade; restricted shares are outstanding
-        minus float. The history chart uses diluted weighted-average shares from the income statement.
+        minus float. The history chart uses diluted weighted-average shares from the income statement.{" "}
+        <a href={`/stocks/${ticker}/buybacks`} className="text-link hover:underline">
+          Share buybacks
+        </a>{" "}
+        reduce the share count over time.
         {shareFloat?.source ? (
           <>
             {" "}

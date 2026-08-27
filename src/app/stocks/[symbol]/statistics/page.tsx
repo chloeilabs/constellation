@@ -414,7 +414,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Net Borrowing", value: money(cash?.netDebtIssuance) },
               { label: "Free Cash Flow", href: `/stocks/${ticker}/free-cash-flow`, value: money(cash?.freeCashFlow) },
               { label: "FCF / Share", value: shares && cash?.freeCashFlow ? formatMoney(cash.freeCashFlow / shares, currency) : "—" },
-              { label: "FCF Yield", value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
+              { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
             ]}
           />
         </section>
@@ -437,12 +437,12 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <StatGrid
             items={[
               { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: formatMoney(indicatedAnnualDividend(dividends[0], profile?.lastDividend), currency) },
-              { label: "Dividend Yield", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(dividendYield) },
-              { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
-              { label: "Buyback Yield", value: formatPercentPlain(buybackYield) },
-              { label: "Shareholder Yield", value: formatPercentPlain(shareholderYield) },
-              { label: "Earnings Yield", value: formatPercentPlain(num(metrics?.earningsYieldTTM)) },
-              { label: "FCF Yield", value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
+              { label: "Dividend Yield", href: `/stocks/${ticker}/dividend-yield`, value: formatPercentPlain(dividendYield) },
+              { label: "Payout Ratio", href: `/stocks/${ticker}/payout-ratio`, value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
+              { label: "Buyback Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(buybackYield) },
+              { label: "Shareholder Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(shareholderYield) },
+              { label: "Earnings Yield", href: `/stocks/${ticker}/earnings-yield`, value: formatPercentPlain(num(metrics?.earningsYieldTTM)) },
+              { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
             ]}
           />
         </section>
@@ -497,10 +497,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Stock Splits</h2>
           <StatGrid
             items={[
-              { label: "Last Split Date", href: `/stocks/${ticker}/history`, value: formatDate(lastSplit?.date) },
+              { label: "Last Split Date", href: `/stocks/${ticker}/splits`, value: formatDate(lastSplit?.date) },
               {
                 label: "Split Ratio",
-                href: `/stocks/${ticker}/history`,
+                href: `/stocks/${ticker}/splits`,
                 value: lastSplit ? `${lastSplit.numerator}:${lastSplit.denominator}` : "—",
               },
               { label: "Split Type", value: lastSplit?.splitType || "—" },

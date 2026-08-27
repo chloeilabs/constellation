@@ -87,6 +87,12 @@ export function relativeChange(current?: number | null, prior?: number | null) {
   return (current - prior) / Math.abs(prior);
 }
 
+/** Magnitude of a cash-flow outlay. FMP reports buybacks and dividends paid as negatives. */
+export function cashOutlay(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.abs(value);
+}
+
 export function annualDividendPayments(frequency: string | null | undefined) {
   const value = (frequency || "").toLowerCase();
   if (value.includes("month")) return 12;

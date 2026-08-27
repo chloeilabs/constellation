@@ -84,6 +84,10 @@ export function QuoteStats({
   ttmYoy,
   ratings,
   scores,
+  buybackYield,
+  shareholderYield,
+  fcfYield,
+  earningsYield,
 }: {
   symbol: string;
   quote: FmpQuote | null;
@@ -103,6 +107,10 @@ export function QuoteStats({
   sharesYoy?: number | null;
   ratings?: FmpRatings | null;
   scores?: FmpScores | null;
+  buybackYield?: number | null;
+  shareholderYield?: number | null;
+  fcfYield?: number | null;
+  earningsYield?: number | null;
   ttmYoy?: {
     revenue?: number | null;
     grossProfit?: number | null;
@@ -149,6 +157,11 @@ export function QuoteStats({
         { label: "PB Ratio", href: `${base}/pb-ratio`, value: formatRatio(typeof ratios?.priceToBookRatioTTM === "number" ? ratios.priceToBookRatioTTM : null) },
         { label: "Forward PE", value: formatRatio(forwardPe) },
         { label: "Dividend", href: `${base}/dividend`, value: dividendValue },
+        { label: "Dividend Yield", href: `${base}/dividend-yield`, value: formatPercentPlain(dividendYield) },
+        { label: "Buyback Yield", href: `${base}/buybacks`, value: formatPercentPlain(buybackYield) },
+        { label: "Shareholder Yield", href: `${base}/buybacks`, value: formatPercentPlain(shareholderYield) },
+        { label: "FCF Yield", href: `${base}/fcf-yield`, value: formatPercentPlain(fcfYield) },
+        { label: "Earnings Yield", href: `${base}/earnings-yield`, value: formatPercentPlain(earningsYield) },
         { label: "Ex-Dividend Date", value: formatDate(dividend?.date) },
         { label: "Volume", value: formatInteger(quote?.volume ?? profile?.volume) },
         { label: "Average Volume", value: formatInteger(quote?.avgVolume ?? profile?.averageVolume) },

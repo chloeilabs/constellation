@@ -68,12 +68,20 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
         title={`${ticker} Dividend`}
         description="Dividend history, yield, payout, and growth from live FMP data."
         actions={
-          <Link
-            href={`/tools/dividend-calculator?symbol=${encodeURIComponent(ticker)}`}
-            className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
-          >
-            Dividend Calculator
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/stocks/${ticker}/dividend-yield`}
+              className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+            >
+              Yield History
+            </Link>
+            <Link
+              href={`/tools/dividend-calculator?symbol=${encodeURIComponent(ticker)}`}
+              className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+            >
+              Dividend Calculator
+            </Link>
+          </div>
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -100,15 +108,27 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
           <div className="mt-1 text-2xl font-semibold tabular">{px(annualized)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">Indicated Yield</div>
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/dividend-yield`} className="text-link hover:underline">
+              Indicated Yield
+            </Link>
+          </div>
           <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(indicatedYield)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">TTM Yield</div>
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/dividend-yield`} className="text-link hover:underline">
+              TTM Yield
+            </Link>
+          </div>
           <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(ttmYield)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">Payout Ratio</div>
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/payout-ratio`} className="text-link hover:underline">
+              Payout Ratio
+            </Link>
+          </div>
           <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(payout)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">

@@ -187,7 +187,12 @@ export default async function StockHistoryPage({
           </section>
 
           <section className="mt-10">
-            <h2 className="mb-3 text-lg font-semibold text-header">Stock Splits</h2>
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+              <h2 className="text-lg font-semibold text-header">Stock Splits</h2>
+              <Link href={stockPath(ticker, "/splits")} className="text-sm text-link hover:underline">
+                Full history
+              </Link>
+            </div>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="sa-table">
                 <thead>
