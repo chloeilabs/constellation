@@ -6,7 +6,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { ChangePercent } from "@/components/change";
 import { formatDate, formatMoney, formatRatio } from "@/lib/format";
-import { getDcf, getKeyMetricsTtm, getLeveredDcf, getProfile, getQuote, getRatings, getRatiosTtm } from "@/lib/fmp";
+import { getDcf, getKeyMetricsTtm, getLeveredDcf, getProfile, getQuote, getRatings } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 
 function num(value: unknown) {
@@ -21,13 +21,12 @@ function gap(fair: number | null, price: number | null) {
 export default async function FairValuePage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [quote, profile, dcf, levered, metrics, ratios, ratings] = await Promise.all([
+  const [quote, profile, dcf, levered, metrics, ratings] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getDcf(ticker),
     getLeveredDcf(ticker),
     getKeyMetricsTtm(ticker),
-    getRatiosTtm(ticker),
     getRatings(ticker),
   ]);
   const currency = profile?.currency || "USD";
@@ -37,7 +36,7 @@ export default async function FairValuePage({ params }: { params: Promise<{ symb
   const leveredValue = num(levered?.dcf);
   const graham = num(metrics?.grahamNumberTTM);
   const grahamNetNet = num(metrics?.grahamNetNetTTM);
-  const priceToFair = num(ratios?.priceToFairValueTTM);
+  const priceToDcf = price != null && unlevered != null && unlevered !== 0 ? price / unlevered : null;
 
   return (
     <Container>
@@ -85,7 +84,7 @@ export default async function FairValuePage({ params }: { params: Promise<{ symb
               ),
           },
           { label: "Graham Net-Net", value: px(grahamNetNet) },
-          { label: "Price / Fair Value", value: formatRatio(priceToFair) },
+          { label: "Price / DCF", value: formatRatio(priceToDcf) },
           { label: "FMP Rating", value: ratings?.rating ?? "—" },
           { label: "DCF Score", value: ratings?.discountedCashFlowScore ?? "—" },
         ]}
@@ -94,7 +93,7 @@ export default async function FairValuePage({ params }: { params: Promise<{ symb
         Unlevered and levered DCF values come from Financial Modeling Prep&apos;s discounted-cash-flow models, not from
         Stock Analysis Pro formulas (Lynch/Graham upside on the public site is paywalled). A DCF below the market price
         means the model sees the stock as expensive relative to projected cash flows. Graham Number uses EPS and book
-        value; Graham Net-Net is net current asset value per share.
+        value; Graham Net-Net is net current asset value per share. Price / DCF is last price divided by unlevered DCF.
       </p>
     </Container>
   );
