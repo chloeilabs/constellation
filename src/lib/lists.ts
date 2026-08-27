@@ -264,16 +264,6 @@ export const STOCK_LISTS = {
     sort: "marketCap",
     listing: "primary",
   },
-  "low-pe-stocks": {
-    title: "Low PE Stocks",
-    description: "U.S. companies with a trailing PE below 15 and a market cap above $2B.",
-    category: "popular",
-    source: "screener",
-    filters: { country: "US", peLowerThan: 15, marketCapMoreThan: 2_000_000_000, priceMoreThan: 5 },
-    limit: 200,
-    sort: "marketCap",
-    listing: "primary",
-  },
   "tsx-stocks": {
     title: "Toronto Stock Exchange",
     description: "The largest Canadian companies listed on the TSX.",
@@ -354,7 +344,6 @@ export const LIST_NAV = [
   { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
   { href: "/list/penny-stocks", label: "Penny Stocks" },
   { href: "/list/high-beta-stocks", label: "High Beta" },
-  { href: "/list/low-pe-stocks", label: "Low PE" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
 ];
 

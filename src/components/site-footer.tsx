@@ -34,7 +34,6 @@ const columns = [
       ["/list/otc-stocks", "OTC Stocks"],
       ["/list/penny-stocks", "Penny Stocks"],
       ["/list/high-beta-stocks", "High-Beta Stocks"],
-      ["/list/low-pe-stocks", "Low PE Stocks"],
       ["/list/tsx-stocks", "Toronto (TSX)"],
       ["/list/london-stocks", "London (LSE)"],
       ["/list/hong-kong-stocks", "Hong Kong"],
