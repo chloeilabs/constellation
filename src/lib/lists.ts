@@ -901,7 +901,7 @@ async function loadIndustryMatchList(sector: string | undefined, industryPattern
   const selected = preferPrimaryListings(raw).filter((row) => matcher.test(row.industry || ""));
   const rows = await toScreenerRows(selected);
   return rows
-    .filter((row) => (row.marketCap ?? 0) > 0)
+    .filter((row) => (row.marketCap ?? 0) >= 50_000_000)
     .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
     .slice(0, 100);
 }
