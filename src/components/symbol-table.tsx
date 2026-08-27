@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatInteger, formatPrice } from "@/lib/format";
+import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
 
 export type SymbolTableRow = {
   symbol: string;
@@ -12,6 +12,7 @@ export type SymbolTableRow = {
   volume?: number | null;
   exchange?: string | null;
   beta?: number | null;
+  dividendYield?: number | null;
 };
 
 export function SymbolTable({
@@ -19,13 +20,15 @@ export function SymbolTable({
   hrefBase = "/stocks",
   empty = "No results found.",
   showIndustry = true,
+  showYield = false,
 }: {
   rows: SymbolTableRow[];
   hrefBase?: string;
   empty?: string;
   showIndustry?: boolean;
+  showYield?: boolean;
 }) {
-  const colSpan = showIndustry ? 7 : 6;
+  const colSpan = 6 + (showIndustry ? 1 : 0) + (showYield ? 1 : 0);
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="sa-table">
@@ -36,6 +39,7 @@ export function SymbolTable({
             <th className="num">Market Cap</th>
             <th className="num">Stock Price</th>
             <th className="num">% Change</th>
+            {showYield ? <th className="num">Yield</th> : null}
             {showIndustry ? <th>Industry</th> : null}
             <th className="num">Volume</th>
           </tr>
@@ -61,6 +65,7 @@ export function SymbolTable({
                 <td className="num">
                   <ChangePercent value={row.changePercentage} />
                 </td>
+                {showYield ? <td className="num">{formatPercentPlain(row.dividendYield)}</td> : null}
                 {showIndustry ? <td className="text-muted">{row.industry || row.exchange || "—"}</td> : null}
                 <td className="num">{formatInteger(row.volume)}</td>
               </tr>

@@ -56,8 +56,8 @@ export const STOCK_LISTS = {
     description: "U.S. stocks with the highest indicated dividend yield.",
     category: "popular",
     source: "screener",
-    filters: { country: "US", dividendMoreThan: 0.2 },
-    limit: 100,
+    filters: { country: "US", dividendMoreThan: 0.01 },
+    limit: 400,
     sort: "dividendYield",
   },
   "nasdaq-stocks": {
