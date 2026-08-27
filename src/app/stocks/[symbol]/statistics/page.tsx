@@ -86,9 +86,9 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Dividend Yield", value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
               { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Average Volume", value: formatNumber(profile?.averageVolume, 0) },
-              { label: "Shares Outstanding", value: formatNumber(shareFloat?.outstandingShares, 0) },
-              { label: "Float", value: formatNumber(shareFloat?.floatShares, 0) },
-              { label: "Free Float", value: formatPercentPlain(shareFloat?.freeFloat, { alreadyPercent: true }) },
+              { label: "Shares Outstanding", href: `/stocks/${ticker}/shares`, value: formatNumber(shareFloat?.outstandingShares, 0) },
+              { label: "Float", href: `/stocks/${ticker}/shares`, value: formatNumber(shareFloat?.floatShares, 0) },
+              { label: "Free Float", href: `/stocks/${ticker}/shares`, value: formatPercentPlain(shareFloat?.freeFloat, { alreadyPercent: true }) },
             ]}
           />
         </section>

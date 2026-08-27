@@ -812,3 +812,105 @@ export type FmpEconomicIndicator = {
   date: string;
   value: number;
 };
+
+export type FmpHistoricalConstituent = {
+  dateAdded: string;
+  addedSecurity: string;
+  removedTicker: string | null;
+  removedSecurity: string | null;
+  date: string;
+  symbol: string;
+  reason: string;
+};
+
+export type FmpSymbolChange = {
+  date: string;
+  companyName: string;
+  oldSymbol: string;
+  newSymbol: string;
+};
+
+export type FmpDelisted = {
+  symbol: string;
+  companyName: string;
+  exchange: string;
+  ipoDate: string;
+  delistedDate: string;
+};
+
+export type FmpFinancialGrowth = {
+  symbol: string;
+  date: string;
+  fiscalYear: string;
+  period: string;
+  reportedCurrency?: string;
+  revenueGrowth: number;
+  grossProfitGrowth: number;
+  operatingIncomeGrowth: number;
+  netIncomeGrowth: number;
+  epsdilutedGrowth: number;
+  ebitdaGrowth: number;
+  operatingCashFlowGrowth: number;
+  freeCashFlowGrowth: number;
+  [key: string]: string | number | undefined;
+};
+
+export type FmpEsgRating = {
+  symbol: string;
+  cik: string;
+  companyName: string;
+  industry: string;
+  fiscalYear: number;
+  ESGRiskRating: string;
+  industryRank: string;
+};
+
+export type FmpEsgDisclosure = {
+  date: string;
+  acceptedDate: string;
+  symbol: string;
+  cik: string;
+  companyName: string;
+  formType: string;
+  environmentalScore: number;
+  socialScore: number;
+  governanceScore: number;
+  ESGScore: number;
+  url: string;
+};
+
+export type FmpCompanyNote = {
+  cik: string;
+  symbol: string;
+  title: string;
+  exchange: string;
+};
+
+export type FmpInstitutionalFiling = {
+  cik: string;
+  name: string;
+  date: string;
+  filingDate: string;
+  acceptedDate: string;
+  formType: string;
+  link: string;
+  finalLink: string;
+};
+
+export type FmpExecutiveCompensation = {
+  cik: string;
+  symbol: string;
+  companyName: string;
+  filingDate: string;
+  acceptedDate: string;
+  nameAndPosition: string;
+  year: number;
+  salary: number;
+  bonus: number;
+  stockAward: number;
+  optionAward: number;
+  incentivePlanCompensation: number;
+  allOtherCompensation: number;
+  total: number;
+  link: string;
+};

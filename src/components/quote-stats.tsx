@@ -96,7 +96,7 @@ export function QuoteStats({
         { label: "Market Cap", href: `${base}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
         { label: "Revenue (ttm)", href: `${base}/revenue`, value: withYoy(formatCompactUsd(ttm?.revenue), growth?.growthRevenue) },
         { label: "Net Income (ttm)", href: `${base}/net-income`, value: withYoy(formatCompactUsd(ttm?.netIncome), growth?.growthNetIncome) },
-        { label: "Shares Out", value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
+        { label: "Shares Out", href: `${base}/shares`, value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
         { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatPrice(ttm?.epsDiluted ?? ttm?.eps), growth?.growthEPSDiluted ?? growth?.growthEPS) },
         { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(typeof pe === "number" ? pe : null) },
         { label: "Forward PE", value: formatRatio(forwardPe) },

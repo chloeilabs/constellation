@@ -3,10 +3,17 @@ export type NavItem = { href: string; label: string; match?: "exact" | "prefix" 
 export const MARKET_NAV: NavItem[] = [
   { href: "/markets", label: "Overview" },
   { href: "/markets/heatmap", label: "Heatmap" },
+  { href: "/markets/index-changes", label: "Index Changes" },
   { href: "/markets/gainers", label: "Gainers" },
   { href: "/markets/losers", label: "Losers" },
   { href: "/markets/active", label: "Most Active" },
   { href: "/markets/sectors", label: "Sectors" },
+];
+
+export const INDEX_CHANGES_NAV: NavItem[] = [
+  { href: "/markets/index-changes", label: "S&P 500" },
+  { href: "/markets/index-changes?index=nasdaq", label: "Nasdaq 100" },
+  { href: "/markets/index-changes?index=dow", label: "Dow Jones" },
 ];
 
 export const CALENDAR_NAV: NavItem[] = [
@@ -51,11 +58,13 @@ export const CONGRESS_NAV: NavItem[] = [
   { href: "/congress", label: "Congress" },
   { href: "/congress/senate", label: "Senate" },
   { href: "/congress/house", label: "House" },
+  { href: "/institutional", label: "13F Filings" },
 ];
 
 export function quoteFundamentalsNav(symbol: string) {
   return [
     { href: `/stocks/${symbol}/market-cap`, label: "Market Cap" },
+    { href: `/stocks/${symbol}/shares`, label: "Shares" },
     { href: `/stocks/${symbol}/revenue`, label: "Revenue" },
     { href: `/stocks/${symbol}/net-income`, label: "Net Income" },
     { href: `/stocks/${symbol}/earnings`, label: "EPS" },

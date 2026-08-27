@@ -1,15 +1,37 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
-import { formatCompactUsd, formatDate, formatInteger } from "@/lib/format";
-import { getKeyExecutives, getProfile } from "@/lib/fmp";
+import { MetricCards } from "@/components/metric-cards";
+import { formatCompactUsd, formatDate, formatInteger, formatNumber } from "@/lib/format";
+import {
+  getCompanyNotes,
+  getEsgDisclosures,
+  getEsgRatings,
+  getExecutiveCompensation,
+  getKeyExecutives,
+  getProfile,
+} from "@/lib/fmp";
 import { industrySlug } from "@/lib/industries";
 import Link from "next/link";
 
 export default async function CompanyPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [profile, executives] = await Promise.all([getProfile(ticker), getKeyExecutives(ticker)]);
+  const [profile, executives, notes, esgRatings, esgDisclosures, compensation] = await Promise.all([
+    getProfile(ticker),
+    getKeyExecutives(ticker),
+    getCompanyNotes(ticker),
+    getEsgRatings(ticker),
+    getEsgDisclosures(ticker),
+    getExecutiveCompensation(ticker),
+  ]);
   const people = executives.filter((person) => person.active !== false);
+  const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
+  const esg = esgDisclosures[0] ?? null;
+  const latestCompYear = compensation.reduce((max, row) => Math.max(max, row.year || 0), 0);
+  const pay = compensation
+    .filter((row) => row.year === latestCompYear)
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
+    .slice(0, 12);
 
   const details = [
     ["CEO", profile?.ceo],
@@ -30,7 +52,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
     <Container>
       <PageHeader
         title={`${profile?.companyName ?? ticker} Company Profile`}
-        description="Business description, headquarters, and key executives."
+        description="Business description, headquarters, ESG, notes, and executive compensation."
       />
       {profile?.description ? (
         <p className="max-w-4xl text-sm leading-7 text-header/90">{profile.description}</p>
@@ -70,6 +92,49 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
         ))}
       </dl>
 
+      {esgRating || esg ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-header">ESG</h2>
+          <MetricCards
+            items={[
+              { label: "ESG Rating", value: esgRating?.ESGRiskRating ?? "—" },
+              { label: "Industry Rank", value: esgRating?.industryRank ?? "—" },
+              { label: "ESG Score", value: esg?.ESGScore != null ? formatNumber(esg.ESGScore) : "—" },
+              { label: "Environmental", value: esg?.environmentalScore != null ? formatNumber(esg.environmentalScore) : "—" },
+              { label: "Social", value: esg?.socialScore != null ? formatNumber(esg.socialScore) : "—" },
+              { label: "Governance", value: esg?.governanceScore != null ? formatNumber(esg.governanceScore) : "—" },
+            ]}
+          />
+          <p className="mt-2 text-sm text-muted">
+            Rating year {esgRating?.fiscalYear ?? "—"}. Disclosure as of {formatDate(esg?.date)}
+            {esg?.url ? (
+              <>
+                {" "}
+                ·{" "}
+                <a href={esg.url} className="text-link hover:underline" target="_blank" rel="noreferrer">
+                  {esg.formType || "SEC"}
+                </a>
+              </>
+            ) : null}
+            .
+          </p>
+        </section>
+      ) : null}
+
+      {notes.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-header">Company Notes</h2>
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {notes.map((note) => (
+              <li key={`${note.cik}-${note.title}`} className="px-4 py-2.5 text-sm">
+                {note.title}
+                {note.exchange ? <span className="ml-2 text-xs text-muted">{note.exchange}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="mt-10">
         <h2 className="mb-3 text-xl font-semibold text-header">Key Executives</h2>
         <div className="overflow-x-auto rounded-lg border border-border">
@@ -108,6 +173,47 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
           </table>
         </div>
       </section>
+
+      {pay.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-xl font-semibold text-header">Executive Compensation ({latestCompYear})</h2>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Name / Position</th>
+                  <th className="num">Salary</th>
+                  <th className="num">Stock</th>
+                  <th className="num">Bonus / Incentive</th>
+                  <th className="num">Other</th>
+                  <th className="num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pay.map((row) => (
+                  <tr key={`${row.nameAndPosition}-${row.year}`}>
+                    <td className="max-w-[280px] whitespace-normal font-medium">{row.nameAndPosition}</td>
+                    <td className="num">{formatCompactUsd(row.salary)}</td>
+                    <td className="num">{formatCompactUsd((row.stockAward || 0) + (row.optionAward || 0))}</td>
+                    <td className="num">{formatCompactUsd((row.bonus || 0) + (row.incentivePlanCompensation || 0))}</td>
+                    <td className="num">{formatCompactUsd(row.allOtherCompensation)}</td>
+                    <td className="num font-semibold">{formatCompactUsd(row.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pay[0]?.link ? (
+            <p className="mt-2 text-sm text-muted">
+              From the{" "}
+              <a href={pay[0].link} className="text-link hover:underline" target="_blank" rel="noreferrer">
+                proxy filing
+              </a>
+              .
+            </p>
+          ) : null}
+        </section>
+      ) : null}
     </Container>
   );
 }

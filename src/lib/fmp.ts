@@ -64,6 +64,15 @@ import type {
   FmpEnterpriseValue,
   FmpTreasuryRate,
   FmpEconomicIndicator,
+  FmpHistoricalConstituent,
+  FmpSymbolChange,
+  FmpDelisted,
+  FmpFinancialGrowth,
+  FmpEsgRating,
+  FmpEsgDisclosure,
+  FmpCompanyNote,
+  FmpInstitutionalFiling,
+  FmpExecutiveCompensation,
   StatementPeriod,
 } from "@/lib/types";
 import { recentFiscalQuarters } from "@/lib/utils";
@@ -636,6 +645,15 @@ export function getIndexConstituents(index: "sp500" | "nasdaq" | "dow") {
   return fmpList<FmpIndexConstituent>(path, {}, { revalidate: 86400 });
 }
 
+export function getHistoricalConstituents(index: "sp500" | "nasdaq" | "dow") {
+  const path = {
+    sp500: "/historical-sp500-constituent",
+    nasdaq: "/historical-nasdaq-constituent",
+    dow: "/historical-dowjones-constituent",
+  }[index];
+  return fmpList<FmpHistoricalConstituent>(path, {}, { revalidate: 86400 });
+}
+
 export function getSplits(symbol: string, limit = 20) {
   return fmpList<FmpSplit>("/splits", { symbol: symbol.toUpperCase(), limit }, { revalidate: 86400 });
 }
@@ -912,6 +930,62 @@ export function getEconomicIndicator(name: string, from?: string, to?: string) {
   return fmpList<FmpEconomicIndicator>(
     "/economic-indicators",
     { name, from, to },
+    { revalidate: 86400 },
+  );
+}
+
+export function getFinancialGrowth(symbol: string, period: StatementPeriod = "annual", limit = 8) {
+  return fmpList<FmpFinancialGrowth>(
+    "/financial-growth",
+    { symbol: symbol.toUpperCase(), period, limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getSymbolChanges() {
+  return fmpList<FmpSymbolChange>("/symbol-change", {}, { revalidate: 3600 });
+}
+
+export function getDelistedCompanies(page = 0, limit = 100) {
+  return fmpList<FmpDelisted>("/delisted-companies", { page, limit }, { revalidate: 3600 });
+}
+
+export function getEsgRatings(symbol: string) {
+  return fmpList<FmpEsgRating>(
+    "/esg-ratings",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 86400 },
+  );
+}
+
+export function getEsgDisclosures(symbol: string) {
+  return fmpList<FmpEsgDisclosure>(
+    "/esg-disclosures",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 86400 },
+  );
+}
+
+export function getCompanyNotes(symbol: string) {
+  return fmpList<FmpCompanyNote>(
+    "/company-notes",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 86400 },
+  );
+}
+
+export function getLatestInstitutionalFilings(limit = 80) {
+  return fmpList<FmpInstitutionalFiling>(
+    "/institutional-ownership/latest",
+    { page: 0, limit },
+    { revalidate: 300 },
+  );
+}
+
+export function getExecutiveCompensation(symbol: string) {
+  return fmpList<FmpExecutiveCompensation>(
+    "/governance-executive-compensation",
+    { symbol: symbol.toUpperCase() },
     { revalidate: 86400 },
   );
 }

@@ -10,6 +10,7 @@ export {
   IPO_NAV,
   STOCKS_NAV,
   HEATMAP_INDEX_NAV,
+  INDEX_CHANGES_NAV,
   NEWS_NAV,
   CONGRESS_NAV,
   quoteFundamentalsNav,

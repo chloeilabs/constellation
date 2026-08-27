@@ -14,6 +14,8 @@ export type SymbolTableRow = {
   exchange?: string | null;
   beta?: number | null;
   dividendYield?: number | null;
+  founded?: number | null;
+  country?: string | null;
 };
 
 export function SymbolTable({
@@ -22,14 +24,18 @@ export function SymbolTable({
   empty = "No results found.",
   showIndustry = true,
   showYield = false,
+  showFounded = false,
+  showCountry = false,
 }: {
   rows: SymbolTableRow[];
   hrefBase?: string;
   empty?: string;
   showIndustry?: boolean;
   showYield?: boolean;
+  showFounded?: boolean;
+  showCountry?: boolean;
 }) {
-  const colSpan = 6 + (showIndustry ? 1 : 0) + (showYield ? 1 : 0);
+  const colSpan = 6 + (showIndustry ? 1 : 0) + (showYield ? 1 : 0) + (showFounded ? 1 : 0) + (showCountry ? 1 : 0);
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="sa-table">
@@ -37,10 +43,12 @@ export function SymbolTable({
           <tr>
             <th>Symbol</th>
             <th>Company Name</th>
+            {showFounded ? <th className="num">Founded</th> : null}
             <th className="num">Market Cap</th>
             <th className="num">Stock Price</th>
             <th className="num">% Change</th>
             {showYield ? <th className="num">Yield</th> : null}
+            {showCountry ? <th>Country</th> : null}
             {showIndustry ? <th>Industry</th> : null}
             <th className="num">Volume</th>
           </tr>
@@ -61,12 +69,14 @@ export function SymbolTable({
                   </Link>
                 </td>
                 <td className="max-w-[280px] truncate">{row.name}</td>
+                {showFounded ? <td className="num">{row.founded ?? "—"}</td> : null}
                 <td className="num">{formatCompactUsd(row.marketCap)}</td>
                 <td className="num">{formatPrice(row.price)}</td>
                 <td className="num">
                   <ChangePercent value={row.changePercentage} />
                 </td>
                 {showYield ? <td className="num">{formatPercentPlain(row.dividendYield)}</td> : null}
+                {showCountry ? <td className="text-muted">{row.country || "—"}</td> : null}
                 {showIndustry ? (
                   <td className="text-muted">
                     {row.industry ? (

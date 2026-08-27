@@ -16,7 +16,12 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
       <PageHeader title={list.title} description={list.description} />
       <SectionNav items={LIST_NAV} />
       <p className="mb-3 text-sm text-muted">{rows.length} stocks</p>
-      <SymbolTable rows={rows} showYield={slug === "highest-dividend" || slug === "monthly-dividend-stocks"} />
+      <SymbolTable
+        rows={rows}
+        showYield={slug === "highest-dividend" || slug === "monthly-dividend-stocks"}
+        showFounded={slug === "oldest-companies"}
+        showCountry={slug === "foreign-stocks"}
+      />
     </Container>
   );
 }

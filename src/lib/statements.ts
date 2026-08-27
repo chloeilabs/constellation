@@ -108,6 +108,38 @@ export const RATIO_ROWS: StatementRow[] = [
   { key: "dividendPayoutRatio", label: "Payout Ratio", format: "percent" },
 ];
 
+export const GROWTH_ROWS: StatementRow[] = [
+  { key: "revenueGrowth", label: "Revenue Growth", emphasize: true, format: "percent" },
+  { key: "grossProfitGrowth", label: "Gross Profit Growth", format: "percent" },
+  { key: "operatingIncomeGrowth", label: "Operating Income Growth", format: "percent" },
+  { key: "netIncomeGrowth", label: "Net Income Growth", emphasize: true, format: "percent" },
+  { key: "epsdilutedGrowth", label: "EPS Growth (Diluted)", format: "percent" },
+  { key: "ebitdaGrowth", label: "EBITDA Growth", format: "percent" },
+  { key: "operatingCashFlowGrowth", label: "Operating Cash Flow Growth", format: "percent" },
+  { key: "freeCashFlowGrowth", label: "Free Cash Flow Growth", emphasize: true, format: "percent" },
+  { key: "assetGrowth", label: "Asset Growth", format: "percent" },
+  { key: "bookValueperShareGrowth", label: "Book Value / Share Growth", format: "percent" },
+  { key: "debtGrowth", label: "Debt Growth", format: "percent" },
+  { key: "receivablesGrowth", label: "Receivables Growth", format: "percent" },
+  { key: "inventoryGrowth", label: "Inventory Growth", format: "percent" },
+  { key: "weightedAverageSharesDilutedGrowth", label: "Diluted Shares Growth", format: "percent" },
+  { key: "dividendsPerShareGrowth", label: "Dividend / Share Growth", format: "percent" },
+  { key: "rdexpenseGrowth", label: "R&D Growth", format: "percent" },
+  { key: "sgaexpensesGrowth", label: "SG&A Growth", format: "percent" },
+  { key: "threeYRevenueGrowthPerShare", label: "3Y Revenue / Share", format: "percent" },
+  { key: "fiveYRevenueGrowthPerShare", label: "5Y Revenue / Share", format: "percent" },
+  { key: "tenYRevenueGrowthPerShare", label: "10Y Revenue / Share", format: "percent" },
+  { key: "threeYNetIncomeGrowthPerShare", label: "3Y Net Income / Share", format: "percent" },
+  { key: "fiveYNetIncomeGrowthPerShare", label: "5Y Net Income / Share", format: "percent" },
+  { key: "tenYNetIncomeGrowthPerShare", label: "10Y Net Income / Share", format: "percent" },
+  { key: "threeYOperatingCFGrowthPerShare", label: "3Y Operating CF / Share", format: "percent" },
+  { key: "fiveYOperatingCFGrowthPerShare", label: "5Y Operating CF / Share", format: "percent" },
+  { key: "tenYOperatingCFGrowthPerShare", label: "10Y Operating CF / Share", format: "percent" },
+  { key: "threeYShareholdersEquityGrowthPerShare", label: "3Y Equity / Share", format: "percent" },
+  { key: "fiveYShareholdersEquityGrowthPerShare", label: "5Y Equity / Share", format: "percent" },
+  { key: "tenYShareholdersEquityGrowthPerShare", label: "10Y Equity / Share", format: "percent" },
+];
+
 export const INDEX_LABELS: Record<string, string> = {
   "^GSPC": "S&P 500",
   "^DJI": "Dow Jones",

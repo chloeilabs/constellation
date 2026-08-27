@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav } from "@/components/section-nav";
+import { CALENDAR_NAV } from "@/lib/nav";
 import { formatDate } from "@/lib/format";
-import { getLatestMergers, getSplitsCalendar } from "@/lib/fmp";
-import { isForeignListingSymbol } from "@/lib/listings";
+import { getDelistedCompanies, getLatestMergers, getSplitsCalendar, getSymbolChanges } from "@/lib/fmp";
+import { isForeignListingSymbol, isUsVenue } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function ActionsPage() {
   const today = nyDateString();
   const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -21));
   const to = isoDate(addDays(new Date(`${today}T00:00:00Z`), 21));
-  const [mergersRaw, splits] = await Promise.all([getLatestMergers(60), getSplitsCalendar(from, to)]);
+  const [mergersRaw, splits, symbolChangesRaw, delistedRaw] = await Promise.all([
+    getLatestMergers(60),
+    getSplitsCalendar(from, to),
+    getSymbolChanges(),
+    getDelistedCompanies(0, 100),
+  ]);
   const seen = new Set<string>();
   const mergers = mergersRaw.filter((row) => {
     const key = `${row.symbol}|${row.targetedSymbol}|${row.transactionDate}`;
@@ -19,13 +26,20 @@ export default async function ActionsPage() {
     return true;
   });
   const usSplits = splits.filter((row) => !isForeignListingSymbol(row.symbol)).slice(0, 80);
+  const symbolChanges = symbolChangesRaw
+    .filter((row) => !isForeignListingSymbol(row.oldSymbol) && !isForeignListingSymbol(row.newSymbol))
+    .slice(0, 40);
+  const delisted = delistedRaw
+    .filter((row) => isUsVenue(row.exchange) && !isForeignListingSymbol(row.symbol))
+    .slice(0, 40);
 
   return (
     <Container>
       <PageHeader
         title="Corporate Actions"
-        description="Recent mergers and acquisitions plus upcoming and recent stock splits."
+        description="Mergers, splits, ticker changes, and recent U.S. delistings."
       />
+      <SectionNav items={CALENDAR_NAV} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-header">Mergers & Acquisitions</h2>
@@ -124,6 +138,80 @@ export default async function ActionsPage() {
                       {row.numerator}:{row.denominator}
                     </td>
                     <td className="capitalize">{row.splitType?.replace("-", " ") || "Stock split"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Symbol Changes</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Company</th>
+                <th>Old</th>
+                <th>New</th>
+              </tr>
+            </thead>
+            <tbody>
+              {symbolChanges.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-muted">
+                    No recent ticker changes.
+                  </td>
+                </tr>
+              ) : (
+                symbolChanges.map((row) => (
+                  <tr key={`${row.date}-${row.oldSymbol}-${row.newSymbol}`}>
+                    <td>{formatDate(row.date)}</td>
+                    <td className="max-w-[280px] truncate">{row.companyName}</td>
+                    <td className="symbol">{row.oldSymbol}</td>
+                    <td className="symbol">
+                      <Link href={`/stocks/${row.newSymbol}`} className="text-link hover:underline">
+                        {row.newSymbol}
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Delisted Companies</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Delisted</th>
+                <th>Symbol</th>
+                <th>Company</th>
+                <th>Exchange</th>
+                <th>IPO Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {delisted.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-muted">
+                    No recent U.S. delistings.
+                  </td>
+                </tr>
+              ) : (
+                delisted.map((row) => (
+                  <tr key={`${row.symbol}-${row.delistedDate}`}>
+                    <td>{formatDate(row.delistedDate)}</td>
+                    <td className="symbol">{row.symbol}</td>
+                    <td className="max-w-[280px] truncate">{row.companyName}</td>
+                    <td>{row.exchange}</td>
+                    <td>{formatDate(row.ipoDate)}</td>
                   </tr>
                 ))
               )}

@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/financials/balance-sheet", label: "Balance Sheet" },
   { href: "/financials/cash-flow-statement", label: "Cash Flow" },
   { href: "/financials/ratios", label: "Ratios" },
+  { href: "/financials/growth", label: "Growth" },
 ];
 
 export function FinancialsNav({ symbol }: { symbol: string }) {

@@ -1,12 +1,15 @@
 import { getDividendCalendar, getIndexConstituents, getQuotes, getScreener } from "@/lib/fmp";
-import { isForeignListingSymbol, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
+import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
+import type { FmpScreenerRow } from "@/lib/types";
+
+type ListCategory = "popular" | "index" | "exchange" | "market-cap";
 
 type ScreenerList = {
   title: string;
   description: string;
-  category: "popular" | "index" | "exchange" | "market-cap";
+  category: ListCategory;
   source: "screener";
   filters: Record<string, string | number | boolean>;
   limit: number;
@@ -16,7 +19,7 @@ type ScreenerList = {
 type ConstituentList = {
   title: string;
   description: string;
-  category: "popular" | "index" | "exchange" | "market-cap";
+  category: ListCategory;
   source: "constituents";
   index: "sp500" | "nasdaq" | "dow";
 };
@@ -24,9 +27,32 @@ type ConstituentList = {
 type CalendarList = {
   title: string;
   description: string;
-  category: "popular" | "index" | "exchange" | "market-cap";
+  category: ListCategory;
   source: "monthly-dividends";
 };
+
+type OldestList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "oldest";
+};
+
+type OtcList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "otc";
+};
+
+type ForeignList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "foreign-us";
+};
+
+type StockList = ScreenerList | ConstituentList | CalendarList | OldestList | OtcList | ForeignList;
 
 export const STOCK_LISTS = {
   "sp-500-stocks": {
@@ -59,6 +85,12 @@ export const STOCK_LISTS = {
     limit: 100,
     sort: "marketCap",
   },
+  "oldest-companies": {
+    title: "Oldest S&P 500 Companies",
+    description: "The 100 oldest companies in the S&P 500, ranked by founding year from FMP constituent data.",
+    category: "popular",
+    source: "oldest",
+  },
   "highest-dividend": {
     title: "Highest Dividend Stocks",
     description: "U.S. stocks with the highest indicated dividend yield.",
@@ -73,6 +105,12 @@ export const STOCK_LISTS = {
     description: "U.S. stocks that currently pay a monthly dividend, ranked by indicated yield.",
     category: "popular",
     source: "monthly-dividends",
+  },
+  "foreign-stocks": {
+    title: "Foreign Stocks on U.S. Exchanges",
+    description: "The largest non-U.S. companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
   },
   "nasdaq-stocks": {
     title: "NASDAQ Stocks",
@@ -100,6 +138,12 @@ export const STOCK_LISTS = {
     filters: { country: "US", exchange: "AMEX" },
     limit: 100,
     sort: "marketCap",
+  },
+  "otc-stocks": {
+    title: "OTC Stocks",
+    description: "The largest U.S. companies quoted on OTC Markets, ranked by market capitalization.",
+    category: "exchange",
+    source: "otc",
   },
   "mega-cap-stocks": {
     title: "Mega-Cap Stocks",
@@ -137,7 +181,7 @@ export const STOCK_LISTS = {
     limit: 100,
     sort: "marketCap",
   },
-} as const satisfies Record<string, ScreenerList | ConstituentList | CalendarList>;
+} as const satisfies Record<string, StockList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
 
@@ -154,6 +198,8 @@ export const LIST_NAV = [
   { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },
   { href: "/list/dow-jones-stocks", label: "Dow Jones" },
   { href: "/list/biggest-companies", label: "Biggest" },
+  { href: "/list/oldest-companies", label: "Oldest" },
+  { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
   { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
 ];
@@ -189,11 +235,31 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     return loadMonthlyDividendStocks();
   }
 
+  if (list.source === "oldest") {
+    return loadOldestSp500();
+  }
+
+  if (list.source === "otc") {
+    return loadOtcStocks();
+  }
+
+  if (list.source === "foreign-us") {
+    return loadForeignUsStocks();
+  }
+
   const raw = await getScreener({ ...list.filters }, { limit: list.limit });
-  const primary = preferPrimaryListings(raw);
-  const quotes = await getQuotes(primary.map((row) => row.symbol));
+  const rows = await toScreenerRows(preferPrimaryListings(raw));
+
+  if (list.sort === "dividendYield") {
+    return rows.sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0)).slice(0, 50);
+  }
+  return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
+}
+
+async function toScreenerRows(raw: FmpScreenerRow[]): Promise<SymbolTableRow[]> {
+  const quotes = await getQuotes(raw.map((row) => row.symbol));
   const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
-  const rows = primary.map((row) => {
+  return raw.map((row) => {
     const quote = bySymbol.get(row.symbol);
     const price = quote?.price ?? row.price;
     const dividend = row.lastAnnualDividend;
@@ -205,14 +271,65 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
       price,
       changePercentage: quote?.changePercentage,
       industry: row.industry,
+      country: row.country,
+      exchange: row.exchangeShortName || row.exchange,
       volume: quote?.volume ?? row.volume,
       dividendYield,
     };
   });
+}
 
-  if (list.sort === "dividendYield") {
-    return rows.sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0)).slice(0, 50);
-  }
+async function loadOldestSp500(): Promise<SymbolTableRow[]> {
+  const constituents = await getIndexConstituents("sp500");
+  const ranked = constituents
+    .map((row) => ({ ...row, foundedYear: parseFoundedYear(row.founded) }))
+    .filter((row): row is typeof row & { foundedYear: number } => row.foundedYear != null)
+    .sort((a, b) => a.foundedYear - b.foundedYear || a.symbol.localeCompare(b.symbol))
+    .slice(0, 100);
+  const quotes = await getQuotes(ranked.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  return ranked.map((row) => {
+    const quote = bySymbol.get(row.symbol);
+    return {
+      symbol: row.symbol,
+      name: row.name,
+      industry: row.subSector || row.sector,
+      founded: row.foundedYear,
+      marketCap: quote?.marketCap ?? null,
+      price: quote?.price ?? null,
+      changePercentage: quote?.changePercentage ?? null,
+      volume: quote?.volume ?? null,
+    };
+  });
+}
+
+async function loadOtcStocks(): Promise<SymbolTableRow[]> {
+  const raw = await getScreener({ exchange: "OTC", country: "US" }, { limit: 200 });
+  const cleaned = uniqueBySymbol(
+    raw.filter((row) => {
+      if (isForeignListingSymbol(row.symbol)) return false;
+      const cap = row.marketCap ?? 0;
+      return cap > 0 && cap < 200_000_000_000;
+    }),
+  );
+  const rows = await toScreenerRows(cleaned);
+  return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
+}
+
+async function loadForeignUsStocks(): Promise<SymbolTableRow[]> {
+  const batches = await Promise.all([
+    getScreener({ exchange: "NYSE" }, { limit: 100 }),
+    getScreener({ exchange: "NASDAQ" }, { limit: 100 }),
+    getScreener({ exchange: "AMEX" }, { limit: 100 }),
+  ]);
+  const foreign = uniqueBySymbol(
+    batches.flat().filter((row) => {
+      if (!row.country || row.country.toUpperCase() === "US") return false;
+      if (isForeignListingSymbol(row.symbol)) return false;
+      return (row.marketCap ?? 0) > 0;
+    }),
+  );
+  const rows = await toScreenerRows(foreign);
   return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
 }
 
