@@ -58,9 +58,14 @@ export default async function StockOverviewPage({
   const latestYear = annual[0];
   const priorYear = annual[1];
   const growth = growthRows[0] ?? null;
-  const usEtfs = etfHolders.filter((row) => row.symbol && !isForeignListingSymbol(row.symbol));
-  const heldByEtfs = [...(usEtfs.length ? usEtfs : etfHolders)]
-    .sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0))
+  const usEtfs = etfHolders.filter((row) => {
+    if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
+    if (!(row.sharesNumber > 0) || !(row.marketValue > 0)) return false;
+    if (!(row.weightPercentage > 0) || row.weightPercentage > 250) return false;
+    return true;
+  });
+  const heldByEtfs = [...usEtfs]
+    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
 
   return (
@@ -232,7 +237,7 @@ export default async function StockOverviewPage({
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">Held by ETFs</h2>
           <p className="mb-3 text-sm text-muted">
-            ETFs that report {ticker} as a holding, ranked by weight in the fund.
+            ETFs that report {ticker} as a holding, ranked by the market value of that position.
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">

@@ -24,7 +24,7 @@ export default async function EconomicCalendarPage({
     getEconomicIndicator("unemploymentRate", indicatorFrom, today),
     getEconomicIndicator("CPI", indicatorFrom, today),
     getEconomicIndicator("inflationRate", indicatorFrom, today),
-    getEconomicIndicator("GDP", indicatorFrom, today),
+    getEconomicIndicator("GDP"),
   ]);
   const latestTreasury = [...treasury].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   const latest = (items: { date: string; value: number }[]) =>

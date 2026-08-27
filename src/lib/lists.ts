@@ -242,7 +242,7 @@ async function loadMonthlyDividendStocks(): Promise<SymbolTableRow[]> {
         dividendYield,
       };
     })
-    .filter((row) => row.price && row.price > 0)
+    .filter((row) => row.price && row.price > 0 && (row.dividendYield ?? 0) > 0 && (row.dividendYield ?? 0) < 0.4)
     .sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0))
     .slice(0, 100);
 }
