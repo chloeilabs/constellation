@@ -175,19 +175,36 @@ export async function searchAll(query: string, limit = 8) {
   const trimmed = query.trim();
   if (!trimmed) return [] as FmpSearchResult[];
   const [bySymbol, byName] = await Promise.all([
-    searchSymbol(trimmed, limit),
-    searchName(trimmed, limit),
+    searchSymbol(trimmed, Math.max(limit, 12)),
+    searchName(trimmed, Math.max(limit, 12)),
   ]);
   const seen = new Set<string>();
   const merged: FmpSearchResult[] = [];
   for (const item of [...bySymbol, ...byName]) {
+    if (!item.symbol) continue;
     const key = `${item.symbol}-${item.exchange}`;
     if (seen.has(key)) continue;
     seen.add(key);
     merged.push(item);
-    if (merged.length >= limit) break;
   }
-  return merged;
+  const needle = trimmed.toUpperCase();
+  const usExchange = /NASDAQ|NYSE|AMEX|NYSEARCA|BATS|CBOE/i;
+  merged.sort((a, b) => {
+    const score = (item: FmpSearchResult) => {
+      const symbol = item.symbol.toUpperCase();
+      const exact = symbol === needle ? 0 : 1;
+      const us = usExchange.test(item.exchange) || usExchange.test(item.exchangeFullName) ? 0 : 1;
+      const prefix = symbol.startsWith(needle) ? 0 : 1;
+      return [exact, us, prefix, symbol.length] as const;
+    };
+    const left = score(a);
+    const right = score(b);
+    for (let i = 0; i < left.length; i++) {
+      if (left[i] !== right[i]) return left[i] - right[i];
+    }
+    return a.symbol.localeCompare(b.symbol);
+  });
+  return merged.slice(0, limit);
 }
 
 export function getGainers() {
