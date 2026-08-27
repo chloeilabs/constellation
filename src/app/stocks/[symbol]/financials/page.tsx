@@ -93,6 +93,32 @@ function ratioColumn(
   return { key, label, values };
 }
 
+function fillMarginGaps(
+  columns: YearMetricColumn[],
+  income: Array<{ label: string; row: FmpIncomeStatement | null }>,
+  cash: Array<{ label: string; row: FmpCashFlow | null }>,
+) {
+  const incomeMap = new Map(income.map((item) => [item.label, item.row]));
+  const cashMap = new Map(cash.map((item) => [item.label, item.row]));
+  return columns.map((column) => {
+    const statement = incomeMap.get(column.label);
+    const flow = cashMap.get(column.label);
+    const revenue = n(statement?.revenue);
+    const pretax = n(statement?.incomeBeforeTax);
+    const fcf = n(flow?.freeCashFlow);
+    return {
+      ...column,
+      values: {
+        ...column.values,
+        pretaxMargin:
+          n(column.values.pretaxMargin) ??
+          (revenue && pretax != null ? pretax / revenue : null),
+        fcfMargin: n(column.values.fcfMargin) ?? (revenue && fcf != null ? fcf / revenue : null),
+      },
+    };
+  });
+}
+
 function cleanSegmentName(name: string) {
   return canonicalSegmentName(name);
 }
@@ -232,7 +258,9 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
   const ttmRatioMap = {
     grossMargin: "grossProfitMarginTTM",
     operatingMargin: "operatingProfitMarginTTM",
+    pretaxMargin: "pretaxProfitMarginTTM",
     profitMargin: "netProfitMarginTTM",
+    fcfMargin: "freeCashFlowMarginTTM",
     pe: "priceToEarningsRatioTTM",
     ps: "priceToSalesRatioTTM",
     pfcf: "priceToFreeCashFlowRatioTTM",
@@ -241,16 +269,28 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
   const annualRatioMap = {
     grossMargin: "grossProfitMargin",
     operatingMargin: "operatingProfitMargin",
+    pretaxMargin: "pretaxProfitMargin",
     profitMargin: "netProfitMargin",
+    fcfMargin: "freeCashFlowMargin",
     pe: "priceToEarningsRatio",
     ps: "priceToSalesRatio",
     pfcf: "priceToFreeCashFlowRatio",
     dividendYield: "dividendYield",
   };
-  const marginColumns = [
-    ...(ttmRatios ? [ratioColumn("TTM", "ttm-m", ttmRatios as Record<string, unknown>, ttmRatioMap)] : []),
-    ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
-  ];
+  const marginColumns = fillMarginGaps(
+    [
+      ...(ttmRatios ? [ratioColumn("TTM", "ttm-m", ttmRatios as Record<string, unknown>, ttmRatioMap)] : []),
+      ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
+    ],
+    [
+      { label: "TTM", row: ttmIncomeSynthetic },
+      ...incomeYears.map((row) => ({ label: fyLabel(row.fiscalYear), row })),
+    ],
+    [
+      { label: "TTM", row: ttmCashRow },
+      ...cashYears.map((row) => ({ label: fyLabel(row.fiscalYear), row })),
+    ],
+  );
   const valuationColumns = [
     ...(ttmRatios ? [ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap)] : []),
     ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
@@ -424,7 +464,9 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
           rows={[
             { key: "grossMargin", label: "Gross Margin", format: "margin", href: `/stocks/${ticker}/gross-profit` },
             { key: "operatingMargin", label: "Operating Margin", format: "margin" },
+            { key: "pretaxMargin", label: "Pretax Margin", format: "margin" },
             { key: "profitMargin", label: "Profit Margin", format: "margin", href: `/stocks/${ticker}/net-income` },
+            { key: "fcfMargin", label: "FCF Margin", format: "margin", href: `/stocks/${ticker}/free-cash-flow` },
           ]}
         />
       </section>
