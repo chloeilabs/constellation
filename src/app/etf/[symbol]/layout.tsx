@@ -1,9 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { EtfHeader } from "@/components/etf-header";
 import { getAftermarketQuote, getAftermarketTrade, getEtfInfo, getQuote, hasFmpKey, mergeAftermarketQuote } from "@/lib/fmp";
+import { decodeTicker, marketAssetHref } from "@/lib/listings";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
+  const market = marketAssetHref(decodeTicker(symbol));
+  if (market) redirect(market);
   const info = await getEtfInfo(symbol);
   const ticker = symbol.toUpperCase();
   return {
@@ -20,7 +23,9 @@ export default async function EtfLayout({
   params: Promise<{ symbol: string }>;
 }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
+  const market = marketAssetHref(ticker);
+  if (market) redirect(market);
   const [quote, info, afterHours, afterTrade] = await Promise.all([
     getQuote(ticker),
     getEtfInfo(ticker),

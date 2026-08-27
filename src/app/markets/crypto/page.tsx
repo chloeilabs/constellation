@@ -5,7 +5,9 @@ import { ChangePercent } from "@/components/change";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatCompact, formatInteger, formatPrice } from "@/lib/format";
 import { getCryptocurrencyList, getCryptoQuotes } from "@/lib/fmp";
+import { quoteHref } from "@/lib/listings";
 import { percentFromPriceChange } from "@/lib/utils";
+import Link from "next/link";
 
 export const metadata = {
   title: "Cryptocurrency Prices",
@@ -66,7 +68,11 @@ export default async function CryptoPage() {
             ) : (
               rows.map((row) => (
                 <tr key={row.symbol}>
-                  <td className="symbol font-semibold">{row.symbol}</td>
+                  <td className="symbol font-semibold">
+                    <Link href={quoteHref(row.symbol, { exchange: "CRYPTO" })} className="text-link hover:underline">
+                      {row.symbol}
+                    </Link>
+                  </td>
                   <td className="max-w-[240px] truncate">{row.name}</td>
                   <td className="num">{formatPrice(row.price)}</td>
                   <td className="num">{row.change == null ? "—" : formatPrice(row.change)}</td>

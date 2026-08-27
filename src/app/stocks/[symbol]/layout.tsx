@@ -1,12 +1,14 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { StockHeader } from "@/components/stock-header";
 import { getAftermarketQuote, getAftermarketTrade, getProfile, getQuoteSafe, hasFmpKey, mergeAftermarketQuote } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, marketAssetHref } from "@/lib/listings";
 import { indexDisplayName, isIndexTicker } from "@/lib/indexes";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
+  const market = marketAssetHref(ticker);
+  if (market) redirect(market);
   const isIndex = isIndexTicker(ticker);
   const profile = isIndex ? null : await getProfile(ticker);
   const name = profile?.companyName ?? indexDisplayName(ticker);
@@ -25,6 +27,8 @@ export default async function StockLayout({
 }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
+  const market = marketAssetHref(ticker);
+  if (market) redirect(market);
   const isIndex = isIndexTicker(ticker);
   const [quote, profile, afterHours, afterTrade] = await Promise.all([
     getQuoteSafe(ticker),

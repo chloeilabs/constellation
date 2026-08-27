@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatPrice } from "@/lib/format";
+import { quoteHref } from "@/lib/listings";
 
 export type MarketQuoteRow = {
   symbol: string;
@@ -63,7 +64,7 @@ export function MarketQuotesTable({
                   <td className="symbol font-semibold">
                     {linkSymbols ? (
                       <Link
-                        href={`/stocks/${encodeURIComponent(row.symbol)}`}
+                        href={quoteHref(row.symbol)}
                         className="text-link hover:underline"
                       >
                         {row.symbol}

@@ -32,7 +32,8 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
     slug === "highest-dividend" ||
     slug === "bdc-stocks" ||
     slug === "cef-funds" ||
-    slug === "preferred-stocks";
+    slug === "preferred-stocks" ||
+    slug === "top-rated-dividend-stocks";
 
   return (
     <Container>
@@ -52,7 +53,7 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
         showProfit={slug === "highest-profit"}
         showEmployees={slug === "highest-employees"}
         showTax={slug === "highest-taxes"}
-        showRating={slug === "top-rated"}
+        showRating={slug === "top-rated" || slug === "top-rated-dividend-stocks"}
       />
     </Container>
   );

@@ -5,7 +5,9 @@ import { ChangePercent } from "@/components/change";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatInteger, formatPrice } from "@/lib/format";
 import { getCommoditiesList, getCommodityQuotes } from "@/lib/fmp";
+import { quoteHref } from "@/lib/listings";
 import { percentFromPriceChange } from "@/lib/utils";
+import Link from "next/link";
 
 const PINNED = ["GCUSD", "SIUSD", "CLUSD", "BZUSD", "NGUSD", "HGUSD", "ZCUSD", "ZWUSD", "ZSUSD", "KCUSD", "CTUSD", "SBUSD"];
 
@@ -69,7 +71,11 @@ export default async function CommoditiesPage() {
             ) : (
               rows.map((row) => (
                 <tr key={row.symbol}>
-                  <td className="symbol font-semibold">{row.symbol}</td>
+                  <td className="symbol font-semibold">
+                    <Link href={quoteHref(row.symbol, { exchange: "COMMODITY" })} className="text-link hover:underline">
+                      {row.symbol}
+                    </Link>
+                  </td>
                   <td className="max-w-[280px] truncate">{row.name}</td>
                   <td className="num">{formatPrice(row.price)}</td>
                   <td className="num">{row.change == null ? "—" : formatPrice(row.change)}</td>

@@ -44,6 +44,8 @@ const MARKET_LINKS = [
   ["/list/apparel-stocks", "Apparel"],
   ["/list/bdc-stocks", "BDCs"],
   ["/list/top-rated", "Top Rated"],
+  ["/list/top-rated-dividend-stocks", "Top-Rated Dividends"],
+  ["/list/bitcoin-etfs", "Bitcoin ETFs"],
   ["/list/highest-revenue", "Revenue"],
   ["/list/dividend-aristocrats", "Aristocrats"],
   ["/list/reit-stocks", "REITs"],

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/fmp";
-import { quoteHref } from "@/lib/listings";
+import { marketAssetHref, quoteHref } from "@/lib/listings";
 
 const EXCHANGE_SUFFIX: Record<string, string> = {
   nse: "NS",
@@ -30,6 +30,8 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
 
   if (!second) {
     const ticker = decodeURIComponent(first).toUpperCase();
+    const market = marketAssetHref(ticker);
+    if (market) redirect(market);
     const profile = await getProfile(ticker);
     redirect(
       quoteHref(ticker, {

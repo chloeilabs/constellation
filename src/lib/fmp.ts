@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { decodeTicker, looksLikeFund, usEtfHolders } from "@/lib/listings";
+import { decodeTicker, looksLikeFund, usEtfHolders, WELL_KNOWN_MARKET_ASSETS } from "@/lib/listings";
 import { addDays, chunk, first, isoDate, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -237,9 +237,42 @@ export function searchName(query: string, limit = 10) {
   return fmpList<FmpSearchResult>("/search-name", { query, limit }, { revalidate: 120 });
 }
 
+const MARKET_SEARCH_EXCHANGE: Record<string, { exchange: string; exchangeFullName: string }> = {
+  crypto: { exchange: "CCC", exchangeFullName: "CRYPTO" },
+  commodity: { exchange: "COMMODITY", exchangeFullName: "COMMODITY" },
+  forex: { exchange: "CCY", exchangeFullName: "FOREX" },
+};
+
+function knownMarketAssetResults(query: string): FmpSearchResult[] {
+  const needle = query.trim().toLowerCase();
+  const compact = needle.replace(/[-/\s]/g, "");
+  if (!needle) return [];
+  return WELL_KNOWN_MARKET_ASSETS.flatMap((item) => {
+    const symbol = item.symbol.toLowerCase();
+    const aliases = item.aliases ?? [];
+    const hit =
+      symbol === needle ||
+      symbol === compact ||
+      item.name.toLowerCase() === needle ||
+      aliases.some((alias) => alias === needle || alias.replace(/[-/\s]/g, "") === compact);
+    if (!hit) return [];
+    const venue = MARKET_SEARCH_EXCHANGE[item.kind];
+    return [
+      {
+        symbol: item.symbol,
+        name: item.name,
+        currency: item.kind === "forex" ? item.symbol.slice(3) : "USD",
+        exchange: venue.exchange,
+        exchangeFullName: venue.exchangeFullName,
+      } satisfies FmpSearchResult,
+    ];
+  });
+}
+
 export async function searchAll(query: string, limit = 8) {
   const trimmed = query.trim();
   if (!trimmed) return [] as FmpSearchResult[];
+  const known = knownMarketAssetResults(trimmed);
   const [bySymbol, byName, etfSymbols] = await Promise.all([
     searchSymbol(trimmed, Math.max(limit, 12)),
     searchName(trimmed, Math.max(limit, 12)),
@@ -247,7 +280,8 @@ export async function searchAll(query: string, limit = 8) {
   ]);
   const seen = new Set<string>();
   const merged: FmpSearchResult[] = [];
-  for (const item of [...bySymbol, ...byName]) {
+  const pinned = new Set(known.map((item) => item.symbol.toUpperCase()));
+  for (const item of [...known, ...bySymbol, ...byName]) {
     if (!item.symbol) continue;
     const key = `${item.symbol}-${item.exchange}`;
     if (seen.has(key)) continue;
@@ -263,10 +297,11 @@ export async function searchAll(query: string, limit = 8) {
   merged.sort((a, b) => {
     const score = (item: FmpSearchResult) => {
       const symbol = item.symbol.toUpperCase();
+      const pin = pinned.has(symbol) ? 0 : 1;
       const exact = symbol === needle ? 0 : 1;
       const us = usExchange.test(item.exchange) || usExchange.test(item.exchangeFullName) ? 0 : 1;
       const prefix = symbol.startsWith(needle) ? 0 : 1;
-      return [exact, us, prefix, symbol.length] as const;
+      return [pin, exact, us, prefix, symbol.length] as const;
     };
     const left = score(a);
     const right = score(b);

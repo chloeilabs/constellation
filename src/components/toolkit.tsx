@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Building2, CalendarDays, Clock, GitCompareArrows, Landmark, Layers, Percent, Search } from "lucide-react";
+import { BarChart3, Bitcoin, Building2, CalendarDays, Clock, Coins, GitCompareArrows, Landmark, Layers, Percent, Search } from "lucide-react";
 
 const TOOLS = [
   {
@@ -49,6 +49,18 @@ const TOOLS = [
     title: "Reverse ETF Lookup",
     body: "Find U.S. ETFs that hold a stock, ranked by the market value of that position.",
     icon: Search,
+  },
+  {
+    href: "/list/bitcoin-etfs",
+    title: "Bitcoin ETFs",
+    body: "U.S. bitcoin spot and futures ETFs ranked by market value from live FMP quotes.",
+    icon: Bitcoin,
+  },
+  {
+    href: "/list/top-rated-dividend-stocks",
+    title: "Top-Rated Dividend Stocks",
+    body: "Highest FMP ratings among large U.S. dividend payers in the mega-issuer set.",
+    icon: Coins,
   },
   {
     href: "/compare",

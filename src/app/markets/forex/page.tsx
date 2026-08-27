@@ -5,37 +5,14 @@ import { ChangePercent } from "@/components/change";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatPrice } from "@/lib/format";
 import { getForexList, getForexQuotes } from "@/lib/fmp";
+import { FOREX_CURRENCIES, quoteHref } from "@/lib/listings";
 import { percentFromPriceChange } from "@/lib/utils";
+import Link from "next/link";
 
 export const metadata = {
   title: "Forex Rates",
   description: "Live major currency pairs from FMP forex quotes.",
 };
-
-const MAJOR_CURRENCIES = new Set([
-  "USD",
-  "EUR",
-  "GBP",
-  "JPY",
-  "CHF",
-  "AUD",
-  "CAD",
-  "NZD",
-  "CNY",
-  "HKD",
-  "SGD",
-  "INR",
-  "KRW",
-  "SEK",
-  "NOK",
-  "MXN",
-  "BRL",
-  "ZAR",
-  "TRY",
-  "PLN",
-  "TWD",
-  "THB",
-]);
 
 const PINNED = [
   "EURUSD",
@@ -58,8 +35,8 @@ export default async function ForexPage() {
   const rows = pairs
     .filter(
       (row) =>
-        MAJOR_CURRENCIES.has(row.fromCurrency) &&
-        MAJOR_CURRENCIES.has(row.toCurrency) &&
+        FOREX_CURRENCIES.has(row.fromCurrency) &&
+        FOREX_CURRENCIES.has(row.toCurrency) &&
         row.fromCurrency !== row.toCurrency,
     )
     .map((row) => {
@@ -110,7 +87,11 @@ export default async function ForexPage() {
             ) : (
               rows.map((row) => (
                 <tr key={row.symbol}>
-                  <td className="symbol font-semibold">{row.pair}</td>
+                  <td className="symbol font-semibold">
+                    <Link href={quoteHref(row.symbol, { exchange: "FOREX" })} className="text-link hover:underline">
+                      {row.pair}
+                    </Link>
+                  </td>
                   <td className="max-w-[320px] truncate text-muted">{row.name}</td>
                   <td className="num">{formatPrice(row.price, 4)}</td>
                   <td className="num">{row.change == null ? "—" : formatPrice(row.change, 4)}</td>

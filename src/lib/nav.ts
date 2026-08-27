@@ -25,9 +25,9 @@ export const MARKET_NAV: NavItem[] = [
   { href: "/markets/sectors", label: "Sectors" },
   { href: "/markets/industries", label: "Industries" },
   { href: "/markets/treasury", label: "Treasury" },
-  { href: "/markets/commodities", label: "Commodities" },
-  { href: "/markets/crypto", label: "Crypto" },
-  { href: "/markets/forex", label: "Forex" },
+  { href: "/markets/commodities", label: "Commodities", match: "prefix" },
+  { href: "/markets/crypto", label: "Crypto", match: "prefix" },
+  { href: "/markets/forex", label: "Forex", match: "prefix" },
 ];
 
 export const INDEX_CHANGES_NAV: NavItem[] = [
@@ -87,6 +87,8 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/bond-etfs", label: "Bond ETFs" },
   { href: "/list/income-etfs", label: "Equity Income" },
   { href: "/list/crypto-etfs", label: "Crypto ETFs" },
+  { href: "/list/bitcoin-etfs", label: "Bitcoin ETFs" },
+  { href: "/list/ethereum-etfs", label: "Ethereum ETFs" },
   { href: "/list/commodity-etfs", label: "Commodity ETFs" },
   { href: "/list/leveraged-etfs", label: "Leveraged" },
   { href: "/list/sector-etfs", label: "Sector ETFs" },

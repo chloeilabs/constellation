@@ -146,12 +146,14 @@ export default async function MarketsPage() {
             href="/markets/commodities"
             rows={snippetRows(commodities, COMMODITY_SNIPPET, { fromAbsoluteChange: true })}
             alreadyPercent={false}
+            linkSymbols
           />
           <MarketQuotesTable
             title="Cryptocurrency"
             href="/markets/crypto"
             rows={snippetRows(crypto, CRYPTO_SNIPPET, { fromAbsoluteChange: true })}
             alreadyPercent={false}
+            linkSymbols
           />
           <MarketQuotesTable
             title="Forex"
@@ -159,6 +161,7 @@ export default async function MarketsPage() {
             rows={snippetRows(forex, FOREX_SNIPPET, { fromAbsoluteChange: true })}
             alreadyPercent={false}
             priceDigits={4}
+            linkSymbols
           />
         </div>
         <section className="mt-12">

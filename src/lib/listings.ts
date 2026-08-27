@@ -154,6 +154,139 @@ export function decodeTicker(symbol: string) {
   }
 }
 
+/** Strip separators used in pair aliases such as BTC-USD or EUR/USD. */
+export function normalizeMarketTicker(symbol: string) {
+  return decodeTicker(symbol).replace(/[-/_]/g, "");
+}
+
+export type MarketAssetKind = "crypto" | "commodity" | "forex";
+
+export type QuoteHint = {
+  name?: string | null;
+  exchange?: string | null;
+  exchangeFullName?: string | null;
+  isEtf?: boolean | null;
+  isFund?: boolean | null;
+};
+
+export const FOREX_CURRENCIES = new Set([
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CHF",
+  "AUD",
+  "CAD",
+  "NZD",
+  "CNY",
+  "HKD",
+  "SGD",
+  "INR",
+  "KRW",
+  "SEK",
+  "NOK",
+  "MXN",
+  "BRL",
+  "ZAR",
+  "TRY",
+  "PLN",
+  "TWD",
+  "THB",
+]);
+
+export const COMMODITY_TICKERS = new Set([
+  "GCUSD",
+  "SIUSD",
+  "PLUSD",
+  "PAUSD",
+  "CLUSD",
+  "BZUSD",
+  "NGUSD",
+  "HOUSD",
+  "RBUSD",
+  "HGUSD",
+  "ALIUSD",
+  "ZCUSD",
+  "ZWUSD",
+  "ZSUSD",
+  "KCUSD",
+  "CTUSD",
+  "SBUSD",
+  "OJUSD",
+  "LEUSD",
+  "HEUSD",
+  "LBSUSD",
+]);
+
+export const WELL_KNOWN_MARKET_ASSETS: {
+  symbol: string;
+  name: string;
+  kind: MarketAssetKind;
+  aliases?: string[];
+}[] = [
+  { symbol: "BTCUSD", name: "Bitcoin", kind: "crypto", aliases: ["btc", "bitcoin", "xbt"] },
+  { symbol: "ETHUSD", name: "Ethereum", kind: "crypto", aliases: ["eth", "ethereum", "ether"] },
+  { symbol: "SOLUSD", name: "Solana", kind: "crypto", aliases: ["sol", "solana"] },
+  { symbol: "XRPUSD", name: "XRP", kind: "crypto", aliases: ["xrp", "ripple"] },
+  { symbol: "ADAUSD", name: "Cardano", kind: "crypto", aliases: ["ada", "cardano"] },
+  { symbol: "DOGEUSD", name: "Dogecoin", kind: "crypto", aliases: ["doge", "dogecoin"] },
+  { symbol: "GCUSD", name: "Gold", kind: "commodity", aliases: ["gold futures", "xau", "xauusd", "gcusd"] },
+  { symbol: "SIUSD", name: "Silver", kind: "commodity", aliases: ["silver futures", "xag", "xagusd"] },
+  { symbol: "CLUSD", name: "WTI Crude Oil", kind: "commodity", aliases: ["wti", "crude oil", "clusd"] },
+  { symbol: "BZUSD", name: "Brent Crude", kind: "commodity", aliases: ["brent", "brent crude"] },
+  { symbol: "NGUSD", name: "Natural Gas", kind: "commodity", aliases: ["natgas", "natural gas"] },
+  { symbol: "HGUSD", name: "Copper", kind: "commodity", aliases: ["copper futures"] },
+  { symbol: "EURUSD", name: "Euro / US Dollar", kind: "forex", aliases: ["eurusd", "euro"] },
+  { symbol: "GBPUSD", name: "British Pound / US Dollar", kind: "forex", aliases: ["gbpusd", "cable", "sterling"] },
+  { symbol: "USDJPY", name: "US Dollar / Japanese Yen", kind: "forex", aliases: ["usdjpy"] },
+  { symbol: "USDCHF", name: "US Dollar / Swiss Franc", kind: "forex", aliases: ["usdchf"] },
+  { symbol: "AUDUSD", name: "Australian Dollar / US Dollar", kind: "forex", aliases: ["audusd"] },
+  { symbol: "USDCAD", name: "US Dollar / Canadian Dollar", kind: "forex", aliases: ["usdcad"] },
+  { symbol: "NZDUSD", name: "New Zealand Dollar / US Dollar", kind: "forex", aliases: ["nzdusd"] },
+  { symbol: "USDCNY", name: "US Dollar / Chinese Yuan", kind: "forex", aliases: ["usdcny"] },
+];
+
+export const MARKET_ASSET_LABEL: Record<MarketAssetKind, string> = {
+  crypto: "Cryptocurrency",
+  commodity: "Commodity",
+  forex: "Forex",
+};
+
+export function marketAssetListHref(kind: MarketAssetKind) {
+  if (kind === "crypto") return "/markets/crypto";
+  if (kind === "commodity") return "/markets/commodities";
+  return "/markets/forex";
+}
+
+export function marketAssetKind(ticker: string, hint?: QuoteHint): MarketAssetKind | null {
+  const symbol = normalizeMarketTicker(ticker);
+  if (!symbol || symbol.startsWith("^") || isForeignListingSymbol(symbol)) return null;
+
+  const exchange = `${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`.toUpperCase();
+  if (/\bFOREX\b/.test(exchange) || /\bCCY\b/.test(exchange)) return "forex";
+  if (/\bCOMMODITY\b/.test(exchange) || COMMODITY_TICKERS.has(symbol)) return "commodity";
+  if (/\bCRYPTO\b/.test(exchange) || /\bCCC\b/.test(exchange)) return "crypto";
+
+  if (
+    symbol.length === 6 &&
+    FOREX_CURRENCIES.has(symbol.slice(0, 3)) &&
+    FOREX_CURRENCIES.has(symbol.slice(3)) &&
+    symbol.slice(0, 3) !== symbol.slice(3)
+  ) {
+    return "forex";
+  }
+  if (COMMODITY_TICKERS.has(symbol)) return "commodity";
+  if (/^[A-Z]{2,6}USD$/.test(symbol)) return "crypto";
+  return null;
+}
+
+export function marketAssetHref(ticker: string, hint?: QuoteHint) {
+  const kind = marketAssetKind(ticker, hint);
+  if (!kind) return null;
+  const symbol = normalizeMarketTicker(ticker);
+  return `${marketAssetListHref(kind)}/${symbol}`;
+}
+
 function safeDecodePath(value: string) {
   try {
     return decodeURIComponent(value);
@@ -178,17 +311,10 @@ export function pathPrefix(pathname: string, href: string) {
   return left === right || left.startsWith(`${right}/`);
 }
 
-export function quoteHref(
-  symbol: string,
-  hint?: {
-    name?: string | null;
-    exchange?: string | null;
-    exchangeFullName?: string | null;
-    isEtf?: boolean | null;
-    isFund?: boolean | null;
-  },
-) {
+export function quoteHref(symbol: string, hint?: QuoteHint) {
   const ticker = decodeTicker(symbol);
+  const market = marketAssetHref(ticker, hint);
+  if (market) return market;
   if (hint?.isEtf || WELL_KNOWN_ETFS.has(ticker)) return `/etf/${ticker}`;
   const hay = `${hint?.name ?? ""} ${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`;
   if (ETF_NAME.test(hay) || /ARCA/.test(hay.toUpperCase())) return `/etf/${ticker}`;
@@ -196,17 +322,11 @@ export function quoteHref(
   return stockPath(ticker);
 }
 
-export function quoteKind(
-  symbol: string,
-  hint?: {
-    name?: string | null;
-    exchange?: string | null;
-    exchangeFullName?: string | null;
-    isEtf?: boolean | null;
-    isFund?: boolean | null;
-  },
-) {
+export function quoteKind(symbol: string, hint?: QuoteHint) {
   const href = quoteHref(symbol, hint);
+  if (href.startsWith("/markets/crypto/")) return "Crypto";
+  if (href.startsWith("/markets/commodities/")) return "Commodity";
+  if (href.startsWith("/markets/forex/")) return "Forex";
   if (href.startsWith("/etf/")) return "ETF";
   if (href.startsWith("/funds/")) return "Fund";
   return "Stock";

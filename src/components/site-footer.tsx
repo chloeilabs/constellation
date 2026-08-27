@@ -35,6 +35,7 @@ const columns = [
       ["/list/highest-employees", "Most Employees"],
       ["/list/highest-taxes", "Highest Taxes"],
       ["/list/top-rated", "Highest Rated"],
+      ["/list/top-rated-dividend-stocks", "Top-Rated Dividends"],
       ["/list/oldest-companies", "Oldest Companies"],
       ["/list/foreign-stocks", "Foreign on U.S. Exchanges"],
       ["/list/monthly-dividend-stocks", "Monthly Dividends"],
@@ -91,6 +92,8 @@ const columns = [
       ["/list/bond-etfs", "Bond ETFs"],
       ["/list/income-etfs", "Equity Income ETFs"],
       ["/list/crypto-etfs", "Crypto ETFs"],
+      ["/list/bitcoin-etfs", "Bitcoin ETFs"],
+      ["/list/ethereum-etfs", "Ethereum ETFs"],
       ["/list/leveraged-etfs", "Leveraged ETFs"],
       ["/funds", "Mutual Funds"],
       ["/screener", "Stock Screener"],
@@ -118,6 +121,7 @@ const columns = [
   {
     title: "Tools",
     links: [
+      ["/tools", "All Tools"],
       ["/watchlist", "Watchlist"],
       ["/compare", "Compare Stocks"],
       ["/screener", "Screener"],

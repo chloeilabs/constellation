@@ -51,6 +51,13 @@ const nextConfig: NextConfig = {
       { source: "/list/luxury", destination: "/list/apparel-stocks", permanent: false },
       { source: "/etf/reverse-lookup", destination: "/etf/lookup", permanent: false },
       { source: "/tools/etf-lookup", destination: "/etf/lookup", permanent: false },
+      { source: "/list/bitcoin", destination: "/list/bitcoin-etfs", permanent: false },
+      { source: "/list/bitcoin-etf", destination: "/list/bitcoin-etfs", permanent: false },
+      { source: "/list/ethereum-etf", destination: "/list/ethereum-etfs", permanent: false },
+      { source: "/list/ether-etfs", destination: "/list/ethereum-etfs", permanent: false },
+      { source: "/list/top-rated-dividends", destination: "/list/top-rated-dividend-stocks", permanent: false },
+      { source: "/list/top-rated-dividend", destination: "/list/top-rated-dividend-stocks", permanent: false },
+      { source: "/toolkit", destination: "/tools", permanent: false },
     ];
   },
   images: {

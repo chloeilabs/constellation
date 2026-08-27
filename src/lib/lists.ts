@@ -19,6 +19,7 @@ type ScreenerList = {
   hrefBase?: "/stocks" | "/etf" | "/funds";
   yieldMax?: number;
   symbolPattern?: string;
+  namePattern?: string;
   capMax?: number;
 };
 
@@ -107,6 +108,7 @@ type RatingsRankList = {
   description: string;
   category: ListCategory;
   source: "ratings-rank";
+  dividendOnly?: boolean;
 };
 
 type StockList =
@@ -192,6 +194,14 @@ export const STOCK_LISTS = {
       "Major U.S. listed companies ranked by FMP financial ratings (overall score). FMP has no bulk ratings screener, so this ranks a Fortune-style mega-issuer set rather than every U.S. listing.",
     category: "popular",
     source: "ratings-rank",
+  },
+  "top-rated-dividend-stocks": {
+    title: "Top-Rated Dividend Stocks",
+    description:
+      "Highest FMP financial ratings among a Fortune-style mega-issuer set that also pays a dividend yield of at least 1%. Not a full-universe ratings scan.",
+    category: "popular",
+    source: "ratings-rank",
+    dividendOnly: true,
   },
   "oldest-companies": {
     title: "Oldest S&P 500 Companies",
@@ -354,6 +364,30 @@ export const STOCK_LISTS = {
     sort: "marketCap",
     listing: "primary",
     hrefBase: "/etf",
+  },
+  "bitcoin-etfs": {
+    title: "Bitcoin ETFs",
+    description: "U.S. bitcoin spot and futures ETFs, ranked by market value from FMP.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Cryptocurrency" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+    namePattern: "Bitcoin|BTC",
+  },
+  "ethereum-etfs": {
+    title: "Ethereum ETFs",
+    description: "U.S. ether spot and futures ETFs, ranked by market value from FMP.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Cryptocurrency" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+    namePattern: "Ethereum|Ether",
   },
   "leveraged-etfs": {
     title: "Leveraged ETFs",
@@ -1026,6 +1060,7 @@ export const LIST_NAV = [
   { href: "/list/highest-employees", label: "Employees" },
   { href: "/list/highest-taxes", label: "Taxes" },
   { href: "/list/top-rated", label: "Top Rated" },
+  { href: "/list/top-rated-dividend-stocks", label: "Top-Rated Dividends" },
   { href: "/list/oldest-companies", label: "Oldest" },
   { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
@@ -1158,7 +1193,7 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
   }
 
   if (list.source === "ratings-rank") {
-    return loadRatingsRank();
+    return loadRatingsRank("dividendOnly" in list && list.dividendOnly === true);
   }
 
   if (list.source === "etf-issuer") {
@@ -1188,6 +1223,11 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
   }
   if (symbolPattern) {
     selected = selected.filter((row) => symbolPattern.test(row.symbol));
+  }
+  const namePattern =
+    "namePattern" in list && typeof list.namePattern === "string" ? new RegExp(list.namePattern, "i") : null;
+  if (namePattern) {
+    selected = selected.filter((row) => namePattern.test(row.companyName || ""));
   }
   let rows = await toScreenerRows(selected);
   const capMax = "capMax" in list && typeof list.capMax === "number" ? list.capMax : undefined;
@@ -1358,12 +1398,21 @@ async function loadFundamentalsRank(rank: "revenue" | "employees" | "tax" | "pro
 
 const RATING_LETTER_ORDER = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "E", "F"];
 
-async function loadRatingsRank(): Promise<SymbolTableRow[]> {
-  const [quotes, ratings] = await Promise.all([
+async function loadRatingsRank(dividendOnly = false): Promise<SymbolTableRow[]> {
+  const [quotes, ratings, screener] = await Promise.all([
     getQuotes([...MEGA_US_FUNDAMENTALS]),
     Promise.all(MEGA_US_FUNDAMENTALS.map((symbol) => getRatings(symbol))),
+    dividendOnly ? getScreener({ country: "US" }, { limit: 1000 }) : Promise.resolve([] as FmpScreenerRow[]),
   ]);
   const quoteBy = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const yieldBy = new Map(
+    screener.map((row) => {
+      const price = row.price;
+      const dividend = row.lastAnnualDividend;
+      const yieldPct = price && dividend ? dividend / price : 0;
+      return [row.symbol.toUpperCase(), yieldPct] as const;
+    }),
+  );
   const letterRank = (rating?: string | null) => {
     const index = RATING_LETTER_ORDER.indexOf((rating || "").toUpperCase());
     return index === -1 ? 99 : index;
@@ -1380,14 +1429,17 @@ async function loadRatingsRank(): Promise<SymbolTableRow[]> {
       volume: quote?.volume ?? null,
       rating: rating?.rating ?? null,
       ratingScore: rating?.overallScore ?? null,
+      dividendYield: yieldBy.get(symbol) ?? null,
     } satisfies SymbolTableRow;
   });
   return rows
     .filter((row) => row.ratingScore != null || Boolean(row.rating))
+    .filter((row) => !dividendOnly || (row.dividendYield ?? 0) >= 0.01)
     .sort(
       (a, b) =>
         (b.ratingScore ?? 0) - (a.ratingScore ?? 0) ||
         letterRank(a.rating) - letterRank(b.rating) ||
+        (b.dividendYield ?? 0) - (a.dividendYield ?? 0) ||
         (b.marketCap ?? 0) - (a.marketCap ?? 0),
     );
 }
