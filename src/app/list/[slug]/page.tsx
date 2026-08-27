@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
+import { preferPrimaryListings } from "@/lib/listings";
 import { isStockListSlug, STOCK_LISTS } from "@/lib/lists";
 
 export default async function StockListPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -11,7 +12,7 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
   if (!isStockListSlug(slug)) notFound();
   const list = STOCK_LISTS[slug];
   const raw = await getScreener(list.filters, { limit: list.limit });
-  const sorted = [...raw].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  const sorted = preferPrimaryListings(raw);
   const rows = await withQuoteChanges(sorted);
 
   return (

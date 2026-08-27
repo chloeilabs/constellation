@@ -4,10 +4,11 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, withQuoteChanges } from "@/lib/fmp";
+import { preferPrimaryListings } from "@/lib/listings";
 
 export default async function EtfListPage() {
-  const raw = await getScreener({ isEtf: true, isFund: false, country: "US" }, { limit: 50 });
-  const sorted = [...raw].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  const raw = await getScreener({ isEtf: true, isFund: false, country: "US" }, { limit: 100 });
+  const sorted = preferPrimaryListings(raw).slice(0, 50);
   const rows = await withQuoteChanges(sorted);
 
   return (

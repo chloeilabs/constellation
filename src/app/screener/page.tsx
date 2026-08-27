@@ -3,6 +3,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SymbolTable } from "@/components/symbol-table";
 import { getScreener, getSectors, withQuoteChanges } from "@/lib/fmp";
+import { preferPrimaryListings } from "@/lib/listings";
 
 const SECTOR_FALLBACK = [
   "Technology",
@@ -41,11 +42,11 @@ export default async function ScreenerPage({
     priceMoreThan: params.minPrice ? Number(params.minPrice) : undefined,
   };
   const [rows, sectors] = await Promise.all([
-    getScreener(filters, { page, limit: 50 }),
+    getScreener(filters, { page, limit: country === "US" && !params.exchange ? 100 : 50 }),
     getSectors(),
   ]);
   const sectorOptions = sectors.length ? sectors : SECTOR_FALLBACK;
-  const sorted = [...rows].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  const sorted = preferPrimaryListings(rows).slice(0, 50);
   const withChanges = await withQuoteChanges(sorted);
 
   return (
