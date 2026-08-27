@@ -2,9 +2,10 @@ import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
-import { getIncomeStatements } from "@/lib/fmp";
+import { getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { reportingCurrency } from "@/lib/format";
-import { INCOME_ROWS, toStatementColumns } from "@/lib/statements";
+import { decodeTicker, stockPath } from "@/lib/listings";
+import { INCOME_ROWS, toStatementColumns, withTtmColumn } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 function periodFrom(value?: string): StatementPeriod {
@@ -20,10 +21,11 @@ export default async function IncomeStatementPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodFrom(periodParam);
-  const rows = await getIncomeStatements(ticker, period, 8);
-  const currency = reportingCurrency(rows[0]?.reportedCurrency);
+  const [rows, ttm] = await Promise.all([getIncomeStatements(ticker, period, 8), getIncomeTtm(ticker)]);
+  const currency = reportingCurrency(rows[0]?.reportedCurrency, ttm?.reportedCurrency);
+  const base = stockPath(ticker, "/financials/income-statement");
 
   return (
     <Container>
@@ -31,20 +33,16 @@ export default async function IncomeStatementPage({
         title={`${ticker} Income Statement`}
         description={`Revenue, expenses, and profitability. Figures in millions of ${currency} except per-share items.`}
         actions={
-          <PeriodToggle
-            period={period}
-            annualHref={`/stocks/${ticker}/financials/income-statement`}
-            quarterHref={`/stocks/${ticker}/financials/income-statement?period=quarter`}
-          />
+          <PeriodToggle period={period} annualHref={base} quarterHref={`${base}?period=quarter`} />
         }
       />
       <FinancialsNav symbol={ticker} />
       <StatementTable
         rows={INCOME_ROWS}
-        columns={toStatementColumns(rows, period)}
+        columns={withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period))}
         scale="millions"
         currency={currency}
-        caption={`Values in millions of ${currency}. Green/red percentages are year-over-year change.`}
+        caption={`Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`}
       />
     </Container>
   );

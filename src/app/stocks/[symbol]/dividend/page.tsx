@@ -3,11 +3,12 @@ import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getDividends, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 import { annualDividendPayments, nyDateString } from "@/lib/utils";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const [profile, dividends, quote, ratios] = await Promise.all([
     getProfile(ticker),
     getDividends(ticker, 60),

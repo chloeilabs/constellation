@@ -250,3 +250,21 @@ export function toStatementColumns(
     values: row as unknown as Record<string, unknown>,
   }));
 }
+
+/** Copy `fooTTM` fields to `foo` so TTM ratio/metric rows share statement keys. */
+export function stripTtmSuffix(row: Record<string, unknown> | null | undefined) {
+  if (!row) return null;
+  const values: Record<string, unknown> = { ...row };
+  for (const [key, value] of Object.entries(row)) {
+    if (key.endsWith("TTM")) values[key.slice(0, -3)] = value;
+  }
+  return values;
+}
+
+export function withTtmColumn(
+  ttm: Record<string, unknown> | null | undefined,
+  columns: ReturnType<typeof toStatementColumns>,
+) {
+  if (!ttm) return columns;
+  return [{ key: "ttm", label: "TTM", values: ttm }, ...columns];
+}

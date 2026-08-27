@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { pathPrefix, samePath, stockPath } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -19,8 +20,8 @@ export function FinancialsNav({ symbol }: { symbol: string }) {
   return (
     <div className="mb-4 flex flex-wrap gap-2">
       {LINKS.map((link) => {
-        const href = `/stocks/${symbol}${link.href}`;
-        const active = link.match === "exact" ? pathname === href : pathname.startsWith(href);
+        const href = stockPath(symbol, link.href);
+        const active = link.match === "exact" ? samePath(pathname, href) : pathPrefix(pathname, href);
         return (
           <Link
             key={href}

@@ -82,7 +82,7 @@ export function StatementTable({
                   {columns.map((column, index) => {
                     const value = column.values[row.key];
                     const previous = columns[index + 1]?.values[row.key];
-                    const yoy = showYoy ? yearOverYear(value, previous) : null;
+                    const yoy = showYoy && column.label !== "TTM" ? yearOverYear(value, previous) : null;
                     const text = formatCell(value, row.format, scale, currency);
                     return (
                       <td key={column.key} className={cn("num align-top", text === "—" ? "text-muted" : "")}>

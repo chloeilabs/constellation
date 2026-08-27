@@ -46,6 +46,7 @@ import type {
   FmpPeer,
   FmpPriceChange,
   FmpPriceTarget,
+  FmpPriceTargetNews,
   FmpPriceTargetSummary,
   FmpProfile,
   FmpQuote,
@@ -648,6 +649,14 @@ export function getBalanceSheets(symbol: string, period: StatementPeriod, limit 
   );
 }
 
+export function getBalanceSheetTtm(symbol: string) {
+  return fmpFirst<FmpBalanceSheet>(
+    "/balance-sheet-statement-ttm",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 3600 },
+  );
+}
+
 export function getCashFlows(symbol: string, period: StatementPeriod, limit = 8) {
   return fmpList<FmpCashFlow>(
     "/cash-flow-statement",
@@ -709,6 +718,14 @@ export function getPriceTargetSummary(symbol: string) {
     "/price-target-summary",
     { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
+  );
+}
+
+export function getPriceTargetNews(symbol: string, limit = 20) {
+  return fmpList<FmpPriceTargetNews>(
+    "/price-target-news",
+    { symbol: decodeTicker(symbol), page: 0, limit },
+    { revalidate: 300 },
   );
 }
 

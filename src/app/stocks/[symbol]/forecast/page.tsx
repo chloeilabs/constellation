@@ -1,6 +1,7 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
+import { PriceTargetRange } from "@/components/price-target-range";
 import { compactMoneyFn, formatDate, formatMoney, formatPrice, reportingCurrency } from "@/lib/format";
 import {
   getCompanyEarnings,
@@ -11,12 +12,13 @@ import {
   getGradesHistorical,
   getLeveredDcf,
   getPriceTarget,
+  getPriceTargetNews,
   getPriceTargetSummary,
   getProfile,
   getQuote,
   getRatingsHistorical,
 } from "@/lib/fmp";
-import type { FmpHistoricalGrade } from "@/lib/types";
+import type { FmpEstimate, FmpHistoricalGrade } from "@/lib/types";
 import { decodeTicker } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
@@ -45,10 +47,68 @@ function GradeMix({ row }: { row: FmpHistoricalGrade }) {
   );
 }
 
+function EstimateTable({ rows, money }: { rows: FmpEstimate[]; money: (value: number | null | undefined) => string }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <table className="sa-table">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th className="num">EPS</th>
+            <th className="num">Revenue</th>
+            <th className="num">EBITDA</th>
+            <th className="num">Analysts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-muted">
+                No estimates available.
+              </td>
+            </tr>
+          ) : (
+            rows.map((row) => (
+              <tr key={row.date}>
+                <td>{formatDate(row.date)}</td>
+                <td className="num">
+                  <div>{formatPrice(row.epsAvg)}</div>
+                  {row.epsLow != null && row.epsHigh != null ? (
+                    <div className="text-[11px] text-muted">
+                      {formatPrice(row.epsLow)} – {formatPrice(row.epsHigh)}
+                    </div>
+                  ) : null}
+                </td>
+                <td className="num">
+                  <div>{money(row.revenueAvg)}</div>
+                  {row.revenueLow != null && row.revenueHigh != null ? (
+                    <div className="text-[11px] text-muted">
+                      {money(row.revenueLow)} – {money(row.revenueHigh)}
+                    </div>
+                  ) : null}
+                </td>
+                <td className="num">
+                  <div>{money(row.ebitdaAvg)}</div>
+                  {row.ebitdaLow != null && row.ebitdaHigh != null ? (
+                    <div className="text-[11px] text-muted">
+                      {money(row.ebitdaLow)} – {money(row.ebitdaHigh)}
+                    </div>
+                  ) : null}
+                </td>
+                <td className="num">{row.numAnalystsEps ?? row.numAnalystsRevenue ?? "—"}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default async function ForecastPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [quote, profile, target, grades, history, estimates, earnings, dcf, levered, gradeTrend, ratingTrend, targetSummary] =
+  const [quote, profile, target, grades, history, estimates, quarterlyEstimates, earnings, dcf, levered, gradeTrend, ratingTrend, targetSummary, targetNews] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -56,12 +116,14 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
       getGradesConsensus(ticker),
       getGrades(ticker, 16),
       getEstimates(ticker, "annual"),
+      getEstimates(ticker, "quarter"),
       getCompanyEarnings(ticker, 8),
       getDcf(ticker),
       getLeveredDcf(ticker),
       getGradesHistorical(ticker, 16),
       getRatingsHistorical(ticker, 12),
       getPriceTargetSummary(ticker),
+      getPriceTargetNews(ticker, 16),
     ]);
   const currency = reportingCurrency(profile?.currency);
   const money = compactMoneyFn(currency);
@@ -102,6 +164,19 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
           <p className="mt-2 text-sm text-muted">From last price {px(quote?.price)}</p>
         </div>
       </div>
+
+      {target ? (
+        <div className="mt-6">
+          <PriceTargetRange
+            price={quote?.price}
+            low={target.targetLow}
+            median={target.targetMedian}
+            consensus={target.targetConsensus}
+            high={target.targetHigh}
+            format={px}
+          />
+        </div>
+      ) : null}
 
       {targetSummary ? (
         <section className="mt-10">
@@ -284,30 +359,55 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Annual Estimates</h2>
+        <EstimateTable rows={[...estimates].sort((a, b) => a.date.localeCompare(b.date))} money={money} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Quarterly Estimates</h2>
+        <EstimateTable
+          rows={[...quarterlyEstimates].sort((a, b) => a.date.localeCompare(b.date))}
+          money={money}
+        />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Price Target News</h2>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
             <thead>
               <tr>
-                <th>Period</th>
-                <th className="num">EPS Avg</th>
-                <th className="num">Revenue Avg</th>
-                <th className="num">Analysts</th>
+                <th>Date</th>
+                <th>Firm</th>
+                <th>Analyst</th>
+                <th className="num">Target</th>
+                <th className="num">Price Then</th>
+                <th>Headline</th>
               </tr>
             </thead>
             <tbody>
-              {estimates.length === 0 ? (
+              {targetNews.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-muted">
-                    No estimates available.
+                  <td colSpan={6} className="text-muted">
+                    No price-target articles available.
                   </td>
                 </tr>
               ) : (
-                estimates.map((row) => (
-                  <tr key={row.date}>
-                    <td>{formatDate(row.date)}</td>
-                    <td className="num">{formatPrice(row.epsAvg)}</td>
-                    <td className="num">{money(row.revenueAvg)}</td>
-                    <td className="num">{row.numAnalystsEps ?? row.numAnalystsRevenue ?? "—"}</td>
+                targetNews.map((row, index) => (
+                  <tr key={`${row.publishedDate}-${row.analystCompany}-${index}`}>
+                    <td>{formatDate(row.publishedDate)}</td>
+                    <td>{row.analystCompany || row.newsPublisher || "—"}</td>
+                    <td>{row.analystName || "—"}</td>
+                    <td className="num">{px(row.adjPriceTarget ?? row.priceTarget)}</td>
+                    <td className="num">{px(row.priceWhenPosted)}</td>
+                    <td>
+                      {row.newsURL ? (
+                        <a href={row.newsURL} className="text-link hover:underline" target="_blank" rel="noreferrer">
+                          {row.newsTitle}
+                        </a>
+                      ) : (
+                        row.newsTitle
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

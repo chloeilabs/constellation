@@ -5,7 +5,7 @@ import { PriceChart } from "@/components/price-chart";
 import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
-import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice, formatRatio, reportingCurrency, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPlausiblePe, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
 import {
   getCompanyEarnings,
@@ -108,16 +108,22 @@ export default async function StockOverviewPage({
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
-  const peerRows = await withQuoteChanges(
-    peers
-      .filter((peer) => (peer.mktCap ?? 0) >= 1_000_000_000)
-      .slice(0, 8)
-      .map((peer) => ({
+  const peerList = peers
+    .filter((peer) => (peer.mktCap ?? 0) >= 1_000_000_000)
+    .slice(0, 8);
+  const [peerRows, peerRatioRows] = await Promise.all([
+    withQuoteChanges(
+      peerList.map((peer) => ({
         symbol: peer.symbol,
         price: peer.price,
         companyName: peer.companyName,
         mktCap: peer.mktCap,
       })),
+    ),
+    Promise.all(peerList.map((peer) => getRatiosTtm(peer.symbol))),
+  ]);
+  const peerPe = new Map(
+    peerList.map((peer, index) => [peer.symbol, peerRatioRows[index]?.priceToEarningsRatioTTM ?? null]),
   );
 
   return (
@@ -308,7 +314,7 @@ export default async function StockOverviewPage({
                     <td className="num">
                       <ChangePercent value={peer.changePercentage} alreadyPercent />
                     </td>
-                    <td className="num">{formatRatio(peer.pe)}</td>
+                    <td className="num">{formatPlausiblePe(peerPe.get(peer.symbol) ?? peer.pe)}</td>
                     <td className="num">{formatCompactUsd(peer.mktCap, currencyForSymbol(peer.symbol))}</td>
                   </tr>
                 ))}

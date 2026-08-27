@@ -545,8 +545,28 @@ export type FmpEstimate = {
   epsAvg?: number;
   epsHigh?: number;
   epsLow?: number;
+  ebitdaAvg?: number;
+  ebitdaHigh?: number;
+  ebitdaLow?: number;
+  netIncomeAvg?: number;
+  netIncomeHigh?: number;
+  netIncomeLow?: number;
   numAnalystsRevenue?: number;
   numAnalystsEps?: number;
+};
+
+export type FmpPriceTargetNews = {
+  symbol: string;
+  publishedDate: string;
+  newsURL: string;
+  newsTitle: string;
+  newsBaseURL?: string;
+  newsPublisher?: string;
+  analystName?: string;
+  analystCompany?: string;
+  priceTarget?: number;
+  adjPriceTarget?: number;
+  priceWhenPosted?: number;
 };
 
 export type ChartPoint = {
