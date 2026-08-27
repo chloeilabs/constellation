@@ -7,6 +7,7 @@ import {
   formatDate,
   formatInteger,
   formatMoney,
+  formatNumber,
   formatPercentPlain,
   formatRatio,
   rangeLabel,
@@ -21,7 +22,9 @@ import type {
   FmpPriceTarget,
   FmpProfile,
   FmpQuote,
+  FmpRatings,
   FmpRatiosTtm,
+  FmpScores,
 } from "@/lib/types";
 
 function withYoy(value: ReactNode, yoy: number | null | undefined) {
@@ -79,6 +82,8 @@ export function QuoteStats({
   marketCapYoy,
   sharesYoy,
   ttmYoy,
+  ratings,
+  scores,
 }: {
   symbol: string;
   quote: FmpQuote | null;
@@ -96,6 +101,8 @@ export function QuoteStats({
   dcf?: number | null;
   marketCapYoy?: number | null;
   sharesYoy?: number | null;
+  ratings?: FmpRatings | null;
+  scores?: FmpScores | null;
   ttmYoy?: {
     revenue?: number | null;
     grossProfit?: number | null;
@@ -168,6 +175,13 @@ export function QuoteStats({
             dcf != null
               ? `${px(dcf)}${dcfUpside != null ? ` (${dcfUpside > 0 ? "+" : ""}${dcfUpside.toFixed(1)}%)` : ""}`
               : "—",
+        },
+        { label: "FMP Rating", href: `${base}/forecast`, value: ratings?.rating ?? "—" },
+        { label: "Altman Z-Score", href: `${base}/statistics`, value: formatNumber(scores?.altmanZScore) },
+        {
+          label: "Piotroski Score",
+          href: `${base}/statistics`,
+          value: scores?.piotroskiScore == null ? "—" : `${scores.piotroskiScore} / 9`,
         },
         {
           label: "Earnings Date",

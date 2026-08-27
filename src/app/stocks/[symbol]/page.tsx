@@ -23,7 +23,9 @@ import {
   getPriceTarget,
   getProfile,
   getQuote,
+  getRatings,
   getRatiosTtm,
+  getScores,
   getSecFilings,
   getSymbolNews,
   getTranscriptDates,
@@ -60,7 +62,7 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings, ratings, scores] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -83,6 +85,8 @@ export default async function StockOverviewPage({
       getPressReleases(ticker, 12),
       getTranscriptDates(ticker),
       getSecFilings(ticker, filingFrom, filingTo, 40),
+      getRatings(ticker),
+      getScores(ticker),
     ]);
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
@@ -184,6 +188,8 @@ export default async function StockOverviewPage({
           marketCapYoy={marketCapYoy}
           sharesYoy={sharesYoy}
           ttmYoy={ttmYoy}
+          ratings={ratings}
+          scores={scores}
         />
       </div>
 

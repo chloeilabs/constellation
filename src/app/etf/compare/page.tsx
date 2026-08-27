@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import { ETF_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { loadEtfCompare, overlappingHoldings, POPULAR_ETF_COMPARISONS } from "@/lib/etf-compare";
+import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS } from "@/lib/etf-compare";
 import { holdingQuoteHref, quoteHref } from "@/lib/listings";
 
 export const metadata = {
@@ -31,7 +31,7 @@ export default async function EtfComparePage({
     <Container>
       <PageHeader
         title="Compare ETFs & Funds"
-        description="Live quotes, assets, expense ratios, total returns, and top-holding overlap from Financial Modeling Prep."
+        description="Live quotes, assets, expense ratios, total returns, sector weights, and top-holding overlap from Financial Modeling Prep."
         actions={
           <form className="flex gap-2">
             <input
@@ -93,6 +93,24 @@ export default async function EtfComparePage({
               }
             />
             <MetricRow label="Holdings" rows={rows} render={(row) => formatInteger(row.holdingsCount)} />
+            <MetricRow
+              label="Top Sector"
+              rows={rows}
+              render={(row) =>
+                row.sectors[0]
+                  ? `${row.sectors[0].name} (${formatPercentPlain(row.sectors[0].weight, { alreadyPercent: true })})`
+                  : "—"
+              }
+            />
+            <MetricRow
+              label="Top Country"
+              rows={rows}
+              render={(row) =>
+                row.countries[0]
+                  ? `${row.countries[0].name} (${formatPercentPlain(row.countries[0].weight, { alreadyPercent: true })})`
+                  : "—"
+              }
+            />
             <MetricRow
               label="Dividend Yield"
               rows={rows}
@@ -203,6 +221,9 @@ export default async function EtfComparePage({
         </section>
       ) : null}
 
+      <AllocationTable title="Sector Allocation" rows={rows} items={allocationRows(rows, "sectors")} />
+      <AllocationTable title="Country Allocation" rows={rows} items={allocationRows(rows, "countries")} />
+
       <section className="mt-10">
         <h2 className="mb-3 text-xl font-semibold text-header">Popular Comparisons</h2>
         <div className="flex flex-wrap gap-2">
@@ -218,6 +239,49 @@ export default async function EtfComparePage({
         </div>
       </section>
     </Container>
+  );
+}
+
+function AllocationTable({
+  title,
+  rows,
+  items,
+}: {
+  title: string;
+  rows: Awaited<ReturnType<typeof loadEtfCompare>>;
+  items: { name: string; weights: Array<number | null> }[];
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section className="mt-10">
+      <h2 className="mb-3 text-xl font-semibold text-header">{title}</h2>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>{title.startsWith("Sector") ? "Sector" : "Country"}</th>
+              {rows.map((row) => (
+                <th key={row.symbol} className="num">
+                  {row.symbol}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.name}>
+                <td>{item.name}</td>
+                {item.weights.map((weight, index) => (
+                  <td key={rows[index]?.symbol ?? index} className="num">
+                    {formatPercentPlain(weight, { alreadyPercent: true })}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

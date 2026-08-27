@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { MarketQuotesTable } from "@/components/market-quotes-table";
 import { MoversTable } from "@/components/movers-table";
+import { ExtendedHoursTables } from "@/components/extended-hours-tables";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
 import { SectionNav } from "@/components/section-nav";
@@ -19,8 +20,9 @@ import {
   INDEX_SYMBOLS,
   WORLD_INDEX_SYMBOLS,
 } from "@/lib/fmp";
+import { getExtendedHoursRows } from "@/lib/extended-hours";
 import { INDEX_LABELS } from "@/lib/statements";
-import { addDays, isoDate, nyDateString, percentFromPriceChange } from "@/lib/utils";
+import { addDays, isoDate, nyDateString, nyExtendedCopy, nySession, percentFromPriceChange } from "@/lib/utils";
 
 const COMMODITY_SNIPPET = [
   { symbol: "GCUSD", name: "Gold" },
@@ -80,7 +82,10 @@ export const metadata = {
 export default async function MarketsPage() {
   const today = nyDateString();
   const yesterday = isoDate(addDays(new Date(`${today}T00:00:00Z`), -1));
-  const [indexes, world, gainers, losers, active, sectorsToday, sectorsYesterday, commodities, crypto, forex] =
+  const session = nySession();
+  const showExtended = session !== "open";
+  const extended = nyExtendedCopy();
+  const [indexes, world, gainers, losers, active, sectorsToday, sectorsYesterday, commodities, crypto, forex, extendedRows] =
     await Promise.all([
       getIndexQuotes(),
       getWorldIndexQuotes(),
@@ -92,6 +97,7 @@ export default async function MarketsPage() {
       getCommodityQuotes(),
       getCryptoQuotes(),
       getForexQuotes(),
+      showExtended ? getExtendedHoursRows() : Promise.resolve([]),
     ]);
   const sectors = sectorsToday.length ? sectorsToday : sectorsYesterday;
   const indexBySymbol = new Map(indexes.map((quote) => [quote.symbol, quote]));
@@ -102,6 +108,19 @@ export default async function MarketsPage() {
       <Container>
         <PageHeader title="Stock Market" description="Indexes, movers, sectors, commodities, crypto, and forex." />
         <SectionNav items={MARKET_NAV} />
+        {showExtended ? (
+          <div className="mb-12">
+            <ExtendedHoursTables
+              rows={extendedRows}
+              limit={8}
+              showActive={false}
+              gainerHref={`${extended.href}/gainers`}
+              loserHref={`${extended.href}/losers`}
+              gainerTitle={`${extended.title} Gainers`}
+              loserTitle={`${extended.title} Losers`}
+            />
+          </div>
+        ) : null}
         <div className="grid gap-8 lg:grid-cols-3">
           <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 8)} />
           <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 8)} />

@@ -22,11 +22,11 @@ export async function VehicleChart({
     getPriceChange(ticker),
     getQuote(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
 
   return (
     <Container>
-      <PageHeader title={`${ticker} Chart`} description="Price history and multi-period total returns." />
+      <PageHeader title={`${ticker} Chart`} description="Price history with SMA, EMA, RSI, and multi-period total returns." />
       <PriceChart
         points={points}
         range={range}
@@ -36,6 +36,9 @@ export async function VehicleChart({
         ma200={quote?.priceAvg200}
         ma50Series={ma50Series}
         ma200Series={ma200Series}
+        ema12Series={ema12Series}
+        ema26Series={ema26Series}
+        rsiSeries={rsiSeries}
       />
       <ReturnsTable changes={changes} />
     </Container>

@@ -1,5 +1,6 @@
-import { getDividends, getEtfHoldings, getEtfInfo, getPriceChange, getProfile, getQuote } from "@/lib/fmp";
+import { getDividends, getEtfCountryWeights, getEtfHoldings, getEtfInfo, getEtfSectors, getPriceChange, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { parseWeightPercentage } from "@/lib/utils";
 
 export const POPULAR_ETF_COMPARISONS = [
   ["QQQ", "SPY"],
@@ -20,16 +21,26 @@ export async function loadEtfCompare(symbols: string[]) {
   const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))].slice(0, 4);
   return Promise.all(
     unique.map(async (symbol) => {
-      const [quote, info, profile, changes, dividends, holdings] = await Promise.all([
+      const [quote, info, profile, changes, dividends, holdings, sectors, countries] = await Promise.all([
         getQuote(symbol),
         getEtfInfo(symbol),
         getProfile(symbol),
         getPriceChange(symbol),
         getDividends(symbol, 4),
         getEtfHoldings(symbol),
+        getEtfSectors(symbol),
+        getEtfCountryWeights(symbol),
       ]);
       const ttmDividend = dividends.slice(0, 4).reduce((sum, row) => sum + (row.dividend || 0), 0);
       const top = [...holdings].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0)).slice(0, 10);
+      const rankedSectors = [...sectors]
+        .map((row) => ({ name: row.sector, weight: row.weightPercentage ?? 0 }))
+        .filter((row) => row.name && row.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
+      const rankedCountries = [...countries]
+        .map((row) => ({ name: row.country, weight: parseWeightPercentage(row.weightPercentage) }))
+        .filter((row) => row.name && row.weight > 0)
+        .sort((a, b) => b.weight - a.weight);
       return {
         symbol,
         quote,
@@ -40,12 +51,16 @@ export async function loadEtfCompare(symbols: string[]) {
         ttmDividend,
         holdingsCount: info?.holdingsCount || holdings.length,
         topHoldings: top,
+        sectors: rankedSectors,
+        countries: rankedCountries,
       };
     }),
   );
 }
 
-export function overlappingHoldings(rows: Awaited<ReturnType<typeof loadEtfCompare>>) {
+export type EtfCompareRow = Awaited<ReturnType<typeof loadEtfCompare>>[number];
+
+export function overlappingHoldings(rows: EtfCompareRow[]) {
   if (rows.length < 2) return [];
   const maps = rows.map(
     (row) => new Map(row.topHoldings.map((holding) => [holding.asset.toUpperCase(), holding])),
@@ -58,4 +73,18 @@ export function overlappingHoldings(rows: Awaited<ReturnType<typeof loadEtfCompa
       name: maps[0].get(asset)?.name ?? asset,
       weights: maps.map((map) => map.get(asset)?.weightPercentage ?? null),
     }));
+}
+
+export function allocationRows(rows: EtfCompareRow[], kind: "sectors" | "countries", limit = 15) {
+  const names = new Set<string>();
+  for (const row of rows) {
+    for (const item of row[kind]) names.add(item.name);
+  }
+  return [...names]
+    .map((name) => ({
+      name,
+      weights: rows.map((row) => row[kind].find((item) => item.name === name)?.weight ?? null),
+    }))
+    .sort((a, b) => Math.max(...b.weights.map((weight) => weight ?? 0)) - Math.max(...a.weights.map((weight) => weight ?? 0)))
+    .slice(0, limit);
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChangePercent } from "@/components/change";
-import { formatCompact, formatPrice } from "@/lib/format";
+import { formatCompact, formatNumber, formatPrice } from "@/lib/format";
 import { CHART_RANGES, type ChartRange } from "@/lib/chart-range";
 import type { ChartPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,9 @@ export function PriceChart({
   ma200,
   ma50Series,
   ma200Series,
+  ema12Series,
+  ema26Series,
+  rsiSeries,
 }: {
   points: ChartPoint[];
   range: ChartRange;
@@ -59,55 +62,77 @@ export function PriceChart({
   ma200?: number | null;
   ma50Series?: ChartPoint[];
   ma200Series?: ChartPoint[];
+  ema12Series?: ChartPoint[];
+  ema26Series?: ChartPoint[];
+  rsiSeries?: ChartPoint[];
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const pathname = usePathname();
+  const showRsi = (rsiSeries?.length ?? 0) > 1;
 
-  const { path, area, min, max, width, height, positive, volumes, ma50Y, ma200Y, ma50Path, ma200Path, ma50Days, ma200Days } = useMemo(() => {
+  const layout = useMemo(() => {
     const width = 720;
-    const chartHeight = 220;
-    const volHeight = 52;
+    const chartHeight = showRsi ? 200 : 220;
+    const volHeight = showRsi ? 44 : 52;
+    const rsiHeight = 56;
     const gap = 10;
-    const height = chartHeight + gap + volHeight;
     const pad = 8;
+    const volTop = chartHeight + gap;
+    const rsiTop = volTop + volHeight + gap;
+    const height = showRsi ? rsiTop + rsiHeight : volTop + volHeight;
     const ma50Days = seriesByDay(ma50Series);
     const ma200Days = seriesByDay(ma200Series);
-    if (points.length === 0) {
-      return {
-        path: "",
-        area: "",
-        min: 0,
-        max: 0,
-        width,
-        height,
-        chartHeight,
-        positive: true,
-        volumes: [] as { x: number; barWidth: number; barHeight: number; y: number }[],
-        ma50Y: null as number | null,
-        ma200Y: null as number | null,
-        ma50Path: "",
-        ma200Path: "",
-        ma50Days,
-        ma200Days,
-      };
-    }
+    const ema12Days = seriesByDay(ema12Series);
+    const ema26Days = seriesByDay(ema26Series);
+    const rsiDays = seriesByDay(rsiSeries);
+    const empty = {
+      path: "",
+      area: "",
+      min: 0,
+      max: 0,
+      width,
+      height,
+      positive: true,
+      volumes: [] as { x: number; barWidth: number; barHeight: number; y: number }[],
+      ma50Y: null as number | null,
+      ma200Y: null as number | null,
+      ma50Path: "",
+      ma200Path: "",
+      ema12Path: "",
+      ema26Path: "",
+      rsiPath: "",
+      rsi30Y: 0,
+      rsi50Y: 0,
+      rsi70Y: 0,
+      ma50Days,
+      ma200Days,
+      ema12Days,
+      ema26Days,
+      rsiDays,
+    };
+    if (points.length === 0) return empty;
+
     const values = points.map((point) => point.value);
     const extras = [ma50, ma200].filter((value): value is number => typeof value === "number" && Number.isFinite(value));
     for (const point of points) {
       const day = point.time.slice(0, 10);
       const sma50 = ma50Days.get(day);
       const sma200 = ma200Days.get(day);
+      const ema12 = ema12Days.get(day);
+      const ema26 = ema26Days.get(day);
       if (sma50 != null) extras.push(sma50);
       if (sma200 != null) extras.push(sma200);
+      if (ema12 != null) extras.push(ema12);
+      if (ema26 != null) extras.push(ema26);
     }
     const min = Math.min(...values, ...extras);
     const max = Math.max(...values, ...extras);
     const span = max - min || 1;
     const yOf = (value: number) => pad + ((max - value) / span) * (chartHeight - pad * 2);
+    const rsiYOf = (value: number) => rsiTop + pad + ((100 - value) / 100) * (rsiHeight - pad * 2);
     const coords = points.map((point, index) => {
       const x = pad + (index / Math.max(points.length - 1, 1)) * (width - pad * 2);
-      const y = yOf(point.value);
-      return { x, y };
+      return { x, y: yOf(point.value) };
     });
     const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" ");
     const area = `${path} L${coords.at(-1)!.x.toFixed(2)},${chartHeight - pad} L${coords[0].x.toFixed(2)},${chartHeight - pad} Z`;
@@ -117,7 +142,7 @@ export function PriceChart({
     const volumes = points.map((point, index) => {
       const x = pad + (index / Math.max(points.length - 1, 1)) * (width - pad * 2) - barWidth / 2;
       const barHeight = ((point.volume ?? 0) / maxVolume) * volHeight;
-      return { x, barWidth, barHeight, y: height - barHeight };
+      return { x, barWidth, barHeight, y: volTop + volHeight - barHeight };
     });
     const ma50Path = alignedPath(points, ma50Days, yOf, pad, width);
     const ma200Path = alignedPath(points, ma200Days, yOf, pad, width);
@@ -128,17 +153,51 @@ export function PriceChart({
       max,
       width,
       height,
-      chartHeight,
       positive,
       volumes,
       ma50Y: !ma50Path && typeof ma50 === "number" && Number.isFinite(ma50) ? yOf(ma50) : null,
       ma200Y: !ma200Path && typeof ma200 === "number" && Number.isFinite(ma200) ? yOf(ma200) : null,
       ma50Path,
       ma200Path,
+      ema12Path: alignedPath(points, ema12Days, yOf, pad, width),
+      ema26Path: alignedPath(points, ema26Days, yOf, pad, width),
+      rsiPath: showRsi ? alignedPath(points, rsiDays, rsiYOf, pad, width) : "",
+      rsi30Y: rsiYOf(30),
+      rsi50Y: rsiYOf(50),
+      rsi70Y: rsiYOf(70),
       ma50Days,
       ma200Days,
+      ema12Days,
+      ema26Days,
+      rsiDays,
     };
-  }, [points, ma50, ma200, ma50Series, ma200Series]);
+  }, [points, ma50, ma200, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, showRsi]);
+
+  const {
+    path,
+    area,
+    min,
+    max,
+    width,
+    height,
+    positive,
+    volumes,
+    ma50Y,
+    ma200Y,
+    ma50Path,
+    ma200Path,
+    ema12Path,
+    ema26Path,
+    rsiPath,
+    rsi30Y,
+    rsi50Y,
+    rsi70Y,
+    ma50Days,
+    ma200Days,
+    ema12Days,
+    ema26Days,
+    rsiDays,
+  } = layout;
 
   const active = hover != null ? points[hover] : points.at(-1);
   const start = points[0]?.value;
@@ -147,6 +206,9 @@ export function PriceChart({
   const activeDay = active?.time.slice(0, 10);
   const ma50Now = (activeDay ? ma50Days.get(activeDay) : undefined) ?? ma50;
   const ma200Now = (activeDay ? ma200Days.get(activeDay) : undefined) ?? ma200;
+  const ema12Now = activeDay ? ema12Days.get(activeDay) : undefined;
+  const ema26Now = activeDay ? ema26Days.get(activeDay) : undefined;
+  const rsiNow = activeDay ? rsiDays.get(activeDay) : undefined;
 
   return (
     <div>
@@ -163,6 +225,15 @@ export function PriceChart({
           ) : null}
           {typeof ma200Now === "number" ? (
             <span className="text-xs font-medium text-indigo-600">MA200 {formatPrice(ma200Now)}</span>
+          ) : null}
+          {typeof ema12Now === "number" ? (
+            <span className="text-xs font-medium text-teal-700">EMA12 {formatPrice(ema12Now)}</span>
+          ) : null}
+          {typeof ema26Now === "number" ? (
+            <span className="text-xs font-medium text-rose-600">EMA26 {formatPrice(ema26Now)}</span>
+          ) : null}
+          {typeof rsiNow === "number" ? (
+            <span className="text-xs font-medium text-violet-700">RSI {formatNumber(rsiNow)}</span>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-1">
@@ -188,7 +259,7 @@ export function PriceChart({
       ) : (
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="h-[280px] w-full"
+          className={showRsi ? "h-[360px] w-full" : "h-[280px] w-full"}
           onMouseLeave={() => setHover(null)}
           onMouseMove={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
@@ -207,6 +278,8 @@ export function PriceChart({
           <path d={path} fill="none" stroke={positive ? "#16a34a" : "#dc2626"} strokeWidth={points.length > 180 ? 1.25 : 2} />
           {ma50Path ? <path d={ma50Path} fill="none" stroke="#d97706" strokeWidth="1.5" /> : null}
           {ma200Path ? <path d={ma200Path} fill="none" stroke="#4f46e5" strokeWidth="1.5" /> : null}
+          {ema12Path ? <path d={ema12Path} fill="none" stroke="#0d9488" strokeWidth="1.25" /> : null}
+          {ema26Path ? <path d={ema26Path} fill="none" stroke="#e11d48" strokeWidth="1.25" /> : null}
           {ma50Y != null ? (
             <line x1="8" x2={width - 8} y1={ma50Y} y2={ma50Y} stroke="#d97706" strokeDasharray="5 4" strokeWidth="1.25" />
           ) : null}
@@ -226,6 +299,20 @@ export function PriceChart({
                 />
               ))
             : null}
+          {showRsi ? (
+            <>
+              <line x1="8" x2={width - 8} y1={rsi70Y} y2={rsi70Y} stroke="#e9d5ff" strokeWidth="1" />
+              <line x1="8" x2={width - 8} y1={rsi50Y} y2={rsi50Y} stroke="#ede9fe" strokeDasharray="3 3" strokeWidth="1" />
+              <line x1="8" x2={width - 8} y1={rsi30Y} y2={rsi30Y} stroke="#e9d5ff" strokeWidth="1" />
+              {rsiPath ? <path d={rsiPath} fill="none" stroke="#7c3aed" strokeWidth="1.5" /> : null}
+              <text x="10" y={rsi70Y - 3} fill="#6d28d9" fontSize="9">
+                RSI 70
+              </text>
+              <text x="10" y={rsi30Y + 10} fill="#6d28d9" fontSize="9">
+                30
+              </text>
+            </>
+          ) : null}
           {hover != null && points[hover] ? (
             <line
               x1={8 + (hover / Math.max(points.length - 1, 1)) * (width - 16)}

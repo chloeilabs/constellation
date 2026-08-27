@@ -22,13 +22,13 @@ export default async function ChartPage({
     getPriceChange(ticker),
     getQuoteSafe(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
 
   return (
     <Container>
       <PageHeader
         title={`${indexDisplayName(ticker, quote?.name)} Chart`}
-        description="Interactive historical price chart."
+        description="Interactive historical price chart with SMA 50/200, EMA 12/26, and RSI (14)."
       />
       <PriceChart
         points={points}
@@ -38,6 +38,9 @@ export default async function ChartPage({
         ma200={quote?.priceAvg200}
         ma50Series={ma50Series}
         ma200Series={ma200Series}
+        ema12Series={ema12Series}
+        ema26Series={ema26Series}
+        rsiSeries={rsiSeries}
       />
       <ReturnsTable changes={changes} />
     </Container>

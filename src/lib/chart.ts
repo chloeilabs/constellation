@@ -44,6 +44,61 @@ function smaPoints(rows: Awaited<ReturnType<typeof getTechnicalSeries>>): ChartP
     .map((row) => ({ time: row.date, value: row.sma as number }));
 }
 
+/** Seeded EMA from the first `period` closes, then the standard multiplier update. */
+export function emaSeries(points: ChartPoint[], period: number): ChartPoint[] {
+  if (period < 1 || points.length < period) return [];
+  const k = 2 / (period + 1);
+  let ema = 0;
+  for (let i = 0; i < period; i++) ema += points[i].value;
+  ema /= period;
+  const out: ChartPoint[] = [{ time: points[period - 1].time, value: ema }];
+  for (let i = period; i < points.length; i++) {
+    ema = points[i].value * k + ema * (1 - k);
+    out.push({ time: points[i].time, value: ema });
+  }
+  return out;
+}
+
+/** Wilder RSI from close-to-close changes. Computed locally so the chart does not spend extra FMP calls. */
+export function rsiSeries(points: ChartPoint[], period = 14): ChartPoint[] {
+  if (period < 1 || points.length <= period) return [];
+  let gain = 0;
+  let loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const change = points[i].value - points[i - 1].value;
+    if (change >= 0) gain += change;
+    else loss -= change;
+  }
+  let avgGain = gain / period;
+  let avgLoss = loss / period;
+  const out: ChartPoint[] = [];
+  const push = (index: number) => {
+    const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    out.push({ time: points[index].time, value: rsi });
+  };
+  push(period);
+  for (let i = period + 1; i < points.length; i++) {
+    const change = points[i].value - points[i - 1].value;
+    const up = change > 0 ? change : 0;
+    const down = change < 0 ? -change : 0;
+    avgGain = (avgGain * (period - 1) + up) / period;
+    avgLoss = (avgLoss * (period - 1) + down) / period;
+    push(i);
+  }
+  return out;
+}
+
+function dailyIndicatorSeries(points: ChartPoint[], range: ChartRange) {
+  if (range === "1D" || range === "5D") {
+    return { ema12Series: [] as ChartPoint[], ema26Series: [] as ChartPoint[], rsiSeries: [] as ChartPoint[] };
+  }
+  return {
+    ema12Series: emaSeries(points, 12),
+    ema26Series: emaSeries(points, 26),
+    rsiSeries: rsiSeries(points, 14),
+  };
+}
+
 export async function getChartMovingAverages(symbol: string, range: ChartRange) {
   if (range === "1D" || range === "5D" || range === "MAX") {
     return { ma50: [] as ChartPoint[], ma200: [] as ChartPoint[] };
@@ -157,5 +212,5 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
 export async function loadQuoteChart(symbol: string, rangeParam?: string | null) {
   const range = resolveChartRange(rangeParam);
   const [points, averages] = await Promise.all([getChartData(symbol, range), getChartMovingAverages(symbol, range)]);
-  return { range, points, ma50Series: averages.ma50, ma200Series: averages.ma200 };
+  return { range, points, ma50Series: averages.ma50, ma200Series: averages.ma200, ...dailyIndicatorSeries(points, range) };
 }
