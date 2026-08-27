@@ -43,7 +43,12 @@ export function fiscalYearForDate(
   for (const row of ranked) {
     if (date <= String(row.date)) return String(row.fiscalYear);
   }
-  return null;
+  const last = ranked[ranked.length - 1];
+  if (last) {
+    const year = Number(last.fiscalYear);
+    if (Number.isFinite(year)) return String(year + 1);
+  }
+  return String(date).slice(0, 4);
 }
 
 export function dividendsByFiscalYear(
@@ -52,7 +57,7 @@ export function dividendsByFiscalYear(
 ) {
   const byYear = new Map<string, number>();
   for (const row of dividends) {
-    const year = fiscalYearForDate(row.date, fiscalEnds) ?? String(row.date).slice(0, 4);
+    const year = fiscalYearForDate(row.date, fiscalEnds);
     const amount = row.adjDividend || row.dividend || 0;
     byYear.set(year, (byYear.get(year) ?? 0) + amount);
   }

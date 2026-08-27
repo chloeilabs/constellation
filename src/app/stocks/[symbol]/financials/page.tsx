@@ -209,10 +209,11 @@ export default async function FinancialsOverviewPage({
   const span = spanFrom(yearsParam);
   const yearCount = statementLimit("annual", span);
   const annualLimit = yearCount + 1;
+  const fiscalLimit = Math.max(annualLimit, 16);
   const base = stockPath(ticker, "/financials");
   const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates] =
     await Promise.all([
-      getIncomeStatements(ticker, "annual", annualLimit),
+      getIncomeStatements(ticker, "annual", fiscalLimit),
       getIncomeStatements(ticker, "quarter", 8),
       getIncomeTtm(ticker),
       getBalanceSheets(ticker, "annual", annualLimit),
