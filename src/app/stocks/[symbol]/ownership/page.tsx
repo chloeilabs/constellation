@@ -3,10 +3,11 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
+import { HistoryBars } from "@/components/history-bars";
 import { MetricCards } from "@/components/metric-cards";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain } from "@/lib/format";
-import { getBeneficialOwnership, getLatestInstitutionalOwnership } from "@/lib/fmp";
+import { getBeneficialOwnership, getInstitutionalOwnershipHistory, getLatestInstitutionalOwnership } from "@/lib/fmp";
 import { institutionalHref } from "@/lib/institutional";
 import { decodeTicker } from "@/lib/listings";
 import {
@@ -19,8 +20,9 @@ import {
 export default async function OwnershipPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [{ summary, year, quarter, holders }, beneficial] = await Promise.all([
+  const [{ summary, year, quarter, holders }, history, beneficial] = await Promise.all([
     getLatestInstitutionalOwnership(ticker, 40),
+    getInstitutionalOwnershipHistory(ticker, 8),
     getBeneficialOwnership(ticker),
   ]);
   const ranked = [...holders].sort((a, b) => (b.marketValue || 0) - (a.marketValue || 0));
@@ -66,6 +68,10 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
                 value: `${formatInteger(summary.newPositions)} / ${formatInteger(summary.closedPositions)}`,
               },
               {
+                label: "Increased / Reduced",
+                value: `${formatInteger(summary.increasedPositions)} / ${formatInteger(summary.reducedPositions)}`,
+              },
+              {
                 label: "Put / Call",
                 value: summary.putCallRatio?.toFixed(2) ?? "—",
               },
@@ -75,6 +81,47 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
       ) : (
         <p className="text-sm text-muted">Institutional ownership data is not available for this symbol.</p>
       )}
+
+      {history.length > 1 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-header">Ownership Trend</h2>
+          <HistoryBars
+            items={[...history].reverse().map((item) => ({
+              label: `Q${item.quarter} ${String(item.year).slice(2)}`,
+              value: item.row.ownershipPercent,
+            }))}
+            formatValue={(value) => `${value.toFixed(1)}%`}
+          />
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th className="num">Ownership</th>
+                  <th className="num">Institutions</th>
+                  <th className="num">Invested</th>
+                  <th className="num">Increased</th>
+                  <th className="num">Reduced</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((item) => (
+                  <tr key={`${item.year}-${item.quarter}`}>
+                    <td>
+                      Q{item.quarter} {item.year}
+                    </td>
+                    <td className="num">{formatPercentPlain(item.row.ownershipPercent, { alreadyPercent: true })}</td>
+                    <td className="num">{formatInteger(item.row.investorsHolding)}</td>
+                    <td className="num">{formatCompactUsd(item.row.totalInvested)}</td>
+                    <td className="num">{formatInteger(item.row.increasedPositions)}</td>
+                    <td className="num">{formatInteger(item.row.reducedPositions)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Top Institutional Holders</h2>

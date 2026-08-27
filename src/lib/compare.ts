@@ -1,4 +1,15 @@
-import { getCashFlowTtm, getIncomeTtm, getKeyMetricsTtm, getPriceChange, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import {
+  getCashFlowTtm,
+  getEstimates,
+  getGradesConsensus,
+  getIncomeTtm,
+  getKeyMetricsTtm,
+  getPriceChange,
+  getPriceTarget,
+  getProfile,
+  getQuote,
+  getRatiosTtm,
+} from "@/lib/fmp";
 
 export const POPULAR_STOCK_COMPARISONS = [
   ["AAPL", "MSFT"],
@@ -18,7 +29,7 @@ export const POPULAR_STOCK_COMPARISONS = [
 export async function getProfilesAndQuotes(symbols: string[]) {
   return Promise.all(
     symbols.map(async (symbol) => {
-      const [quote, profile, ttm, ratios, cash, metrics, changes] = await Promise.all([
+      const [quote, profile, ttm, ratios, cash, metrics, changes, estimates, target, grades] = await Promise.all([
         getQuote(symbol),
         getProfile(symbol),
         getIncomeTtm(symbol),
@@ -26,8 +37,11 @@ export async function getProfilesAndQuotes(symbols: string[]) {
         getCashFlowTtm(symbol),
         getKeyMetricsTtm(symbol),
         getPriceChange(symbol),
+        getEstimates(symbol, "annual"),
+        getPriceTarget(symbol),
+        getGradesConsensus(symbol),
       ]);
-      return { symbol, quote, profile, ttm, ratios, cash, metrics, changes };
+      return { symbol, quote, profile, ttm, ratios, cash, metrics, changes, estimates, target, grades };
     }),
   );
 }

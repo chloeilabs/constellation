@@ -1281,6 +1281,25 @@ async function findLatestInstitutionalSummary(symbol: string) {
   return { summary: backup.row, year: backup.year, quarter: backup.quarter };
 }
 
+export async function getInstitutionalOwnershipHistory(symbol: string, quarters = 8) {
+  const ticker = decodeTicker(symbol);
+  const periods = recentFiscalQuarters(quarters);
+  const batches = await Promise.all(
+    periods.map((period) =>
+      fmpList<FmpInstitutionalSummary>(
+        "/institutional-ownership/symbol-positions-summary",
+        { symbol: ticker, year: period.year, quarter: period.quarter },
+        { revalidate: 3600 },
+      ).then((rows) => ({ period, row: rows[0] ?? null })),
+    ),
+  );
+  return batches
+    .filter((item): item is { period: { year: number; quarter: number }; row: FmpInstitutionalSummary } =>
+      Boolean(item.row && isPlausible13F(item.row)),
+    )
+    .map((item) => ({ year: item.period.year, quarter: item.period.quarter, row: item.row }));
+}
+
 export async function getLatestInstitutionalOwnership(symbol: string, holderLimit = 40) {
   const ticker = decodeTicker(symbol);
   const latest = await findLatestInstitutionalSummary(ticker);

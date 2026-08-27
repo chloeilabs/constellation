@@ -1,11 +1,59 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
+import {
+  formatAnalystConsensus,
+  formatCompactUsd,
+  formatInteger,
+  formatPercentPlain,
+  formatPlausiblePe,
+  formatPrice,
+  formatRatio,
+} from "@/lib/format";
 import { getProfilesAndQuotes, POPULAR_STOCK_COMPARISONS } from "@/lib/compare";
-import { industrySlug, sectorHref } from "@/lib/industries";
+import { industryHref, sectorHref } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
+import { forwardPe, forwardPs } from "@/lib/valuation";
+
+type CompareRow = Awaited<ReturnType<typeof getProfilesAndQuotes>>[number];
+
+function num(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function MetricRow({
+  label,
+  rows,
+  children,
+}: {
+  label: string;
+  rows: CompareRow[];
+  children: (row: CompareRow) => ReactNode;
+}) {
+  return (
+    <tr>
+      <td>{label}</td>
+      {rows.map((row) => (
+        <td key={row.symbol} className="num">
+          {children(row)}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function pegRatio(row: CompareRow) {
+  return num(row.ratios?.priceToEarningsGrowthRatioTTM) ?? num(row.metrics?.pegRatioTTM);
+}
+
+function targetUpside(row: CompareRow) {
+  const price = num(row.quote?.price);
+  const target = num(row.target?.targetConsensus ?? row.target?.targetMedian);
+  if (price == null || price <= 0 || target == null || target <= 0) return null;
+  return target / price - 1;
+}
 
 export default async function ComparePage({
   searchParams,
@@ -24,10 +72,10 @@ export default async function ComparePage({
     <Container>
       <PageHeader
         title="Compare Stocks"
-        description="Side-by-side quotes, valuation, and trailing financials."
+        description="Side-by-side quotes, forward valuation, analyst targets, and trailing financials from live FMP data."
         actions={
           <div className="flex flex-wrap items-center gap-3">
-            <form className="flex gap-2">
+            <form method="get" className="flex gap-2">
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
@@ -62,210 +110,125 @@ export default async function ComparePage({
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Name</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {row.profile?.companyName ?? row.quote?.name ?? "—"}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Price</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatPrice(row.quote?.price)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Change</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.quote?.changePercentage} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Market Cap</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatCompactUsd(row.quote?.marketCap ?? row.profile?.marketCap)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Revenue (ttm)</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatCompactUsd(row.ttm?.revenue)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Net Income (ttm)</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatCompactUsd(row.ttm?.netIncome)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Free Cash Flow (ttm)</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatCompactUsd(row.cash?.freeCashFlow)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>EPS (ttm)</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {row.ttm?.epsDiluted != null || row.ttm?.eps != null
-                    ? `$${formatPrice(row.ttm.epsDiluted ?? row.ttm.eps)}`
-                    : "—"}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>YTD</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.ytd} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>1 Year</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.["1Y"]} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>5 Year</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.["5Y"]} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>PE Ratio</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatPlausiblePe(row.ratios?.priceToEarningsRatioTTM ?? row.quote?.pe)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>PS Ratio</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatRatio(row.ratios?.priceToSalesRatioTTM)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>PB Ratio</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatRatio(row.ratios?.priceToBookRatioTTM)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>ROE</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatPercentPlain(
-                    typeof row.metrics?.returnOnEquityTTM === "number" ? row.metrics.returnOnEquityTTM : null,
-                  )}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Dividend Yield</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatPercentPlain(
-                    typeof row.ratios?.dividendYieldTTM === "number" ? row.ratios.dividendYieldTTM : null,
-                  )}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Profit Margin</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatPercentPlain(
-                    typeof row.ratios?.netProfitMarginTTM === "number" ? row.ratios.netProfitMarginTTM : null,
-                  )}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Employees</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatInteger(row.profile?.fullTimeEmployees ? Number(row.profile.fullTimeEmployees) : null)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Country</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {row.profile?.country ?? "—"}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Sector</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {row.profile?.sector ? (
-                    <Link href={sectorHref(row.profile.sector)} className="text-link hover:underline">
-                      {row.profile.sector}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Industry</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {row.profile?.industry ? (
-                    <Link href={`/stocks/industry/${industrySlug(row.profile.industry)}`} className="text-link hover:underline">
-                      {row.profile.industry}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>Beta</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {formatRatio(row.profile?.beta)}
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>52-Week Range</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  {row.quote ? `${formatPrice(row.quote.yearLow)} - ${formatPrice(row.quote.yearHigh)}` : "—"}
-                </td>
-              ))}
-            </tr>
+            <MetricRow label="Name" rows={rows}>
+              {(row) => row.profile?.companyName ?? row.quote?.name ?? "—"}
+            </MetricRow>
+            <MetricRow label="Price" rows={rows}>
+              {(row) => formatPrice(row.quote?.price)}
+            </MetricRow>
+            <MetricRow label="Change" rows={rows}>
+              {(row) => <ChangePercent value={row.quote?.changePercentage} />}
+            </MetricRow>
+            <MetricRow label="Market Cap" rows={rows}>
+              {(row) => formatCompactUsd(row.quote?.marketCap ?? row.profile?.marketCap)}
+            </MetricRow>
+            <MetricRow label="Revenue (ttm)" rows={rows}>
+              {(row) => formatCompactUsd(row.ttm?.revenue)}
+            </MetricRow>
+            <MetricRow label="Net Income (ttm)" rows={rows}>
+              {(row) => formatCompactUsd(row.ttm?.netIncome)}
+            </MetricRow>
+            <MetricRow label="Free Cash Flow (ttm)" rows={rows}>
+              {(row) => formatCompactUsd(row.cash?.freeCashFlow)}
+            </MetricRow>
+            <MetricRow label="EPS (ttm)" rows={rows}>
+              {(row) =>
+                row.ttm?.epsDiluted != null || row.ttm?.eps != null
+                  ? `$${formatPrice(row.ttm.epsDiluted ?? row.ttm.eps)}`
+                  : "—"
+              }
+            </MetricRow>
+            <MetricRow label="YTD" rows={rows}>
+              {(row) => <ChangePercent value={row.changes?.ytd} />}
+            </MetricRow>
+            <MetricRow label="1 Year" rows={rows}>
+              {(row) => <ChangePercent value={row.changes?.["1Y"]} />}
+            </MetricRow>
+            <MetricRow label="5 Year" rows={rows}>
+              {(row) => <ChangePercent value={row.changes?.["5Y"]} />}
+            </MetricRow>
+            <MetricRow label="PE Ratio" rows={rows}>
+              {(row) => formatPlausiblePe(row.ratios?.priceToEarningsRatioTTM ?? row.quote?.pe)}
+            </MetricRow>
+            <MetricRow label="Forward PE" rows={rows}>
+              {(row) => formatPlausiblePe(forwardPe(row.quote?.price, row.estimates))}
+            </MetricRow>
+            <MetricRow label="PEG Ratio" rows={rows}>
+              {(row) => formatRatio(pegRatio(row))}
+            </MetricRow>
+            <MetricRow label="PS Ratio" rows={rows}>
+              {(row) => formatRatio(row.ratios?.priceToSalesRatioTTM)}
+            </MetricRow>
+            <MetricRow label="Forward PS" rows={rows}>
+              {(row) => formatRatio(forwardPs(row.quote?.marketCap ?? row.profile?.marketCap, row.estimates))}
+            </MetricRow>
+            <MetricRow label="PB Ratio" rows={rows}>
+              {(row) => formatRatio(row.ratios?.priceToBookRatioTTM)}
+            </MetricRow>
+            <MetricRow label="P/FCF" rows={rows}>
+              {(row) => formatRatio(row.ratios?.priceToFreeCashFlowRatioTTM)}
+            </MetricRow>
+            <MetricRow label="EV / EBITDA" rows={rows}>
+              {(row) => formatRatio(num(row.metrics?.evToEBITDATTM))}
+            </MetricRow>
+            <MetricRow label="ROE" rows={rows}>
+              {(row) => formatPercentPlain(num(row.metrics?.returnOnEquityTTM))}
+            </MetricRow>
+            <MetricRow label="ROIC" rows={rows}>
+              {(row) => formatPercentPlain(num(row.metrics?.returnOnInvestedCapitalTTM))}
+            </MetricRow>
+            <MetricRow label="ROA" rows={rows}>
+              {(row) => formatPercentPlain(num(row.metrics?.returnOnAssetsTTM))}
+            </MetricRow>
+            <MetricRow label="Dividend Yield" rows={rows}>
+              {(row) => formatPercentPlain(num(row.ratios?.dividendYieldTTM))}
+            </MetricRow>
+            <MetricRow label="Profit Margin" rows={rows}>
+              {(row) => formatPercentPlain(num(row.ratios?.netProfitMarginTTM))}
+            </MetricRow>
+            <MetricRow label="Analyst Consensus" rows={rows}>
+              {(row) => formatAnalystConsensus(row.grades)}
+            </MetricRow>
+            <MetricRow label="Price Target" rows={rows}>
+              {(row) => formatPrice(row.target?.targetConsensus ?? row.target?.targetMedian)}
+            </MetricRow>
+            <MetricRow label="Upside" rows={rows}>
+              {(row) => <ChangePercent value={targetUpside(row)} alreadyPercent={false} />}
+            </MetricRow>
+            <MetricRow label="Employees" rows={rows}>
+              {(row) => formatInteger(row.profile?.fullTimeEmployees ? Number(row.profile.fullTimeEmployees) : null)}
+            </MetricRow>
+            <MetricRow label="Country" rows={rows}>
+              {(row) => row.profile?.country ?? "—"}
+            </MetricRow>
+            <MetricRow label="Sector" rows={rows}>
+              {(row) =>
+                row.profile?.sector ? (
+                  <Link href={sectorHref(row.profile.sector)} className="text-link hover:underline">
+                    {row.profile.sector}
+                  </Link>
+                ) : (
+                  "—"
+                )
+              }
+            </MetricRow>
+            <MetricRow label="Industry" rows={rows}>
+              {(row) =>
+                row.profile?.industry ? (
+                  <Link href={industryHref(row.profile.industry)} className="text-link hover:underline">
+                    {row.profile.industry}
+                  </Link>
+                ) : (
+                  "—"
+                )
+              }
+            </MetricRow>
+            <MetricRow label="Beta" rows={rows}>
+              {(row) => formatRatio(row.profile?.beta)}
+            </MetricRow>
+            <MetricRow label="52-Week Range" rows={rows}>
+              {(row) => (row.quote ? `${formatPrice(row.quote.yearLow)} - ${formatPrice(row.quote.yearHigh)}` : "—")}
+            </MetricRow>
           </tbody>
         </table>
       </div>
