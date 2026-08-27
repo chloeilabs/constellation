@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111827;
+  --muted: #6b7280;
+  --muted-bg: #f8fafc;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --gain: #15803d;
+  --loss: #b91c1c;
+  --link: #1d4ed8;
+  --brand: #16a34a;
+  --header: #0f172a;
+  --chip: #f1f5f9;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-bg: var(--muted-bg);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-link: var(--link);
+  --color-brand: var(--brand);
+  --color-header: var(--header);
+  --color-chip: var(--chip);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100%;
+}
+
+a {
+  text-underline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.sa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sa-table th,
+.sa-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sa-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--muted-bg);
+}
+
+.sa-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.sa-table td.num,
+.sa-table th.num {
+  text-align: right;
+}
+
+.sa-table td.symbol {
+  font-weight: 700;
+}
+
+.sa-statement td:first-child,
+.sa-statement th:first-child {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+  min-width: 220px;
+}
+
+.sa-statement thead th:first-child {
+  background: var(--muted-bg);
+}
