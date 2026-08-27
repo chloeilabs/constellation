@@ -85,21 +85,6 @@ export default async function EarningsPage({
           },
         ]}
       />
-      <MetricHistory
-        period={period}
-        annualHref={stockPath(ticker, "/earnings")}
-        quarterHref={`${stockPath(ticker, "/earnings")}?period=quarter`}
-        title={`${period === "quarter" ? "Quarterly" : "Annual"} EPS`}
-        valueLabel="EPS"
-        formatValue={(value) => (value == null ? "—" : px(value))}
-        empty="No EPS history available."
-        rows={history.map((row) => ({
-          key: `${row.date}-${row.period}`,
-          date: row.date,
-          label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
-          value: row.epsDiluted ?? row.eps,
-        }))}
-      />
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Earnings Surprises</h2>
         {surpriseBars.length > 1 ? (
@@ -147,6 +132,23 @@ export default async function EarningsPage({
           </table>
         </div>
       </section>
+      <div className="mt-10">
+        <MetricHistory
+        period={period}
+        annualHref={stockPath(ticker, "/earnings")}
+        quarterHref={`${stockPath(ticker, "/earnings")}?period=quarter`}
+        title={`${period === "quarter" ? "Quarterly" : "Annual"} EPS`}
+        valueLabel="EPS"
+        formatValue={(value) => (value == null ? "—" : px(value))}
+        empty="No EPS history available."
+        rows={history.map((row) => ({
+          key: `${row.date}-${row.period}`,
+          date: row.date,
+          label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
+          value: row.epsDiluted ?? row.eps,
+        }))}
+      />
+      </div>
     </Container>
   );
 }

@@ -76,6 +76,7 @@ export default async function IncomeStatementPage({
           formatValue={formatMillions}
           series={[
             { title: "Revenue", items: statementChartItems(columns, "revenue") },
+            { title: "Gross Profit", items: statementChartItems(columns, "grossProfit") },
             { title: "Operating Income", items: statementChartItems(columns, "operatingIncome") },
             { title: "Net Income", items: statementChartItems(columns, "netIncome") },
             {
