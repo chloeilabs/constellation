@@ -98,7 +98,7 @@ export function SearchBox({
                   <span className="font-semibold">{item.symbol}</span>
                   <span className="ml-2 text-sm text-muted">{item.name}</span>
                 </span>
-                <span className="text-xs text-muted">{item.exchange}</span>
+                <span className="text-xs text-muted">{item.isEtf ? "ETF" : item.exchange}</span>
               </button>
             </li>
           ))}

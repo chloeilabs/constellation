@@ -13,7 +13,7 @@ type ScreenerList = {
   source: "screener";
   filters: Record<string, string | number | boolean>;
   limit: number;
-  sort?: "marketCap" | "dividendYield";
+  sort?: "marketCap" | "dividendYield" | "volume";
   listing?: "primary" | "raw";
   hrefBase?: "/stocks" | "/etf";
   yieldMax?: number;
@@ -57,7 +57,15 @@ type ForeignList = {
   source: "foreign-us";
 };
 
-type StockList = ScreenerList | ConstituentList | CalendarList | OldestList | OtcList | ForeignList;
+type SymbolsList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "symbols";
+  symbols: readonly string[];
+};
+
+type StockList = ScreenerList | ConstituentList | CalendarList | OldestList | OtcList | ForeignList | SymbolsList;
 
 export const STOCK_LISTS = {
   "sp-500-stocks": {
@@ -264,6 +272,23 @@ export const STOCK_LISTS = {
     sort: "marketCap",
     listing: "primary",
   },
+  "highest-volume": {
+    title: "Highest Volume Stocks",
+    description: "U.S. stocks with the highest regular-session volume, excluding micro-caps.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", volumeMoreThan: 5_000_000, marketCapMoreThan: 500_000_000 },
+    limit: 200,
+    sort: "volume",
+    listing: "primary",
+  },
+  "magnificent-seven": {
+    title: "Magnificent Seven",
+    description: "Apple, Microsoft, Nvidia, Amazon, Alphabet, Meta, and Tesla, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA"],
+  },
   "tsx-stocks": {
     title: "Toronto Stock Exchange",
     description: "The largest Canadian companies listed on the TSX.",
@@ -344,6 +369,8 @@ export const LIST_NAV = [
   { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
   { href: "/list/penny-stocks", label: "Penny Stocks" },
   { href: "/list/high-beta-stocks", label: "High Beta" },
+  { href: "/list/magnificent-seven", label: "Mag 7" },
+  { href: "/list/highest-volume", label: "Volume" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
 ];
 
@@ -383,6 +410,22 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     return loadMonthlyDividendStocks();
   }
 
+  if (list.source === "symbols") {
+    const quotes = await getQuotes([...list.symbols]);
+    const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+    return list.symbols.map((symbol) => {
+      const quote = bySymbol.get(symbol);
+      return {
+        symbol,
+        name: quote?.name || symbol,
+        marketCap: quote?.marketCap ?? null,
+        price: quote?.price ?? null,
+        changePercentage: quote?.changePercentage ?? null,
+        volume: quote?.volume ?? null,
+      };
+    });
+  }
+
   if (list.source === "oldest") {
     return loadOldestSp500();
   }
@@ -420,6 +463,9 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
 
   if (list.sort === "dividendYield") {
     return rows.sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0)).slice(0, 50);
+  }
+  if (list.sort === "volume") {
+    return rows.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)).slice(0, 100);
   }
   return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
 }

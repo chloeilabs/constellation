@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { EtfHeader } from "@/components/etf-header";
-import { getAftermarketQuote, getEtfInfo, getQuote, hasFmpKey } from "@/lib/fmp";
+import { getAftermarketQuote, getAftermarketTrade, getEtfInfo, getQuote, hasFmpKey, mergeAftermarketQuote } from "@/lib/fmp";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -21,11 +21,13 @@ export default async function EtfLayout({
 }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, info, afterHours] = await Promise.all([
+  const [quote, info, afterHours, afterTrade] = await Promise.all([
     getQuote(ticker),
     getEtfInfo(ticker),
     getAftermarketQuote(ticker),
+    getAftermarketTrade(ticker),
   ]);
+  const extended = mergeAftermarketQuote(afterHours, afterTrade);
 
   if (!quote && !info) {
     if (!hasFmpKey()) {
@@ -41,7 +43,7 @@ export default async function EtfLayout({
 
   return (
     <>
-      <EtfHeader symbol={ticker} quote={quote} info={info} afterHours={afterHours} />
+      <EtfHeader symbol={ticker} quote={quote} info={info} afterHours={extended} />
       {children}
     </>
   );

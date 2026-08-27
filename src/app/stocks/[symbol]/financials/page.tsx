@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader } from "@/components/page-header";
+import { HistoryBars } from "@/components/history-bars";
 import { YearMetricTable, type YearMetricColumn } from "@/components/year-metric-table";
-import { yearOverYear } from "@/lib/format";
+import { formatCompactUsd, yearOverYear } from "@/lib/format";
 import {
   getBalanceSheets,
   getCashFlows,
@@ -13,6 +14,7 @@ import {
   getIncomeTtm,
   getRatios,
   getRatiosTtm,
+  getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
@@ -98,6 +100,10 @@ function ratioColumn(
   return { key, label, values };
 }
 
+function cleanSegmentName(name: string) {
+  return name.replace(/\s+segment$/i, "").trim();
+}
+
 function segmentNames(rows: FmpRevenueSegment[], limit = 8) {
   const latest = rows[0]?.data;
   if (!latest) return [];
@@ -116,10 +122,25 @@ function segmentLookup(rows: FmpRevenueSegment[]) {
   return byYear;
 }
 
+function segmentColumns(rows: FmpRevenueSegment[], names: string[]): YearMetricColumn[] {
+  const byYear = segmentLookup(rows);
+  const years = [...new Set(rows.map((row) => String(row.fiscalYear)))]
+    .sort((a, b) => Number(b) - Number(a))
+    .slice(0, 5);
+  return years.map((year) => {
+    const data = byYear.get(year) ?? {};
+    const values: Record<string, number | null> = {};
+    for (const name of names) values[name] = n(data[name]);
+    const namedTotal = names.reduce((sum, name) => sum + (values[name] ?? 0), 0);
+    values.total = namedTotal || n(Object.values(data).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0));
+    return { key: year, label: fyLabel(year), values };
+  });
+}
+
 export default async function FinancialsOverviewPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, ttmCash, annualRatios, ttmRatios, products, dividends] =
+  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, ttmCash, annualRatios, ttmRatios, products, geos, dividends] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", 6),
       getIncomeStatements(ticker, "quarter", 8),
@@ -131,6 +152,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
       getRatios(ticker, "annual", 6),
       getRatiosTtm(ticker),
       getRevenueProductSegments(ticker, "annual"),
+      getRevenueGeographicSegments(ticker, "annual"),
       getDividends(ticker, 8),
     ]);
 
@@ -207,18 +229,13 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
   ];
 
   const names = segmentNames(products);
-  const byYear = segmentLookup(products);
-  const productYears = [...new Set(products.map((row) => String(row.fiscalYear)))]
-    .sort((a, b) => Number(b) - Number(a))
-    .slice(0, 5);
-  const productColumns: YearMetricColumn[] = productYears.map((year) => {
-    const data = byYear.get(year) ?? {};
-    const values: Record<string, number | null> = {};
-    for (const name of names) values[name] = n(data[name]);
-    const total = names.reduce((sum, name) => sum + (values[name] ?? 0), 0);
-    values.total = total || n(Object.values(data).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0));
-    return { key: year, label: fyLabel(year), values };
-  });
+  const productColumns = segmentColumns(products, names);
+  const geoNames = segmentNames(geos);
+  const geoColumns = segmentColumns(geos, geoNames);
+  const revenueBars = [...incomeYears]
+    .reverse()
+    .filter((row) => typeof row.revenue === "number")
+    .map((row) => ({ label: String(row.fiscalYear), value: row.revenue }));
 
   const ttmDividend = dividends.slice(0, 4).reduce((sum, row) => sum + (row.dividend || 0), 0);
   const dividendByYear = new Map<string, number>();
@@ -273,6 +290,11 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
             { key: "epsGrowth", label: "EPS Growth", format: "percent" },
           ]}
         />
+        {revenueBars.length > 1 ? (
+          <div className="mt-4">
+            <HistoryBars items={revenueBars} formatValue={formatCompactUsd} />
+          </div>
+        ) : null}
       </section>
 
       {names.length > 0 ? (
@@ -286,7 +308,25 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
           <YearMetricTable
             columns={productColumns}
             rows={[
-              ...names.map((name) => ({ key: name, label: name, format: "money" as const })),
+              ...names.map((name) => ({ key: name, label: cleanSegmentName(name), format: "money" as const })),
+              { key: "total", label: "Revenue (Total)", format: "money", emphasize: true },
+            ]}
+          />
+        </section>
+      ) : null}
+
+      {geoNames.length > 0 ? (
+        <section className="mt-10">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <h2 className="text-lg font-semibold text-header">Revenue by Geography</h2>
+            <Link href={`/stocks/${ticker}/revenue`} className="text-sm text-link hover:underline">
+              Revenue page
+            </Link>
+          </div>
+          <YearMetricTable
+            columns={geoColumns}
+            rows={[
+              ...geoNames.map((name) => ({ key: name, label: cleanSegmentName(name), format: "money" as const })),
               { key: "total", label: "Revenue (Total)", format: "money", emphasize: true },
             ]}
           />

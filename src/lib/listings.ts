@@ -2,6 +2,91 @@ const US_SHARE_CLASSES = new Set(["A", "B", "C", "D", "K", "P", "U", "V", "W", "
 const US_EXCHANGE = /NASDAQ|NYSE|AMEX|NYSEARCA|BATS/;
 const US_VENUE = /NASDAQ|NYSE|AMEX|NYSEARCA|BATS|CBOE|OTC|PNK|OTCQX|OTCQB|NMS|NGM|NCM/;
 const FOREIGN_EXCHANGE = /FRANKFURT|XETRA|LONDON|TSX|NEO|MEXICO|BUENOS|HONG|TOKYO|EURONEXT|BERLIN|MILAN|SAO PAULO|SANTIAGO/;
+const ETF_NAME = /\bETF\b|\bETN\b|\bUCITS\b|TRUST,\s*SERIES|\bSPDR\b|\bISHARES\b/i;
+const WELL_KNOWN_ETFS = new Set([
+  "SPY",
+  "QQQ",
+  "QQQM",
+  "IWM",
+  "DIA",
+  "VOO",
+  "VTI",
+  "IVV",
+  "VEA",
+  "VWO",
+  "EFA",
+  "EEM",
+  "GLD",
+  "SLV",
+  "TLT",
+  "IEF",
+  "SHY",
+  "LQD",
+  "HYG",
+  "JNK",
+  "BND",
+  "BNDX",
+  "SGOV",
+  "BIL",
+  "XLF",
+  "XLE",
+  "XLK",
+  "XLV",
+  "XLI",
+  "XLY",
+  "XLP",
+  "XLU",
+  "XLB",
+  "XLRE",
+  "XLC",
+  "SMH",
+  "SOXX",
+  "VIG",
+  "VYM",
+  "SCHD",
+  "JEPI",
+  "JEPQ",
+  "QQQI",
+  "TQQQ",
+  "SQQQ",
+  "SOXL",
+  "SOXS",
+  "SPXL",
+  "UPRO",
+  "TNA",
+  "UVXY",
+  "SVXY",
+  "VXX",
+  "ARKK",
+  "ARKW",
+  "ARKG",
+  "ARKF",
+  "IBIT",
+  "FBTC",
+  "GBTC",
+  "BITO",
+  "ETHA",
+  "ETHE",
+  "UNG",
+  "USO",
+  "GDX",
+  "GDXJ",
+  "XOP",
+  "KRE",
+  "XBI",
+  "IBB",
+  "RSP",
+  "QUAL",
+  "USMV",
+  "MTUM",
+  "IWF",
+  "IWD",
+  "IWB",
+  "IJH",
+  "IJR",
+  "ACWI",
+  "VT",
+]);
 
 /** Dual listings use suffixes like AAPL.MX / MSF.F. US share classes use A/B/C (BRK.B). */
 export function isForeignListingSymbol(symbol: string) {
@@ -32,9 +117,9 @@ export function quoteHref(
   hint?: { name?: string | null; exchange?: string | null; exchangeFullName?: string | null; isEtf?: boolean | null },
 ) {
   const ticker = symbol.toUpperCase();
-  if (hint?.isEtf) return `/etf/${ticker}`;
-  const hay = `${hint?.name ?? ""} ${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`.toUpperCase();
-  if (/\bETF\b|\bETN\b/.test(hay) || /ARCA/.test(hay)) return `/etf/${ticker}`;
+  if (hint?.isEtf || WELL_KNOWN_ETFS.has(ticker)) return `/etf/${ticker}`;
+  const hay = `${hint?.name ?? ""} ${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`;
+  if (ETF_NAME.test(hay) || /ARCA/.test(hay.toUpperCase())) return `/etf/${ticker}`;
   return `/stocks/${ticker}`;
 }
 

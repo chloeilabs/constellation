@@ -18,7 +18,7 @@ export function EtfHeader({
 }) {
   const name = info?.name ?? quote?.name ?? symbol;
   const price = quote?.price;
-  const afterPrice = afterHours?.bidPrice || afterHours?.askPrice;
+  const afterPrice = afterHours?.lastPrice || afterHours?.bidPrice || afterHours?.askPrice;
   const afterChange = afterPrice && price ? afterPrice - price : null;
   const afterPct = afterChange != null && price ? (afterChange / price) * 100 : null;
 

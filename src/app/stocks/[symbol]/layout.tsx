@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { StockHeader } from "@/components/stock-header";
-import { getAftermarketQuote, getProfile, getQuote, hasFmpKey } from "@/lib/fmp";
+import { getAftermarketQuote, getAftermarketTrade, getProfile, getQuote, hasFmpKey, mergeAftermarketQuote } from "@/lib/fmp";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -21,11 +21,13 @@ export default async function StockLayout({
 }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, profile, afterHours] = await Promise.all([
+  const [quote, profile, afterHours, afterTrade] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getAftermarketQuote(ticker),
+    getAftermarketTrade(ticker),
   ]);
+  const extended = mergeAftermarketQuote(afterHours, afterTrade);
 
   if (!quote && !profile) {
     if (!hasFmpKey()) {
@@ -41,7 +43,7 @@ export default async function StockLayout({
 
   return (
     <>
-      <StockHeader symbol={ticker} quote={quote} profile={profile} afterHours={afterHours} />
+      <StockHeader symbol={ticker} quote={quote} profile={profile} afterHours={extended} />
       {children}
     </>
   );

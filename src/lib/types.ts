@@ -67,6 +67,7 @@ export type FmpSearchResult = {
   currency: string;
   exchangeFullName: string;
   exchange: string;
+  isEtf?: boolean;
 };
 
 export type FmpMover = {
@@ -162,6 +163,31 @@ export type FmpAftermarketQuote = {
   askPrice: number;
   volume: number;
   timestamp: number;
+  lastPrice?: number;
+};
+
+export type FmpAftermarketTrade = {
+  symbol: string;
+  price: number;
+  tradeSize: number | null;
+  timestamp: number;
+};
+
+export type FmpTechnicalPoint = {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  rsi?: number;
+  sma?: number;
+  ema?: number;
+};
+
+export type FmpEtfListItem = {
+  symbol: string;
+  name: string;
 };
 
 export type FmpScreenerRow = {

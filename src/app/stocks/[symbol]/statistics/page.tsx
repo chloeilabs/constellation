@@ -22,6 +22,7 @@ import {
   getEstimates,
   getIncomeTtm,
   getKeyMetricsTtm,
+  getLatestRsi,
   getPriceChange,
   getProfile,
   getQuote,
@@ -39,7 +40,7 @@ function num(value: unknown) {
 export default async function StatisticsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, profile, ratios, metrics, scores, shareFloat, dcf, ratings, ttm, cash, balance, earnings, dividends, splits, employees, estimates, changes] =
+  const [quote, profile, ratios, metrics, scores, shareFloat, dcf, ratings, ttm, cash, balance, earnings, dividends, splits, employees, estimates, changes, rsi] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -58,6 +59,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
       getEmployeeCount(ticker, 1),
       getEstimates(ticker, "annual"),
       getPriceChange(ticker),
+      getLatestRsi(ticker),
     ]);
 
   const sheet = balance[0] ?? null;
@@ -218,6 +220,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "52-Week Low", value: formatPrice(quote?.yearLow) },
               { label: "50-Day Average", value: formatPrice(quote?.priceAvg50) },
               { label: "200-Day Average", value: formatPrice(quote?.priceAvg200) },
+              { label: "RSI (14)", value: formatNumber(rsi?.rsi) },
               { label: "Average Volume", value: formatNumber(quote?.avgVolume ?? profile?.averageVolume, 0) },
             ]}
           />

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/format";
+import { quoteHref } from "@/lib/listings";
 import type { FmpNewsItem } from "@/lib/types";
 
 export function NewsList({
@@ -33,7 +34,7 @@ export function NewsList({
             </a>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
               {showSymbol && item.symbol ? (
-                <Link href={`/stocks/${item.symbol}`} className="font-semibold text-link hover:underline">
+                <Link href={quoteHref(item.symbol, { name: item.title })} className="font-semibold text-link hover:underline">
                   {item.symbol}
                 </Link>
               ) : null}

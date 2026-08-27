@@ -1,7 +1,10 @@
 import { connection } from "next/server";
-import { chunk, first } from "@/lib/utils";
+import { addDays, chunk, first, isoDate, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
+  FmpAftermarketTrade,
+  FmpEtfListItem,
+  FmpTechnicalPoint,
   FmpBalanceSheet,
   FmpCashFlow,
   FmpDividend,
@@ -82,7 +85,6 @@ import type {
   FmpExecutiveCompensation,
   StatementPeriod,
 } from "@/lib/types";
-import { recentFiscalQuarters } from "@/lib/utils";
 
 const FMP_BASE = "https://financialmodelingprep.com/stable";
 
@@ -227,9 +229,10 @@ export function searchName(query: string, limit = 10) {
 export async function searchAll(query: string, limit = 8) {
   const trimmed = query.trim();
   if (!trimmed) return [] as FmpSearchResult[];
-  const [bySymbol, byName] = await Promise.all([
+  const [bySymbol, byName, etfSymbols] = await Promise.all([
     searchSymbol(trimmed, Math.max(limit, 12)),
     searchName(trimmed, Math.max(limit, 12)),
+    getEtfSymbolSet(),
   ]);
   const seen = new Set<string>();
   const merged: FmpSearchResult[] = [];
@@ -238,7 +241,10 @@ export async function searchAll(query: string, limit = 8) {
     const key = `${item.symbol}-${item.exchange}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    merged.push(item);
+    merged.push({
+      ...item,
+      isEtf: item.isEtf || etfSymbols.has(item.symbol.toUpperCase()),
+    });
   }
   const needle = trimmed.toUpperCase();
   const usExchange = /NASDAQ|NYSE|AMEX|NYSEARCA|BATS|CBOE/i;
@@ -354,6 +360,73 @@ export function getAftermarketQuote(symbol: string) {
     { symbol: symbol.toUpperCase() },
     { revalidate: 15 },
   );
+}
+
+export function getAftermarketTrade(symbol: string) {
+  return fmpFirst<FmpAftermarketTrade>(
+    "/aftermarket-trade",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 15 },
+  );
+}
+
+export async function getBatchAftermarketQuotes(symbols: string[]) {
+  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()).filter(Boolean))];
+  if (unique.length === 0) return [] as FmpAftermarketQuote[];
+  const groups = await Promise.all(
+    chunk(unique, 80).map((group) =>
+      fmpList<FmpAftermarketQuote>("/batch-aftermarket-quote", { symbols: group.join(",") }, { revalidate: 15 }),
+    ),
+  );
+  return groups.flat();
+}
+
+export async function getBatchAftermarketTrades(symbols: string[]) {
+  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()).filter(Boolean))];
+  if (unique.length === 0) return [] as FmpAftermarketTrade[];
+  const groups = await Promise.all(
+    chunk(unique, 80).map((group) =>
+      fmpList<FmpAftermarketTrade>("/batch-aftermarket-trade", { symbols: group.join(",") }, { revalidate: 15 }),
+    ),
+  );
+  return groups.flat();
+}
+
+export function mergeAftermarketQuote(
+  quote: FmpAftermarketQuote | null,
+  trade: FmpAftermarketTrade | null,
+): FmpAftermarketQuote | null {
+  if (!quote && !trade) return null;
+  return {
+    symbol: quote?.symbol ?? trade?.symbol ?? "",
+    bidSize: quote?.bidSize ?? 0,
+    bidPrice: quote?.bidPrice ?? 0,
+    askSize: quote?.askSize ?? 0,
+    askPrice: quote?.askPrice ?? 0,
+    volume: quote?.volume ?? 0,
+    timestamp: trade?.timestamp ?? quote?.timestamp ?? 0,
+    lastPrice: trade?.price,
+  };
+}
+
+export async function getLatestRsi(symbol: string, periodLength = 14) {
+  const from = isoDate(addDays(new Date(), -45));
+  const rows = await fmpList<FmpTechnicalPoint>(
+    "/technical-indicators/rsi",
+    { symbol: symbol.toUpperCase(), periodLength, timeframe: "1day", from },
+    { revalidate: 300 },
+  );
+  if (rows.length === 0) return null;
+  return [...rows].sort((a, b) => b.date.localeCompare(a.date))[0];
+}
+
+export function getEtfList() {
+  return fmpList<FmpEtfListItem>("/etf-list", {}, { revalidate: 86400 });
+}
+
+export async function getEtfSymbolSet() {
+  const rows = await getEtfList();
+  return new Set(rows.map((row) => row.symbol.toUpperCase()).filter(Boolean));
 }
 
 export function getDailyChart(symbol: string, from?: string, to?: string) {

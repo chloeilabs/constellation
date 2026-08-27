@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav } from "@/components/section-nav";
 import { formatDate } from "@/lib/format";
 import { getTranscript, getTranscriptDates } from "@/lib/fmp";
+import { quoteNewsNav } from "@/lib/nav";
 
 export default async function StockTranscriptsPage({
   params,
@@ -27,6 +29,7 @@ export default async function StockTranscriptsPage({
         title={`${ticker} Earnings Transcripts`}
         description="Full earnings call transcripts from Financial Modeling Prep."
       />
+      <SectionNav items={quoteNewsNav(ticker)} />
       {dates.length === 0 ? (
         <p className="text-sm text-muted">No transcripts available for {ticker}.</p>
       ) : (

@@ -39,6 +39,7 @@ export default async function SearchPage({
                 <tr>
                   <th>Symbol</th>
                   <th>Name</th>
+                  <th>Type</th>
                   <th>Exchange</th>
                 </tr>
               </thead>
@@ -51,6 +52,7 @@ export default async function SearchPage({
                       </Link>
                     </td>
                     <td>{row.name}</td>
+                    <td className="text-muted">{row.isEtf ? "ETF" : "Stock"}</td>
                     <td className="text-muted">{row.exchangeFullName || row.exchange}</td>
                   </tr>
                 ))}

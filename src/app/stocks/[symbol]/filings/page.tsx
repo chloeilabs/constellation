@@ -1,7 +1,9 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav } from "@/components/section-nav";
 import { formatDate } from "@/lib/format";
 import { getSecFilings } from "@/lib/fmp";
+import { quoteNewsNav } from "@/lib/nav";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 const PRIMARY = new Set(["10-K", "10-Q", "8-K", "10-K/A", "10-Q/A", "8-K/A", "S-1", "S-3", "DEF 14A", "20-F"]);
@@ -24,6 +26,7 @@ export default async function StockFilingsPage({ params }: { params: Promise<{ s
         title={`${ticker} SEC Filings`}
         description="Recent EDGAR filings including 10-K, 10-Q, and 8-K reports."
       />
+      <SectionNav items={quoteNewsNav(ticker)} />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

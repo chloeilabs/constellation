@@ -23,10 +23,12 @@ import {
   getQuote,
   getRatiosTtm,
   getSymbolNews,
+  withQuoteChanges,
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
-import { isForeignListingSymbol } from "@/lib/listings";
+import { isForeignListingSymbol, quoteHref } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
+import { ChangePercent } from "@/components/change";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 
 export default async function StockOverviewPage({
@@ -72,6 +74,14 @@ export default async function StockOverviewPage({
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
+  const peerRows = await withQuoteChanges(
+    peers.slice(0, 8).map((peer) => ({
+      symbol: peer.symbol,
+      price: peer.price,
+      companyName: peer.companyName,
+      mktCap: peer.mktCap,
+    })),
+  );
 
   return (
     <Container>
@@ -211,7 +221,7 @@ export default async function StockOverviewPage({
         </section>
       ) : null}
 
-      {peers.length > 0 ? (
+      {peerRows.length > 0 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">Peers</h2>
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -221,19 +231,23 @@ export default async function StockOverviewPage({
                   <th>Symbol</th>
                   <th>Company</th>
                   <th className="num">Price</th>
+                  <th className="num">Change</th>
                   <th className="num">Market Cap</th>
                 </tr>
               </thead>
               <tbody>
-                {peers.slice(0, 8).map((peer) => (
+                {peerRows.map((peer) => (
                   <tr key={peer.symbol}>
                     <td className="symbol">
-                      <Link href={`/stocks/${peer.symbol}`} className="text-link hover:underline">
+                      <Link href={quoteHref(peer.symbol, { name: peer.companyName })} className="text-link hover:underline">
                         {peer.symbol}
                       </Link>
                     </td>
                     <td>{peer.companyName}</td>
                     <td className="num">{formatPrice(peer.price)}</td>
+                    <td className="num">
+                      <ChangePercent value={peer.changePercentage} alreadyPercent />
+                    </td>
                     <td className="num">{formatCompactUsd(peer.mktCap)}</td>
                   </tr>
                 ))}

@@ -15,6 +15,7 @@ export {
   ETF_NAV,
   CONGRESS_NAV,
   quoteFundamentalsNav,
+  quoteNewsNav,
   etfQuoteNav,
 } from "@/lib/nav";
 

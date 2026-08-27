@@ -3,6 +3,8 @@ export type NavItem = { href: string; label: string; match?: "exact" | "prefix" 
 export const MARKET_NAV: NavItem[] = [
   { href: "/markets", label: "Overview" },
   { href: "/markets/heatmap", label: "Heatmap" },
+  { href: "/markets/premarket", label: "Premarket" },
+  { href: "/markets/afterhours", label: "After Hours" },
   { href: "/markets/index-changes", label: "Index Changes" },
   { href: "/markets/gainers", label: "Gainers" },
   { href: "/markets/losers", label: "Losers" },
@@ -75,6 +77,15 @@ export const CONGRESS_NAV: NavItem[] = [
   { href: "/congress/house", label: "House" },
   { href: "/institutional", label: "13F Filings" },
 ];
+
+export function quoteNewsNav(symbol: string): NavItem[] {
+  return [
+    { href: `/stocks/${symbol}/news`, label: "All News", match: "exact" },
+    { href: `/stocks/${symbol}/news/press-releases`, label: "Press Releases" },
+    { href: `/stocks/${symbol}/transcripts`, label: "Transcripts" },
+    { href: `/stocks/${symbol}/filings`, label: "SEC Filings" },
+  ];
+}
 
 export function etfQuoteNav(symbol: string): NavItem[] {
   return [
