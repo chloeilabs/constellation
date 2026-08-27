@@ -6,6 +6,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { formatMoney, formatPercentPlain, formatRatio } from "@/lib/format";
 import { getIncomeGrowth, getIncomeTtm, getProfile, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -20,7 +21,7 @@ export default async function PegRatioPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttmRatios, ttmIncome, quote, profile, growthRows] = await Promise.all([
     getRatios(ticker, "annual", 20),

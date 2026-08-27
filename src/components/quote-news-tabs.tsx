@@ -10,51 +10,54 @@ import type { FmpNewsItem, FmpSecFiling, FmpTranscriptDate } from "@/lib/types";
 
 type TabId = "all" | "press" | "transcripts" | "filings";
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "press", label: "Press Releases" },
-  { id: "transcripts", label: "Transcripts" },
-  { id: "filings", label: "Filings" },
-];
-
 export function QuoteNewsTabs({
   symbol,
   news,
   press,
-  transcripts,
-  filings,
+  transcripts = [],
+  filings = [],
+  moreHref,
 }: {
   symbol: string;
   news: FmpNewsItem[];
   press: FmpNewsItem[];
-  transcripts: FmpTranscriptDate[];
-  filings: FmpSecFiling[];
+  transcripts?: FmpTranscriptDate[];
+  filings?: FmpSecFiling[];
+  moreHref?: Partial<Record<TabId, string>>;
 }) {
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "press", label: "Press Releases" },
+    ...(transcripts.length ? [{ id: "transcripts" as const, label: "Transcripts" }] : []),
+    ...(filings.length ? [{ id: "filings" as const, label: "Filings" }] : []),
+  ];
   const [tab, setTab] = useState<TabId>("all");
-  const moreHref = {
+  const active = tabs.some((item) => item.id === tab) ? tab : "all";
+  const defaults: Record<TabId, string> = {
     all: stockPath(symbol, "/news"),
     press: stockPath(symbol, "/news/press-releases"),
     transcripts: stockPath(symbol, "/transcripts"),
     filings: stockPath(symbol, "/filings"),
-  }[tab];
+  };
+  const hrefs = { ...defaults, ...moreHref };
   const moreLabel = {
     all: "All news",
     press: "All press releases",
     transcripts: "All transcripts",
     filings: "All filings",
-  }[tab];
+  }[active];
 
   return (
     <section className="mt-10">
       <div className="mb-3 flex items-end justify-between gap-3">
         <h2 className="text-xl font-semibold text-header">News</h2>
-        <Link href={moreHref} className="text-sm text-link hover:underline">
+        <Link href={hrefs[active]} className="text-sm text-link hover:underline">
           {moreLabel}
         </Link>
       </div>
       <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Quote news">
-        {TABS.map((item) => {
-          const selected = item.id === tab;
+        {tabs.map((item) => {
+          const selected = item.id === active;
           return (
             <button
               key={item.id}
@@ -72,10 +75,10 @@ export function QuoteNewsTabs({
           );
         })}
       </div>
-      {tab === "all" ? <NewsList items={news} showSymbol={false} /> : null}
-      {tab === "press" ? <NewsList items={press} showSymbol={false} /> : null}
-      {tab === "transcripts" ? <TranscriptList symbol={symbol} rows={transcripts} /> : null}
-      {tab === "filings" ? <FilingList rows={filings} /> : null}
+      {active === "all" ? <NewsList items={news} showSymbol={false} /> : null}
+      {active === "press" ? <NewsList items={press} showSymbol={false} /> : null}
+      {active === "transcripts" ? <TranscriptList symbol={symbol} rows={transcripts} /> : null}
+      {active === "filings" ? <FilingList rows={filings} /> : null}
     </section>
   );
 }

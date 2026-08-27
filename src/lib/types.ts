@@ -1219,3 +1219,27 @@ export type FmpExecutiveCompensation = {
   total: number;
   link: string;
 };
+
+export type FmpAsReportedStatement = {
+  symbol: string;
+  fiscalYear: number | string;
+  period: string;
+  reportedCurrency: string;
+  date: string;
+  data?: Record<string, number | string | null>;
+};
+
+export type FmpFinancialReportDate = {
+  symbol: string;
+  fiscalYear: number | string;
+  period: string;
+  linkJson?: string;
+  linkXlsx?: string;
+};
+
+export type FmpFinancialReportJson = {
+  symbol?: string;
+  period?: string;
+  year?: string | number;
+  [section: string]: unknown;
+};

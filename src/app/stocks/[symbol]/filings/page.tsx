@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { formatDate } from "@/lib/format";
 import { getSecFilings } from "@/lib/fmp";
 import { sortSecFilings } from "@/lib/filings";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
@@ -23,6 +24,17 @@ export default async function StockFilingsPage({ params }: { params: Promise<{ s
         description="Recent EDGAR filings including 10-K, 10-Q, and 8-K reports."
       />
       <SectionNav items={quoteNewsNav(ticker)} />
+      <p className="mb-4 text-sm text-muted">
+        Looking for as-filed 10-K / 10-Q packages?{" "}
+        <Link href={stockPath(ticker, "/financials/reports")} className="text-link hover:underline">
+          Open financial reports
+        </Link>
+        {" · "}
+        <Link href={stockPath(ticker, "/financials/income-statement?source=reported")} className="text-link hover:underline">
+          As-reported income statement
+        </Link>
+        .
+      </p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

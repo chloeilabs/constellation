@@ -5,10 +5,10 @@ import { decodeTicker, marketAssetHref } from "@/lib/listings";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const market = marketAssetHref(decodeTicker(symbol));
+  const ticker = decodeTicker(symbol);
+  const market = marketAssetHref(ticker);
   if (market) redirect(market);
-  const info = await getEtfInfo(symbol);
-  const ticker = symbol.toUpperCase();
+  const info = await getEtfInfo(ticker);
   return {
     title: `${info?.name ?? ticker} (${ticker}) ETF`,
     description: info?.description?.slice(0, 160) ?? `${ticker} ETF holdings, sectors, countries, and quote.`,

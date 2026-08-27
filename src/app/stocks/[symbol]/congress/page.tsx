@@ -2,10 +2,11 @@ import { Container } from "@/components/container";
 import { CongressTable } from "@/components/congress-table";
 import { PageHeader } from "@/components/page-header";
 import { loadSymbolCongressTrades } from "@/lib/congress";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function StockCongressPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const rows = await loadSymbolCongressTrades(ticker, 75);
 
   return (

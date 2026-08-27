@@ -3,10 +3,11 @@ import { InsiderTable } from "@/components/insider-table";
 import { PageHeader } from "@/components/page-header";
 import { formatInteger, formatNumber } from "@/lib/format";
 import { getInsiderStatistics, getInsiderTrades } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function StockInsidersPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const [rows, stats] = await Promise.all([getInsiderTrades(ticker, 75), getInsiderStatistics(ticker)]);
   const recent = [...stats].sort((a, b) => b.year - a.year || b.quarter - a.quarter).slice(0, 8);
 

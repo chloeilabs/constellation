@@ -7,6 +7,7 @@ import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function CapexPage({
   params,
@@ -17,7 +18,7 @@ export default async function CapexPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm] = await Promise.all([
     getCashFlows(ticker, "annual", 20),

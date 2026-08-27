@@ -7,6 +7,7 @@ import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatMoney, yearOverYear } from "@/lib/format";
 import { getEnterpriseValues, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function EnterpriseValuePage({
   params,
@@ -17,7 +18,7 @@ export default async function EnterpriseValuePage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [history, ttm, quote, profile] = await Promise.all([
     getEnterpriseValues(ticker, period, 20),

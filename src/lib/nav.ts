@@ -1,5 +1,5 @@
 import { isIndexTicker } from "@/lib/indexes";
-import { stockPath } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 
 export type NavItem = { href: string; label: string; match?: "exact" | "prefix" };
 
@@ -113,7 +113,7 @@ export const CONGRESS_NAV: NavItem[] = [
 ];
 
 export function quoteNewsNav(symbol: string): NavItem[] {
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   if (isIndexTicker(ticker)) {
     return [{ href: stockPath(ticker, "/news"), label: "News", match: "exact" }];
   }
@@ -136,7 +136,7 @@ export function etfQuoteNav(symbol: string): NavItem[] {
 }
 
 export function fundQuoteNav(symbol: string): NavItem[] {
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   return [
     { href: `/funds/${ticker}`, label: "Overview", match: "exact" },
     { href: `/funds/${ticker}/holdings`, label: "Holdings" },

@@ -100,6 +100,9 @@ import type {
   FmpCompanyNote,
   FmpInstitutionalFiling,
   FmpExecutiveCompensation,
+  FmpAsReportedStatement,
+  FmpFinancialReportDate,
+  FmpFinancialReportJson,
   StatementPeriod,
 } from "@/lib/types";
 
@@ -671,6 +674,68 @@ export function getCashFlowTtm(symbol: string) {
     { symbol: decodeTicker(symbol) },
     { revalidate: 3600 },
   );
+}
+
+export function getIncomeAsReported(symbol: string, period: StatementPeriod, limit = 8) {
+  return fmpList<FmpAsReportedStatement>(
+    "/income-statement-as-reported",
+    { symbol: decodeTicker(symbol), period, limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getBalanceAsReported(symbol: string, period: StatementPeriod, limit = 8) {
+  return fmpList<FmpAsReportedStatement>(
+    "/balance-sheet-statement-as-reported",
+    { symbol: decodeTicker(symbol), period, limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getCashFlowAsReported(symbol: string, period: StatementPeriod, limit = 8) {
+  return fmpList<FmpAsReportedStatement>(
+    "/cash-flow-statement-as-reported",
+    { symbol: decodeTicker(symbol), period, limit },
+    { revalidate: 3600 },
+  );
+}
+
+export function getFinancialReportDates(symbol: string) {
+  return fmpList<FmpFinancialReportDate>(
+    "/financial-reports-dates",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 3600 },
+  );
+}
+
+export async function getFinancialReportJson(symbol: string, year: string | number, period: string) {
+  try {
+    return await fmpGet<FmpFinancialReportJson>(
+      "/financial-reports-json",
+      { symbol: decodeTicker(symbol), year, period },
+      { revalidate: 86400 },
+    );
+  } catch (error) {
+    if (error instanceof FmpError && error.status === 401) return null;
+    console.error("FMP /financial-reports-json failed", error);
+    return null;
+  }
+}
+
+export async function getFinancialReportXlsx(symbol: string, year: string, period: string) {
+  await connection();
+  const key = process.env.FMP_API_KEY?.trim();
+  if (!key) return null;
+  const url = new URL(`${FMP_BASE}/financial-reports-xlsx`);
+  url.searchParams.set("symbol", decodeTicker(symbol));
+  url.searchParams.set("year", year);
+  url.searchParams.set("period", period);
+  url.searchParams.set("apikey", key);
+  const response = await fetch(url.toString(), { next: { revalidate: 86400 } });
+  if (!response.ok) return null;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) return null;
+  return response.arrayBuffer();
 }
 
 export function getRatios(symbol: string, period: StatementPeriod, limit = 8) {

@@ -1,4 +1,5 @@
 import { StatementMetricPage, periodFrom } from "@/components/statement-metric-page";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function DebtPage({
   params,
@@ -9,7 +10,7 @@ export default async function DebtPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   return (
     <StatementMetricPage
       symbol={ticker}

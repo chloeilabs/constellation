@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/financials/ratios", label: "Ratios" },
   { href: "/financials/metrics", label: "Metrics" },
   { href: "/financials/growth", label: "Growth" },
+  { href: "/financials/reports", label: "Reports" },
 ];
 
 export function FinancialsNav({ symbol }: { symbol: string }) {

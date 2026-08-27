@@ -7,6 +7,7 @@ import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getIncomeStatements, getIncomeTtm, getRatiosTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function NetIncomePage({
   params,
@@ -17,7 +18,7 @@ export default async function NetIncomePage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, ratios] = await Promise.all([
     getIncomeStatements(ticker, "annual", 20),

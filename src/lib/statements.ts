@@ -268,3 +268,237 @@ export function withTtmColumn(
   if (!ttm) return columns;
   return [{ key: "ttm", label: "TTM", values: ttm }, ...columns];
 }
+
+export type StatementSource = "standardized" | "reported";
+
+export function sourceFrom(value?: string): StatementSource {
+  return value === "reported" || value === "as-reported" ? "reported" : "standardized";
+}
+
+export function statementHref(base: string, period: "annual" | "quarter", source: StatementSource = "standardized") {
+  const params = new URLSearchParams();
+  if (period === "quarter") params.set("period", "quarter");
+  if (source === "reported") params.set("source", "reported");
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
+const XBRL_LABELS: Record<string, string> = {
+  revenuefromcontractwithcustomerexcludingassessedtax: "Revenue from Contract with Customer, Excluding Assessed Tax",
+  costofgoodsandservicessold: "Cost of Goods and Services Sold",
+  grossprofit: "Gross Profit",
+  researchanddevelopmentexpense: "Research and Development Expense",
+  sellinggeneralandadministrativeexpense: "Selling, General and Administrative Expense",
+  operatingexpenses: "Operating Expenses",
+  operatingincomeloss: "Operating Income (Loss)",
+  nonoperatingincomeexpense: "Nonoperating Income (Expense)",
+  incomelossfromcontinuingoperationsbeforeincometaxesextraordinaryitemsnoncontrollinginterest:
+    "Income (Loss) from Continuing Operations Before Tax",
+  incometaxexpensebenefit: "Income Tax Expense (Benefit)",
+  netincomeloss: "Net Income (Loss)",
+  earningspersharebasic: "EPS (Basic)",
+  earningspersharediluted: "EPS (Diluted)",
+  weightedaveragenumberofsharesoutstandingbasic: "Shares Outstanding (Basic)",
+  weightedaveragenumberofdilutedsharesoutstanding: "Shares Outstanding (Diluted)",
+  othercomprehensiveincomelossforeigncurrencytransactionandtranslationadjustmentnetoftax:
+    "OCI: Foreign Currency Translation, Net of Tax",
+  othercomprehensiveincomelosscashflowhedgegainlossbeforereclassificationaftertax:
+    "OCI: Cash Flow Hedge Gain (Loss) Before Reclassification",
+  othercomprehensiveincomelosscashflowhedgegainlossreclassificationaftertax:
+    "OCI: Cash Flow Hedge Reclassification",
+  othercomprehensiveincomelosscashflowhedgegainlossafterreclassificationandtax:
+    "OCI: Cash Flow Hedge After Reclassification",
+  othercomprehensiveincomeunrealizedholdinggainlossonsecuritiesarisingduringperiodnetoftax:
+    "OCI: Unrealized Holding Gain (Loss) on Securities",
+  othercomprehensiveincomelossreclassificationadjustmentfromaociforsaleofsecuritiesnetoftax:
+    "OCI: Reclassification from AOCI for Sale of Securities",
+  othercomprehensiveincomelossavailableforsalesecuritiesadjustmentnetoftax:
+    "OCI: Available-for-Sale Securities Adjustment",
+  othercomprehensiveincomelossnetoftaxportionattributabletoparent: "Other Comprehensive Income, Net of Tax",
+  comprehensiveincomenetoftax: "Comprehensive Income, Net of Tax",
+  cashandcashequivalentsatcarryingvalue: "Cash and Cash Equivalents",
+  marketablesecuritiescurrent: "Marketable Securities, Current",
+  accountsreceivablenetcurrent: "Accounts Receivable, Net",
+  nontradereceivablescurrent: "Non-Trade Receivables, Current",
+  inventorynet: "Inventory, Net",
+  otherassetscurrent: "Other Current Assets",
+  assetscurrent: "Total Current Assets",
+  marketablesecuritiesnoncurrent: "Marketable Securities, Noncurrent",
+  propertyplantandequipmentnet: "Property, Plant and Equipment, Net",
+  otherassetsnoncurrent: "Other Noncurrent Assets",
+  assetsnoncurrent: "Total Noncurrent Assets",
+  assets: "Total Assets",
+  accountspayablecurrent: "Accounts Payable",
+  otherliabilitiescurrent: "Other Current Liabilities",
+  contractwithcustomerliabilitycurrent: "Contract Liability, Current",
+  commercialpaper: "Commercial Paper",
+  longtermdebtcurrent: "Long-Term Debt, Current",
+  liabilitiescurrent: "Total Current Liabilities",
+  longtermdebtnoncurrent: "Long-Term Debt, Noncurrent",
+  otherliabilitiesnoncurrent: "Other Noncurrent Liabilities",
+  liabilitiesnoncurrent: "Total Noncurrent Liabilities",
+  liabilities: "Total Liabilities",
+  commonstocksharesoutstanding: "Common Shares Outstanding",
+  commonstocksharesissued: "Common Shares Issued",
+  commonstocksincludingadditionalpaidincapital: "Common Stock and Additional Paid-in Capital",
+  retainedearningsaccumulateddeficit: "Retained Earnings (Accumulated Deficit)",
+  accumulatedothercomprehensiveincomelossnetoftax: "Accumulated Other Comprehensive Income (Loss)",
+  stockholdersequity: "Shareholders' Equity",
+  liabilitiesandstockholdersequity: "Total Liabilities and Equity",
+  commonstockparorstatedvaluepershare: "Common Stock Par Value per Share",
+  commonstocksharesauthorized: "Common Shares Authorized",
+  cashcashequivalentsrestrictedcashandrestrictedcashequivalents: "Cash, Cash Equivalents and Restricted Cash",
+  depreciationdepletionandamortization: "Depreciation, Depletion and Amortization",
+  sharebasedcompensation: "Share-Based Compensation",
+  othernoncashincomeexpense: "Other Noncash Income (Expense)",
+  increasedecreaseinaccountsreceivable: "Change in Accounts Receivable",
+  increasedecreaseinotherreceivables: "Change in Other Receivables",
+  increasedecreaseininventories: "Change in Inventories",
+  increasedecreaseinotheroperatingassets: "Change in Other Operating Assets",
+  increasedecreaseinaccountspayable: "Change in Accounts Payable",
+  increasedecreaseinotheroperatingliabilities: "Change in Other Operating Liabilities",
+  netcashprovidedbyusedinoperatingactivities: "Net Cash from Operating Activities",
+  paymentstoacquireavailableforsalesecuritiesdebt: "Purchases of Available-for-Sale Securities",
+  proceedsfrommaturitiesprepaymentsandcallsofavailableforsalesecurities: "Maturities of Available-for-Sale Securities",
+  proceedsfromsaleofavailableforsalesecuritiesdebt: "Sales of Available-for-Sale Securities",
+  paymentstoacquirepropertyplantandequipment: "Purchases of Property, Plant and Equipment",
+  paymentsforproceedsfromotherinvestingactivities: "Other Investing Activities",
+  netcashprovidedbyusedininvestingactivities: "Net Cash from Investing Activities",
+  paymentsrelatedtotaxwithholdingforsharebasedcompensation: "Tax Withholding for Share-Based Compensation",
+  paymentsofdividends: "Dividends Paid",
+  paymentsforrepurchaseofcommonstock: "Repurchases of Common Stock",
+  proceedsfromissuanceoflongtermdebt: "Issuance of Long-Term Debt",
+  repaymentsoflongtermdebt: "Repayments of Long-Term Debt",
+  proceedsfromrepaymentsofcommercialpaper: "Net Commercial Paper Proceeds (Repayments)",
+  proceedsfrompaymentsforotherfinancingactivities: "Other Financing Activities",
+  netcashprovidedbyusedinfinancingactivities: "Net Cash from Financing Activities",
+  cashcashequivalentsrestrictedcashandrestrictedcashequivalentsperiodincreasedecreaseincludingexchangerateeffect:
+    "Net Change in Cash",
+  incometaxespaidnet: "Income Taxes Paid, Net",
+};
+
+const XBRL_WORDS: { token: string; label: string }[] = [
+  { token: "excludingassessedtax", label: "Excluding Assessed Tax" },
+  { token: "fromcontractwithcustomer", label: "From Contract with Customer" },
+  { token: "availableforsalesecurities", label: "Available-for-Sale Securities" },
+  { token: "propertyplantandequipment", label: "Property, Plant and Equipment" },
+  { token: "additionalpaidincapital", label: "Additional Paid-in Capital" },
+  { token: "accumulateddeficit", label: "Accumulated Deficit" },
+  { token: "sharebasedcompensation", label: "Share-Based Compensation" },
+  { token: "othercomprehensiveincome", label: "Other Comprehensive Income" },
+  { token: "weightedaveragenumberof", label: "Weighted Average Number of" },
+  { token: "earningspershare", label: "Earnings per Share" },
+  { token: "netcashprovidedbyusedin", label: "Net Cash from" },
+  { token: "increasedecreasein", label: "Change in" },
+  { token: "longtermdebt", label: "Long-Term Debt" },
+  { token: "netoftax", label: "Net of Tax" },
+  { token: "noncurrent", label: "Noncurrent" },
+  { token: "current", label: "Current" },
+  { token: "operating", label: "Operating" },
+  { token: "investing", label: "Investing" },
+  { token: "financing", label: "Financing" },
+  { token: "activities", label: "Activities" },
+  { token: "revenue", label: "Revenue" },
+  { token: "income", label: "Income" },
+  { token: "expense", label: "Expense" },
+  { token: "loss", label: "Loss" },
+  { token: "gain", label: "Gain" },
+  { token: "assets", label: "Assets" },
+  { token: "liabilities", label: "Liabilities" },
+  { token: "equity", label: "Equity" },
+  { token: "cash", label: "Cash" },
+  { token: "debt", label: "Debt" },
+  { token: "shares", label: "Shares" },
+  { token: "stock", label: "Stock" },
+  { token: "tax", label: "Tax" },
+  { token: "net", label: "Net" },
+  { token: "and", label: "and" },
+  { token: "of", label: "of" },
+  { token: "for", label: "for" },
+  { token: "from", label: "from" },
+  { token: "in", label: "in" },
+].sort((a, b) => b.token.length - a.token.length);
+
+export function humanizeXbrlKey(key: string) {
+  const lower = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (XBRL_LABELS[lower]) return XBRL_LABELS[lower];
+  const parts: string[] = [];
+  let rest = lower;
+  while (rest) {
+    const hit = XBRL_WORDS.find((word) => rest.startsWith(word.token));
+    if (!hit) {
+      parts.push(rest);
+      break;
+    }
+    parts.push(hit.label);
+    rest = rest.slice(hit.token.length);
+  }
+  const label = parts.join(" ").replace(/\s+/g, " ").trim();
+  return label ? label[0].toUpperCase() + label.slice(1) : key;
+}
+
+function asReportedFormat(key: string): StatementRow["format"] {
+  const lower = key.toLowerCase();
+  if (
+    lower.includes("pershare") ||
+    lower.includes("earningspershare") ||
+    lower.includes("parorstatedvalue")
+  ) {
+    return "eps";
+  }
+  if (
+    lower.includes("sharesoutstanding") ||
+    lower.includes("sharesissued") ||
+    lower.includes("sharesauthorized") ||
+    lower.includes("numberofshares") ||
+    lower.includes("numberofdiluted")
+  ) {
+    return "share";
+  }
+  return "money";
+}
+
+function asReportedEmphasize(key: string) {
+  return /^(grossprofit|operatingexpenses|operatingincomeloss|netincomeloss|comprehensiveincomenetoftax|assetscurrent|assetsnoncurrent|assets|liabilitiescurrent|liabilitiesnoncurrent|liabilities|stockholdersequity|liabilitiesandstockholdersequity|netcashprovidedbyusedinoperatingactivities|netcashprovidedbyusedininvestingactivities|netcashprovidedbyusedinfinancingactivities|cashcashequivalentsrestrictedcashandrestrictedcashequivalentsperiodincreasedecreaseincludingexchangerateeffect)$/i.test(
+    key,
+  );
+}
+
+function asReportedIndent(key: string) {
+  const lower = key.toLowerCase();
+  if (lower.startsWith("othercomprehensive") && !lower.includes("portionattributabletoparent")) return 1;
+  if (lower.startsWith("increasedecreasein")) return 1;
+  return 0;
+}
+
+export function asReportedColumns(
+  rows: Array<{ fiscalYear: number | string; period: string; date: string; data?: Record<string, number | string | null> }>,
+  period: "annual" | "quarter",
+) {
+  return rows.map((row) => ({
+    key: `${row.fiscalYear}-${row.period}-${row.date}`,
+    label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
+    values: (row.data ?? {}) as Record<string, unknown>,
+  }));
+}
+
+export function asReportedStatementRows(
+  rows: Array<{ data?: Record<string, number | string | null> }>,
+): StatementRow[] {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    for (const key of Object.keys(row.data ?? {})) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      keys.push(key);
+    }
+  }
+  return keys.map((key) => ({
+    key,
+    label: humanizeXbrlKey(key),
+    format: asReportedFormat(key),
+    emphasize: asReportedEmphasize(key),
+    indent: asReportedIndent(key),
+  }));
+}

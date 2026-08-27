@@ -17,7 +17,7 @@ import {
   getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { canonicalSegmentName, trailingSum, ttmSegmentMap } from "@/lib/statements";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
@@ -314,7 +314,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
       <section className="mt-6">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-header">Revenue & Profits</h2>
-          <Link href={`/stocks/${ticker}/financials/income-statement`} className="text-sm text-link hover:underline">
+          <Link href={stockPath(ticker, "/financials/income-statement")} className="text-sm text-link hover:underline">
             Full income statement
           </Link>
         </div>
@@ -379,7 +379,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-header">Cash & Debt</h2>
-          <Link href={`/stocks/${ticker}/financials/balance-sheet`} className="text-sm text-link hover:underline">
+          <Link href={stockPath(ticker, "/financials/balance-sheet")} className="text-sm text-link hover:underline">
             Full balance sheet
           </Link>
         </div>
@@ -397,7 +397,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-header">Cash Flow & CapEx</h2>
-          <Link href={`/stocks/${ticker}/financials/cash-flow-statement`} className="text-sm text-link hover:underline">
+          <Link href={stockPath(ticker, "/financials/cash-flow-statement")} className="text-sm text-link hover:underline">
             Full cash flow statement
           </Link>
         </div>

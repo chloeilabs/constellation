@@ -31,9 +31,10 @@ import {
   withQuoteChanges,
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
-import { decodeTicker, quoteHref } from "@/lib/listings";
+import { decodeTicker, quoteHref, stockPath } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { ChangePercent } from "@/components/change";
+import { PriceTargetRange } from "@/components/price-target-range";
 import { QuoteFaq } from "@/components/quote-faq";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
@@ -104,6 +105,8 @@ export default async function StockOverviewPage({
   const { lastReported, next } = splitCompanyEarnings(earnings);
   const earningsDate = lastReported?.date ?? next?.date ?? null;
   const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
+  const targetUpside =
+    target && quote?.price ? ((target.targetConsensus - quote.price) / quote.price) * 100 : null;
   const usEtfs = await listedUsEtfHolders(etfHolders);
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
@@ -266,23 +269,53 @@ export default async function StockOverviewPage({
 
       {grades || target ? (
         <section className="mt-10">
-          <h2 className="mb-3 text-xl font-semibold text-header">Analyst Summary</h2>
-          <p className="max-w-3xl text-sm leading-7">
-            {grades ? (
-              <>
-                Analyst consensus is <span className="font-semibold">{grades.consensus}</span> (
-                {grades.strongBuy + grades.buy} buys, {grades.hold} holds, {grades.sell + grades.strongSell} sells).
-              </>
-            ) : null}{" "}
-            {target ? (
-              <>
-                The average 12-month price target is {formatMoney(target.targetConsensus, currency)}
-                {quote?.price
-                  ? `, ${(((target.targetConsensus - quote.price) / quote.price) * 100).toFixed(2)}% from the latest price.`
-                  : "."}
-              </>
-            ) : null}
-          </p>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <h2 className="text-xl font-semibold text-header">Analyst Forecasts</h2>
+            <Link href={stockPath(ticker, "/forecast")} className="text-sm text-link hover:underline">
+              Full forecast
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-border p-4">
+              <div className="text-sm text-muted">Consensus</div>
+              <div className="mt-1 text-2xl font-semibold">{grades?.consensus ?? "—"}</div>
+              {grades ? (
+                <p className="mt-2 text-sm text-muted">
+                  {grades.strongBuy + grades.buy} buys · {grades.hold} holds · {grades.sell + grades.strongSell} sells
+                </p>
+              ) : null}
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <div className="text-sm text-muted">Price Target</div>
+              <div className="mt-1 text-2xl font-semibold tabular">
+                {target ? formatMoney(target.targetConsensus, currency) : "—"}
+              </div>
+              {target ? (
+                <p className="mt-2 text-sm text-muted">
+                  High {formatMoney(target.targetHigh, currency)} · Low {formatMoney(target.targetLow, currency)}
+                </p>
+              ) : null}
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <div className="text-sm text-muted">Upside / Downside</div>
+              <div className="mt-1 text-2xl font-semibold tabular">
+                {targetUpside == null ? "—" : `${targetUpside > 0 ? "+" : ""}${targetUpside.toFixed(2)}%`}
+              </div>
+              <p className="mt-2 text-sm text-muted">From last price {formatMoney(quote?.price, currency)}</p>
+            </div>
+          </div>
+          {target ? (
+            <div className="mt-4">
+              <PriceTargetRange
+                price={quote?.price}
+                low={target.targetLow}
+                median={target.targetMedian}
+                consensus={target.targetConsensus}
+                high={target.targetHigh}
+                format={(value) => formatMoney(value, currency)}
+              />
+            </div>
+          ) : null}
         </section>
       ) : null}
 

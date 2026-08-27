@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
-import { NewsList } from "@/components/news-list";
+import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { StatGrid } from "@/components/quote-stats";
@@ -12,6 +12,7 @@ import {
   getEtfHoldings,
   getEtfInfo,
   getEtfSectors,
+  getPressReleases,
   getPriceChange,
   getProfile,
   getQuote,
@@ -33,13 +34,14 @@ export async function VehicleOverview({
 }) {
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
-  const [info, holdings, sectors, countries, quote, news, dividends, changes, chart, ratios, profile] = await Promise.all([
+  const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, ratios, profile] = await Promise.all([
     getEtfInfo(ticker),
     getEtfHoldings(ticker),
     getEtfSectors(ticker),
     getEtfCountryWeights(ticker),
     getQuote(ticker),
     getSymbolNews(ticker, 8),
+    getPressReleases(ticker, 8),
     getDividends(ticker, 8),
     getPriceChange(ticker),
     loadQuoteChart(ticker, rangeParam),
@@ -301,15 +303,12 @@ export async function VehicleOverview({
         </section>
       ) : null}
 
-      <section className="mt-10">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="text-xl font-semibold text-header">News</h2>
-          <Link href={newsHref} className="text-sm text-link hover:underline">
-            All news
-          </Link>
-        </div>
-        <NewsList items={news} showSymbol={false} />
-      </section>
+      <QuoteNewsTabs
+        symbol={ticker}
+        news={news}
+        press={press}
+        moreHref={{ all: newsHref, press: newsHref }}
+      />
     </Container>
   );
 }

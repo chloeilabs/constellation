@@ -30,21 +30,26 @@ export function PriceTargetRange({
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="text-sm font-medium text-header">Price Target Range</div>
-      <div className="relative mt-8 mb-10 h-2 rounded-full bg-chip">
+      <div className="relative mt-5 h-2 rounded-full bg-chip">
         {marks.map((mark) => (
           <div
             key={mark.key}
             className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${((mark.value - min) / span) * 100}%` }}
+            title={`${mark.label} ${format(mark.value)}`}
           >
-            <div className={`mx-auto h-3 w-3 rounded-full ${mark.className}`} title={`${mark.label} ${format(mark.value)}`} />
-            <div className="absolute top-4 left-1/2 w-20 -translate-x-1/2 text-center text-[11px] leading-tight text-muted">
-              <div className="font-medium text-header">{mark.label}</div>
-              <div className="tabular">{format(mark.value)}</div>
-            </div>
+            <div className={`h-3 w-3 rounded-full ${mark.className}`} />
           </div>
         ))}
       </div>
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3 md:grid-cols-5">
+        {marks.map((mark) => (
+          <div key={mark.key}>
+            <dt className="text-muted">{mark.label}</dt>
+            <dd className="font-medium tabular text-header">{format(mark.value)}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -31,7 +31,7 @@ export async function StatementMetricPage({
   ttmField?: string;
 }) {
   const ticker = decodeTicker(symbol);
-  const path = `/stocks/${ticker}/${slug}`;
+  const path = stockPath(ticker, `/${slug}`);
   const [annual, quarterly, ttm] = await Promise.all([
     kind === "income" ? getIncomeStatements(ticker, "annual", 20) : getBalanceSheets(ticker, "annual", 20),
     kind === "income" ? getIncomeStatements(ticker, "quarter", 12) : getBalanceSheets(ticker, "quarter", 12),

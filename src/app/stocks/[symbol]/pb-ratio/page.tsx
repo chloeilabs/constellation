@@ -1,4 +1,5 @@
 import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function PbRatioPage({
   params,
@@ -9,7 +10,7 @@ export default async function PbRatioPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   return (
     <RatioMetricPage
       symbol={ticker}

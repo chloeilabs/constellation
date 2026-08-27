@@ -7,6 +7,7 @@ import { MetricHistory } from "@/components/metric-history";
 import { formatMoney, formatRatio } from "@/lib/format";
 import { getEstimates, getIncomeTtm, getProfile, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
+import { decodeTicker, stockPath } from "@/lib/listings";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -21,8 +22,9 @@ export default async function PeRatioPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
+  const base = stockPath(ticker, "/pe-ratio");
   const [annual, quarterly, ttmRatios, ttmIncome, quote, estimates, profile] = await Promise.all([
     getRatios(ticker, "annual", 20),
     getRatios(ticker, "quarter", 12),
@@ -58,8 +60,8 @@ export default async function PeRatioPage({
       />
       <MetricHistory
         period={period}
-        annualHref={`/stocks/${ticker}/pe-ratio`}
-        quarterHref={`/stocks/${ticker}/pe-ratio?period=quarter`}
+        annualHref={base}
+        quarterHref={`${base}?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} PE Ratio`}
         valueLabel="PE Ratio"
         formatValue={formatRatio}

@@ -6,10 +6,11 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { compactMoneyFn, formatMoney, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getOwnerEarnings, getQuote } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function OwnerEarningsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const [rows, quote] = await Promise.all([getOwnerEarnings(ticker, 20), getQuote(ticker)]);
   const latest = rows[0];
   const prior = rows[1];

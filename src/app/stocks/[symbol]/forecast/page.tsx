@@ -20,7 +20,7 @@ import {
 } from "@/lib/fmp";
 import type { FmpEstimate, FmpHistoricalGrade } from "@/lib/types";
 import { decodeTicker } from "@/lib/listings";
-import { cn } from "@/lib/utils";
+import { cn, nyDateString } from "@/lib/utils";
 
 function GradeMix({ row }: { row: FmpHistoricalGrade }) {
   const parts = [
@@ -45,6 +45,12 @@ function GradeMix({ row }: { row: FmpHistoricalGrade }) {
       )}
     </div>
   );
+}
+
+function upcomingEstimates(rows: FmpEstimate[]) {
+  const yearStart = `${nyDateString().slice(0, 4)}-01-01`;
+  const future = rows.filter((row) => row.date.slice(0, 10) >= yearStart);
+  return [...(future.length ? future : rows)].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function EstimateTable({ rows, money }: { rows: FmpEstimate[]; money: (value: number | null | undefined) => string }) {
@@ -210,13 +216,13 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Annual Estimates</h2>
-        <EstimateTable rows={[...estimates].sort((a, b) => a.date.localeCompare(b.date))} money={money} />
+        <EstimateTable rows={upcomingEstimates(estimates)} money={money} />
       </section>
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Quarterly Estimates</h2>
         <EstimateTable
-          rows={[...quarterlyEstimates].sort((a, b) => a.date.localeCompare(b.date))}
+          rows={upcomingEstimates(quarterlyEstimates)}
           money={money}
         />
       </section>

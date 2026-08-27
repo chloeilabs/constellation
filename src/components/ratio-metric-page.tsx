@@ -6,6 +6,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { formatPercentPlain, formatRatio } from "@/lib/format";
 import { getKeyMetrics, getKeyMetricsTtm, getRatios, getRatiosTtm } from "@/lib/fmp";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { periodFrom } from "@/components/statement-metric-page";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -38,8 +39,8 @@ export async function RatioMetricPage({
   format?: "ratio" | "percent";
   source?: "ratios" | "metrics";
 }) {
-  const ticker = symbol.toUpperCase();
-  const path = `/stocks/${ticker}/${slug}`;
+  const ticker = decodeTicker(symbol);
+  const path = stockPath(ticker, `/${slug}`);
   const [annual, quarterly, ttm] = await Promise.all(
     source === "metrics"
       ? [getKeyMetrics(ticker, "annual", 20), getKeyMetrics(ticker, "quarter", 12), getKeyMetricsTtm(ticker)]

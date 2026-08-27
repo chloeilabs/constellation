@@ -8,10 +8,11 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatMoney } from "@/lib/format";
 import { getHistoricalMarketCap, getKeyMetricsTtm, getProfile, getQuote } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString, yearEndSnapshots } from "@/lib/utils";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function MarketCapPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const today = nyDateString();
   const [quote, profile, metrics, history] = await Promise.all([
     getQuote(ticker),
