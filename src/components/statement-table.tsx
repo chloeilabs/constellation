@@ -37,6 +37,8 @@ function formatCell(
       return formatPrice(value);
     case "percent":
       return formatPercentPlain(value);
+    case "growth":
+      return formatPercent(value);
     case "ratio":
     case "number":
       return formatNumber(value);
@@ -79,6 +81,7 @@ export function StatementTable({
   currency,
   commonSizeBase,
   downloadName,
+  inlineYoy = true,
 }: {
   rows: StatementRow[];
   columns: { key: string; label: string; values: Record<string, unknown> }[];
@@ -87,6 +90,7 @@ export function StatementTable({
   currency?: string | null;
   commonSizeBase?: string;
   downloadName?: string;
+  inlineYoy?: boolean;
 }) {
   if (columns.length === 0) {
     return <p className="text-sm text-muted">No statement data available for this period.</p>;
@@ -125,7 +129,7 @@ export function StatementTable({
           <tbody>
             {rows.map((row) => {
               const asPercent = Boolean(commonSizeBase) && (row.format === "money" || !row.format);
-              const showYoy = !asPercent && (row.format === "money" || row.format === "share");
+              const showYoy = inlineYoy && !asPercent && (row.format === "money" || row.format === "share");
               return (
                 <tr key={row.key} className={row.emphasize ? "bg-muted-bg/60 font-semibold" : undefined}>
                   <td

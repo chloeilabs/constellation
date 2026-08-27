@@ -108,6 +108,18 @@ export function cashAndInvestments(sheet?: {
   return (short ?? 0) + (long ?? 0);
 }
 
+/** Cash & investments minus total debt. Positive is net cash; negative is net debt. */
+export function netCashPosition(sheet?: {
+  cashAndShortTermInvestments?: number;
+  longTermInvestments?: number;
+  totalDebt?: number;
+} | null) {
+  const cash = cashAndInvestments(sheet);
+  const debt = finiteNumber(sheet?.totalDebt);
+  if (cash == null || debt == null) return null;
+  return cash - debt;
+}
+
 export function annualDividendPayments(frequency: string | null | undefined) {
   const value = (frequency || "").toLowerCase();
   if (value.includes("month")) return 12;

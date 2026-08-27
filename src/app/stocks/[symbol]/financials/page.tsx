@@ -20,8 +20,18 @@ import {
   getRevenueProductSegments,
 } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { canonicalSegmentName, spanFrom, statementHref, statementLimit, trailingSum, ttmSegmentMap } from "@/lib/statements";
-import { cashAndInvestments, indicatedAnnualDividend, nyDateString } from "@/lib/utils";
+import {
+  canonicalSegmentName,
+  priorTtmSegmentMap,
+  segmentLevelValues,
+  spanFrom,
+  statementHref,
+  statementLimit,
+  trailingSum,
+  ttmSegmentMap,
+  withSegmentGrowth,
+} from "@/lib/statements";
+import { cashAndInvestments, indicatedAnnualDividend, netCashPosition, nyDateString } from "@/lib/utils";
 import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
@@ -58,14 +68,22 @@ function incomeColumn(label: string, key: string, row: FmpIncomeStatement | null
 }
 
 function cashColumn(label: string, key: string, row: FmpCashFlow | null, prior: FmpCashFlow | null): YearMetricColumn {
+  const ocf = n(row?.operatingCashFlow ?? row?.netCashProvidedByOperatingActivities);
+  const priorOcf = n(prior?.operatingCashFlow ?? prior?.netCashProvidedByOperatingActivities);
+  const capex = n(row?.capitalExpenditure);
+  const priorCapex = n(prior?.capitalExpenditure);
+  const fcf = n(row?.freeCashFlow);
+  const priorFcf = n(prior?.freeCashFlow);
   return {
     key,
     label,
     values: {
-      operatingCashFlow: n(row?.operatingCashFlow ?? row?.netCashProvidedByOperatingActivities),
-      capex: n(row?.capitalExpenditure),
-      freeCashFlow: n(row?.freeCashFlow),
-      fcfGrowth: yearOverYear(row?.freeCashFlow, prior?.freeCashFlow),
+      operatingCashFlow: ocf,
+      ocfGrowth: yearOverYear(ocf, priorOcf),
+      capex,
+      capexGrowth: yearOverYear(capex, priorCapex),
+      freeCashFlow: fcf,
+      fcfGrowth: yearOverYear(fcf, priorFcf),
     },
   };
 }
@@ -82,8 +100,8 @@ function balanceColumn(
   const debt = n(row?.totalDebt);
   const priorCash = cashAndInvestments(prior);
   const priorDebt = n(prior?.totalDebt);
-  const netCash = cash != null && debt != null ? cash - debt : null;
-  const priorNet = priorCash != null && priorDebt != null ? priorCash - priorDebt : null;
+  const netCash = netCashPosition(row);
+  const priorNet = netCashPosition(prior);
   const netCashPerShare = netCash != null && shares != null && shares > 0 ? netCash / shares : null;
   const priorNetPerShare =
     priorNet != null && priorShares != null && priorShares > 0 ? priorNet / priorShares : null;
@@ -157,42 +175,68 @@ function segmentNames(rows: FmpRevenueSegment[], limit = 8) {
 }
 
 function segmentLookup(rows: FmpRevenueSegment[]) {
-  const byYear = new Map<string, Record<string, number>>();
+  const byYear = new Map<string, { data: Record<string, number>; date: string }>();
   for (const row of rows) {
-    const data: Record<string, number> = {};
+    const year = String(row.fiscalYear);
+    const existing = byYear.get(year);
+    const data = { ...(existing?.data ?? {}) };
     for (const [name, value] of Object.entries(row.data ?? {})) {
       if (typeof value !== "number" || !Number.isFinite(value)) continue;
       const key = canonicalSegmentName(name);
       data[key] = (data[key] ?? 0) + value;
     }
-    byYear.set(String(row.fiscalYear), data);
+    const date = !existing || row.date > existing.date ? row.date : existing.date;
+    byYear.set(year, { data, date });
   }
   return byYear;
 }
 
-function segmentColumnFromMap(label: string, key: string, data: Record<string, number> | null, names: string[]): YearMetricColumn {
-  const values: Record<string, number | null> = {};
-  for (const name of names) values[name] = n(data?.[name]);
-  const namedTotal = names.reduce((sum, name) => sum + (values[name] ?? 0), 0);
-  values.total =
-    namedTotal ||
-    n(Object.values(data ?? {}).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0));
-  return { key, label, values };
+function segmentTableRows(names: string[]) {
+  return [
+    ...names.flatMap((name) => [
+      { key: name, label: cleanSegmentName(name), format: "money" as const },
+      { key: `${name}Growth`, label: `${cleanSegmentName(name)} Growth`, format: "percent" as const },
+    ]),
+    { key: "total", label: "Revenue (Total)", format: "money" as const, emphasize: true },
+    { key: "totalGrowth", label: "Revenue (Total) Growth", format: "percent" as const },
+  ];
 }
 
 function segmentColumns(
   rows: FmpRevenueSegment[],
   names: string[],
   ttm?: Record<string, number> | null,
+  priorTtm?: Record<string, number> | null,
+  ttmDate?: string | null,
   yearCount = 5,
 ): YearMetricColumn[] {
   const byYear = segmentLookup(rows);
-  const years = [...new Set(rows.map((row) => String(row.fiscalYear)))]
-    .sort((a, b) => Number(b) - Number(a))
-    .slice(0, yearCount);
+  const allYears = [...byYear.keys()].sort((a, b) => Number(b) - Number(a));
+  const years = allYears.slice(0, yearCount);
+  const ttmValues = ttm ? segmentLevelValues(ttm, names) : null;
+  const priorTtmValues = priorTtm
+    ? segmentLevelValues(priorTtm, names)
+    : allYears[0]
+      ? segmentLevelValues(byYear.get(allYears[0])?.data, names)
+      : null;
   return [
-    ...(ttm ? [segmentColumnFromMap("TTM", "ttm-seg", ttm, names)] : []),
-    ...years.map((year) => segmentColumnFromMap(fyLabel(year), year, byYear.get(year) ?? {}, names)),
+    ...(ttmValues
+      ? [
+          withEnded(
+            { key: "ttm-seg", label: "TTM", values: withSegmentGrowth(ttmValues, priorTtmValues, names) },
+            ttmDate,
+          ),
+        ]
+      : []),
+    ...years.map((year) => {
+      const current = segmentLevelValues(byYear.get(year)?.data, names);
+      const priorYear = allYears[allYears.indexOf(year) + 1];
+      const prior = priorYear ? segmentLevelValues(byYear.get(priorYear)?.data, names) : null;
+      return withEnded(
+        { key: year, label: fyLabel(year), values: withSegmentGrowth(current, prior, names) },
+        byYear.get(year)?.date,
+      );
+    }),
   ];
 }
 
@@ -396,21 +440,30 @@ export default async function FinancialsOverviewPage({
   }
 
   const productTtm = ttmSegmentMap(productQuarters);
+  const productPriorTtm = priorTtmSegmentMap(productQuarters);
   const names = productTtm
     ? Object.entries(productTtm)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
         .map(([name]) => name)
     : segmentNames(products);
-  const productColumns = segmentColumns(products, names, productTtm, yearCount);
+  const productColumns = segmentColumns(
+    products,
+    names,
+    productTtm,
+    productPriorTtm,
+    productQuarters[0]?.date,
+    yearCount,
+  );
   const geoTtm = ttmSegmentMap(geoQuarters);
+  const geoPriorTtm = priorTtmSegmentMap(geoQuarters);
   const geoNames = geoTtm
     ? Object.entries(geoTtm)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
         .map(([name]) => name)
     : segmentNames(geos);
-  const geoColumns = segmentColumns(geos, geoNames, geoTtm, yearCount);
+  const geoColumns = segmentColumns(geos, geoNames, geoTtm, geoPriorTtm, geoQuarters[0]?.date, yearCount);
   const revenueBars = [...incomeYears]
     .reverse()
     .filter((row) => typeof row.revenue === "number")
@@ -504,10 +557,7 @@ export default async function FinancialsOverviewPage({
           </div>
           <YearMetricTable
             columns={productColumns}
-            rows={[
-              ...names.map((name) => ({ key: name, label: cleanSegmentName(name), format: "money" as const })),
-              { key: "total", label: "Revenue (Total)", format: "money", emphasize: true },
-            ]}
+            rows={segmentTableRows(names)}
           />
         </section>
       ) : null}
@@ -522,10 +572,7 @@ export default async function FinancialsOverviewPage({
           </div>
           <YearMetricTable
             columns={geoColumns}
-            rows={[
-              ...geoNames.map((name) => ({ key: name, label: cleanSegmentName(name), format: "money" as const })),
-              { key: "total", label: "Revenue (Total)", format: "money", emphasize: true },
-            ]}
+            rows={segmentTableRows(geoNames)}
           />
         </section>
       ) : null}
@@ -544,9 +591,9 @@ export default async function FinancialsOverviewPage({
             { key: "cashGrowth", label: "Cash & Investments Growth", format: "percent" },
             { key: "totalDebt", label: "Total Debt", format: "money", href: `/stocks/${ticker}/debt` },
             { key: "debtGrowth", label: "Total Debt Growth", format: "percent" },
-            { key: "netCash", label: "Net Cash (Debt)", format: "money", emphasize: true },
+            { key: "netCash", label: "Net Cash (Debt)", format: "money", href: `/stocks/${ticker}/net-cash`, emphasize: true },
             { key: "netCashGrowth", label: "Net Cash Growth", format: "percent" },
-            { key: "netCashPerShare", label: "Net Cash Per Share", format: "eps" },
+            { key: "netCashPerShare", label: "Net Cash Per Share", format: "eps", href: `/stocks/${ticker}/net-cash` },
             { key: "netCashPerShareGrowth", label: "Net Cash Per Share Growth", format: "percent" },
           ]}
         />
@@ -563,7 +610,9 @@ export default async function FinancialsOverviewPage({
           columns={cashColumns}
           rows={[
             { key: "operatingCashFlow", label: "Operating Cash Flow", format: "money", href: `/stocks/${ticker}/operating-cash-flow` },
+            { key: "ocfGrowth", label: "Operating Cash Flow Growth", format: "percent" },
             { key: "capex", label: "Capital Expenditures", format: "money", href: `/stocks/${ticker}/capex` },
+            { key: "capexGrowth", label: "CapEx Growth", format: "percent" },
             { key: "freeCashFlow", label: "Free Cash Flow", format: "money", href: `/stocks/${ticker}/free-cash-flow`, emphasize: true },
             { key: "fcfGrowth", label: "FCF Growth", format: "percent" },
           ]}

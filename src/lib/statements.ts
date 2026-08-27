@@ -6,7 +6,7 @@ export type StatementRow = {
   label: string;
   indent?: number;
   emphasize?: boolean;
-  format?: "money" | "share" | "eps" | "ratio" | "percent" | "number";
+  format?: "money" | "share" | "eps" | "ratio" | "percent" | "number" | "growth";
 };
 
 export const INCOME_ROWS: StatementRow[] = [
@@ -242,6 +242,42 @@ export function ttmSegmentMap(rows: FmpRevenueSegment[]) {
   return sumSegmentMaps(rows.slice(0, 4));
 }
 
+/** Prior four quarters versus the current TTM window, for YoY segment growth. */
+export function priorTtmSegmentMap(rows: FmpRevenueSegment[]) {
+  if (rows.length < 8) return null;
+  return sumSegmentMaps(rows.slice(4, 8));
+}
+
+export function segmentLevelValues(
+  data: Record<string, number> | null | undefined,
+  names: string[],
+): Record<string, number | null> {
+  const values: Record<string, number | null> = {};
+  for (const name of names) {
+    const value = data?.[name];
+    values[name] = typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
+  const namedTotal = names.reduce((sum, name) => sum + (values[name] ?? 0), 0);
+  const allTotal = Object.values(data ?? {}).reduce(
+    (sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0),
+    0,
+  );
+  values.total = namedTotal || allTotal || null;
+  return values;
+}
+
+export function withSegmentGrowth(
+  values: Record<string, number | null>,
+  prior: Record<string, number | null> | null | undefined,
+  names: string[],
+) {
+  const next: Record<string, number | null> = { ...values };
+  for (const name of [...names, "total"]) {
+    next[`${name}Growth`] = yearOverYear(values[name], prior?.[name] ?? null);
+  }
+  return next;
+}
+
 export function topSegmentNames(
   rows: FmpRevenueSegment[],
   ttm?: Record<string, number> | null,
@@ -257,8 +293,12 @@ export function topSegmentNames(
 
 export function segmentStatementRows(names: string[], totalLabel = "Revenue (Total)"): StatementRow[] {
   return [
-    ...names.map((name) => ({ key: name, label: name, format: "money" as const })),
+    ...names.flatMap((name) => [
+      { key: name, label: name, format: "money" as const },
+      { key: `${name}Growth`, label: `${name} Growth`, format: "growth" as const },
+    ]),
     { key: "total", label: totalLabel, emphasize: true, format: "money" as const },
+    { key: "totalGrowth", label: `${totalLabel} Growth`, format: "growth" as const },
   ];
 }
 
@@ -268,6 +308,8 @@ export function segmentStatementColumns(
   period: "annual" | "quarter",
   ttm?: Record<string, number> | null,
   limit = 5,
+  priorTtm?: Record<string, number> | null,
+  ttmDate?: string | null,
 ) {
   const byKey = new Map<string, { label: string; date: string; data: Record<string, number> }>();
   for (const row of rows) {
@@ -285,23 +327,39 @@ export function segmentStatementColumns(
   }
   const ordered = [...byKey.entries()]
     .sort((a, b) => (b[1].date || "").localeCompare(a[1].date || ""))
-    .slice(0, limit);
-
-  function values(data: Record<string, number>, extra?: Record<string, unknown>) {
-    const out: Record<string, unknown> = { ...extra };
-    for (const name of names) out[name] = data[name] ?? null;
-    const named = names.reduce((sum, name) => sum + (typeof out[name] === "number" ? (out[name] as number) : 0), 0);
-    const all = Object.values(data).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0);
-    out.total = named || all || null;
-    return out;
-  }
+    .slice(0, limit + 1);
+  const levelColumns = ordered.map(([key, row]) => ({
+    key,
+    label: row.label,
+    date: row.date,
+    levels: segmentLevelValues(row.data, names),
+  }));
+  const displayed = levelColumns.slice(0, limit);
+  const ttmLevels = ttm ? segmentLevelValues(ttm, names) : null;
+  const priorTtmLevels = priorTtm ? segmentLevelValues(priorTtm, names) : (displayed[0]?.levels ?? null);
 
   return [
-    ...(ttm ? [{ key: "ttm", label: "TTM", values: values(ttm) }] : []),
-    ...ordered.map(([key, row]) => ({
-      key,
-      label: row.label,
-      values: values(row.data, { date: row.date, fiscalYear: key, period: period === "annual" ? "FY" : key }),
+    ...(ttmLevels
+      ? [
+          {
+            key: "ttm",
+            label: "TTM",
+            values: {
+              ...(ttmDate ? { date: ttmDate } : {}),
+              ...withSegmentGrowth(ttmLevels, priorTtmLevels, names),
+            },
+          },
+        ]
+      : []),
+    ...displayed.map((column, index) => ({
+      key: column.key,
+      label: column.label,
+      values: {
+        date: column.date,
+        fiscalYear: column.key,
+        period: period === "annual" ? "FY" : column.key,
+        ...withSegmentGrowth(column.levels, levelColumns[index + 1]?.levels ?? null, names),
+      },
     })),
   ];
 }

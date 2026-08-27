@@ -8,6 +8,7 @@ import { reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   KEY_METRIC_ROWS,
+  priorTtmSegmentMap,
   segmentStatementColumns,
   segmentStatementRows,
   spanFrom,
@@ -46,7 +47,9 @@ export default async function MetricsPage({
   ]);
   const currency = reportingCurrency(rows[0]?.reportedCurrency, products[0]?.reportedCurrency);
   const productTtm = ttmSegmentMap(productQuarters);
+  const productPriorTtm = priorTtmSegmentMap(productQuarters);
   const geoTtm = ttmSegmentMap(geoQuarters);
+  const geoPriorTtm = priorTtmSegmentMap(geoQuarters);
   const productNames = topSegmentNames(products, productTtm);
   const geoNames = topSegmentNames(geos, geoTtm);
   const productColumns = segmentStatementColumns(
@@ -55,6 +58,8 @@ export default async function MetricsPage({
     period,
     period === "annual" ? productTtm : null,
     period === "quarter" ? quarterCount : yearCount,
+    period === "annual" ? productPriorTtm : null,
+    productQuarters[0]?.date,
   );
   const geoColumns = segmentStatementColumns(
     period === "quarter" ? geoQuarters : geos,
@@ -62,6 +67,8 @@ export default async function MetricsPage({
     period,
     period === "annual" ? geoTtm : null,
     period === "quarter" ? quarterCount : yearCount,
+    period === "annual" ? geoPriorTtm : null,
+    geoQuarters[0]?.date,
   );
 
   return (
@@ -102,6 +109,7 @@ export default async function MetricsPage({
             currency={currency}
             caption={`Values in millions of ${currency}. Segment names follow the company's reported product lines.`}
             downloadName={`${ticker}-product-revenue-${period}-${span}`}
+            inlineYoy={false}
           />
         </section>
       ) : (
@@ -123,6 +131,7 @@ export default async function MetricsPage({
             currency={currency}
             caption={`Values in millions of ${currency}.`}
             downloadName={`${ticker}-geographic-revenue-${period}-${span}`}
+            inlineYoy={false}
           />
         </section>
       ) : null}

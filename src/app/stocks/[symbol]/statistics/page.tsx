@@ -44,7 +44,7 @@ import {
 import { decodeTicker } from "@/lib/listings";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
-import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString, relativeChange } from "@/lib/utils";
 import { consecutiveDividendGrowthYears, dividendTtmGrowth } from "@/lib/dividends";
 import { estimatedWacc } from "@/lib/wacc";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
@@ -122,7 +122,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const sheet = balance[0] ?? null;
   const cashAndInvestments = cashAndInvestmentsOf(sheet);
   const totalDebt = num(sheet?.totalDebt);
-  const netCash = cashAndInvestments != null && totalDebt != null ? cashAndInvestments - totalDebt : null;
+  const netCash = netCashPosition(sheet);
   const shares = num(shareFloat?.outstandingShares) ?? num(ttm?.weightedAverageShsOutDil);
   const headcount = employees[0]?.employeeCount ?? (profile?.fullTimeEmployees ? Number(profile.fullTimeEmployees) : null);
   const lastSplit = splits[0] ?? null;
@@ -363,6 +363,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Debt / Equity", href: `/stocks/${ticker}/debt-equity-ratio`, value: formatRatio(num(ratios?.debtToEquityRatioTTM)) },
               {
                 label: "Debt / EBITDA",
+                href: `/stocks/${ticker}/debt-ebitda`,
                 value: formatRatio(
                   totalDebt != null && num(ttm?.ebitda) != null && ttm!.ebitda !== 0 ? totalDebt / ttm!.ebitda : null,
                 ),
@@ -375,9 +376,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Interest Coverage", href: `/stocks/${ticker}/interest-coverage`, value: formatRatio(interestCoverage != null && interestCoverage > 0 ? interestCoverage : null) },
               { label: "Cash & Marketable Securities", href: `/stocks/${ticker}/cash`, value: money(cashAndInvestments) },
               { label: "Total Debt", href: `/stocks/${ticker}/debt`, value: money(totalDebt) },
-              { label: "Net Cash", value: money(netCash) },
+              { label: "Net Cash", href: `/stocks/${ticker}/net-cash`, value: money(netCash) },
               {
                 label: "Net Cash / Share",
+                href: `/stocks/${ticker}/net-cash`,
                 value: netCash != null && shares ? formatMoney(netCash / shares, currency) : "—",
               },
               { label: "Book Value", href: `/stocks/${ticker}/equity`, value: money(num(sheet?.totalStockholdersEquity)) },
@@ -427,7 +429,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <StatGrid
             items={[
               { label: "Revenue", href: `/stocks/${ticker}/revenue`, value: money(ttm?.revenue) },
+              { label: "Cost of Revenue", href: `/stocks/${ticker}/cost-of-revenue`, value: money(ttm?.costOfRevenue) },
               { label: "Gross Profit", href: `/stocks/${ticker}/gross-profit`, value: money(ttm?.grossProfit) },
+              { label: "Research & Development", href: `/stocks/${ticker}/research-and-development`, value: money(ttm?.researchAndDevelopmentExpenses) },
+              { label: "SG&A", href: `/stocks/${ticker}/sga`, value: money(ttm?.sellingGeneralAndAdministrativeExpenses) },
               { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: money(ttm?.operatingIncome) },
               { label: "EBIT", href: `/stocks/${ticker}/ebit`, value: money(ttm?.ebit) },
               { label: "Pretax Income", href: `/stocks/${ticker}/pretax-income`, value: money(ttm?.incomeBeforeTax) },
@@ -443,8 +448,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Operating Cash Flow", href: `/stocks/${ticker}/operating-cash-flow`, value: money(cash?.operatingCashFlow) },
               { label: "Capital Expenditures", href: `/stocks/${ticker}/capex`, value: money(cash?.capitalExpenditure) },
-              { label: "Depreciation & Amortization", value: money(cash?.depreciationAndAmortization) },
-              { label: "Net Borrowing", value: money(cash?.netDebtIssuance) },
+              { label: "Depreciation & Amortization", href: `/stocks/${ticker}/depreciation-amortization`, value: money(cash?.depreciationAndAmortization) },
+              { label: "Net Borrowing", href: `/stocks/${ticker}/net-borrowing`, value: money(cash?.netDebtIssuance) },
               { label: "Free Cash Flow", href: `/stocks/${ticker}/free-cash-flow`, value: money(cash?.freeCashFlow) },
               { label: "FCF / Share", href: `/stocks/${ticker}/free-cash-flow`, value: shares && cash?.freeCashFlow ? formatMoney(cash.freeCashFlow / shares, currency) : "—" },
               { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
