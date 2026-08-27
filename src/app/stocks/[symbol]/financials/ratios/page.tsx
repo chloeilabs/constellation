@@ -1,10 +1,10 @@
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
-import { PageHeader, PeriodToggle } from "@/components/page-header";
+import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
 import { getRatios, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { RATIO_ROWS, stripTtmSuffix, toStatementColumns, withTtmColumn } from "@/lib/statements";
+import { RATIO_ROWS, spanFrom, statementHref, statementLimit, stripTtmSuffix, toStatementColumns, withTtmColumn } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 export default async function RatiosPage({
@@ -12,13 +12,14 @@ export default async function RatiosPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; years?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, years: yearsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
-  const [rows, ttm] = await Promise.all([getRatios(ticker, period, 8), getRatiosTtm(ticker)]);
+  const span = spanFrom(yearsParam);
+  const [rows, ttm] = await Promise.all([getRatios(ticker, period, statementLimit(period, span)), getRatiosTtm(ticker)]);
   const base = stockPath(ticker, "/financials/ratios");
 
   return (
@@ -26,7 +27,21 @@ export default async function RatiosPage({
       <PageHeader
         title={`${ticker} Financial Ratios`}
         description="Profitability, liquidity, leverage, and valuation ratios."
-        actions={<PeriodToggle period={period} annualHref={base} quarterHref={`${base}?period=quarter`} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodToggle
+              period={period}
+              annualHref={statementHref(base, "annual", "standardized", span)}
+              quarterHref={statementHref(base, "quarter", "standardized", span)}
+            />
+            <YearToggle
+              span={span}
+              fiveHref={statementHref(base, period, "standardized", "5")}
+              tenHref={statementHref(base, period, "standardized", "10")}
+              maxHref={statementHref(base, period, "standardized", "max")}
+            />
+          </div>
+        }
       />
       <FinancialsNav symbol={ticker} />
       <StatementTable

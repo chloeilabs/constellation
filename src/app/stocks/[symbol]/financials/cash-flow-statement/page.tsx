@@ -11,8 +11,10 @@ import {
   asReportedColumns,
   asReportedStatementRows,
   sourceFrom,
+  spanFrom,
   statementChartItems,
-  statementHref,
+  statementLimit,
+  statementToolbarHrefs,
   toStatementColumns,
   withTtmColumn,
 } from "@/lib/statements";
@@ -23,18 +25,20 @@ export default async function CashFlowPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string; source?: string }>;
+  searchParams: Promise<{ period?: string; source?: string; years?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam, source: sourceParam } = await searchParams;
+  const { period: periodParam, source: sourceParam, years: yearsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const source = sourceFrom(sourceParam);
+  const span = spanFrom(yearsParam);
+  const limit = statementLimit(period, span);
   const base = stockPath(ticker, "/financials/cash-flow-statement");
   const [rows, ttm, reported] = await Promise.all([
-    source === "standardized" ? getCashFlows(ticker, period, 8) : Promise.resolve([]),
+    source === "standardized" ? getCashFlows(ticker, period, limit) : Promise.resolve([]),
     source === "standardized" ? getCashFlowTtm(ticker) : Promise.resolve(null),
-    source === "reported" ? getCashFlowAsReported(ticker, period, 8) : Promise.resolve([]),
+    source === "reported" ? getCashFlowAsReported(ticker, period, limit) : Promise.resolve([]),
   ]);
   const currency = reportingCurrency(
     rows[0]?.reportedCurrency,
@@ -59,10 +63,8 @@ export default async function CashFlowPage({
           <StatementToolbar
             period={period}
             source={source}
-            annualHref={statementHref(base, "annual", source)}
-            quarterHref={statementHref(base, "quarter", source)}
-            standardizedHref={statementHref(base, period, "standardized")}
-            reportedHref={statementHref(base, period, "reported")}
+            span={span}
+            {...statementToolbarHrefs(base, period, source, span)}
           />
         }
       />

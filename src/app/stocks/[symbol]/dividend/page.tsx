@@ -12,7 +12,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const ticker = decodeTicker(symbol);
   const [profile, dividends, quote, ratios] = await Promise.all([
     getProfile(ticker),
-    getDividends(ticker, 60),
+    getDividends(ticker, 80),
     getQuote(ticker),
     getRatiosTtm(ticker),
   ]);
@@ -37,13 +37,21 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
     byYear.set(year, (byYear.get(year) ?? 0) + amount);
   }
   const years = [...byYear.keys()].sort();
-  const completeYears = years.filter((year) => year < nyDateString().slice(0, 4));
+  const thisYear = nyDateString().slice(0, 4);
+  const complete = years.filter((year) => year < thisYear);
   const bars = years.map((year) => ({ label: year, value: byYear.get(year) ?? 0 }));
-  const five = (completeYears.length >= 2 ? completeYears : years).slice(-6);
+  const five = (complete.length >= 2 ? complete : years).slice(-6);
   const first = five[0] ? byYear.get(five[0]) : null;
   const last = five.at(-1) ? byYear.get(five.at(-1)!) : null;
   const span = five.length - 1;
   const cagr = first && last && first > 0 && span > 0 ? Math.pow(last / first, 1 / span) - 1 : null;
+  let growthYears = 0;
+  for (let i = complete.length - 1; i > 0; i -= 1) {
+    const current = byYear.get(complete[i]) ?? 0;
+    const previous = byYear.get(complete[i - 1]) ?? 0;
+    if (previous > 0 && current > previous) growthYears += 1;
+    else break;
+  }
   const currency = profile?.currency || "USD";
   const px = (value: number | null | undefined) => formatMoney(value, currency);
   const today = nyDateString();
@@ -108,6 +116,10 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">5Y Dividend CAGR</div>
           <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(cagr)}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">Years of Dividend Growth</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{growthYears > 0 ? growthYears : "—"}</div>
         </div>
       </div>
       {bars.length > 1 ? (

@@ -1,11 +1,11 @@
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
-import { PageHeader, PeriodToggle } from "@/components/page-header";
+import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
 import { getKeyMetrics, getKeyMetricsTtm } from "@/lib/fmp";
 import { reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { KEY_METRIC_ROWS, stripTtmSuffix, toStatementColumns, withTtmColumn } from "@/lib/statements";
+import { KEY_METRIC_ROWS, spanFrom, statementHref, statementLimit, stripTtmSuffix, toStatementColumns, withTtmColumn } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 export default async function MetricsPage({
@@ -13,13 +13,14 @@ export default async function MetricsPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; years?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, years: yearsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
-  const [rows, ttm] = await Promise.all([getKeyMetrics(ticker, period, 8), getKeyMetricsTtm(ticker)]);
+  const span = spanFrom(yearsParam);
+  const [rows, ttm] = await Promise.all([getKeyMetrics(ticker, period, statementLimit(period, span)), getKeyMetricsTtm(ticker)]);
   const currency = reportingCurrency(rows[0]?.reportedCurrency);
   const base = stockPath(ticker, "/financials/metrics");
 
@@ -28,7 +29,21 @@ export default async function MetricsPage({
       <PageHeader
         title={`${ticker} Key Metrics`}
         description="Valuation, profitability, and efficiency metrics from FMP key-metrics."
-        actions={<PeriodToggle period={period} annualHref={base} quarterHref={`${base}?period=quarter`} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodToggle
+              period={period}
+              annualHref={statementHref(base, "annual", "standardized", span)}
+              quarterHref={statementHref(base, "quarter", "standardized", span)}
+            />
+            <YearToggle
+              span={span}
+              fiveHref={statementHref(base, period, "standardized", "5")}
+              tenHref={statementHref(base, period, "standardized", "10")}
+              maxHref={statementHref(base, period, "standardized", "max")}
+            />
+          </div>
+        }
       />
       <FinancialsNav symbol={ticker} />
       <StatementTable

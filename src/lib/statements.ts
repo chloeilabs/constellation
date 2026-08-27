@@ -281,17 +281,51 @@ export function statementChartItems(
 }
 
 export type StatementSource = "standardized" | "reported";
+export type StatementSpan = "5" | "10" | "max";
 
 export function sourceFrom(value?: string): StatementSource {
   return value === "reported" || value === "as-reported" ? "reported" : "standardized";
 }
 
-export function statementHref(base: string, period: "annual" | "quarter", source: StatementSource = "standardized") {
+export function spanFrom(value?: string): StatementSpan {
+  if (value === "10" || value === "max") return value;
+  return "5";
+}
+
+export function statementLimit(period: "annual" | "quarter", span: StatementSpan) {
+  if (period === "annual") return span === "max" ? 20 : span === "10" ? 10 : 5;
+  return span === "5" ? 20 : 40;
+}
+
+export function statementHref(
+  base: string,
+  period: "annual" | "quarter",
+  source: StatementSource = "standardized",
+  span: StatementSpan = "5",
+) {
   const params = new URLSearchParams();
   if (period === "quarter") params.set("period", "quarter");
   if (source === "reported") params.set("source", "reported");
+  if (span !== "5") params.set("years", span);
   const query = params.toString();
   return query ? `${base}?${query}` : base;
+}
+
+export function statementToolbarHrefs(
+  base: string,
+  period: "annual" | "quarter",
+  source: StatementSource,
+  span: StatementSpan,
+) {
+  return {
+    annualHref: statementHref(base, "annual", source, span),
+    quarterHref: statementHref(base, "quarter", source, span),
+    standardizedHref: statementHref(base, period, "standardized", span),
+    reportedHref: statementHref(base, period, "reported", span),
+    fiveHref: statementHref(base, period, source, "5"),
+    tenHref: statementHref(base, period, source, "10"),
+    maxHref: statementHref(base, period, source, "max"),
+  };
 }
 
 const XBRL_LABELS: Record<string, string> = {
