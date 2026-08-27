@@ -178,6 +178,16 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const earningsDate = lastReported?.date ?? next?.date ?? null;
   const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
   const lastSurprise = earningsSurprise(lastReported);
+  const pretaxMargin =
+    num(ratios?.pretaxProfitMarginTTM) ??
+    (num(ttm?.incomeBeforeTax) != null && num(ttm?.revenue) && ttm!.revenue !== 0
+      ? ttm!.incomeBeforeTax / ttm!.revenue
+      : null);
+  const ebitMargin =
+    num(ratios?.ebitMarginTTM) ??
+    (num(ttm?.ebit ?? ttm?.operatingIncome) != null && num(ttm?.revenue) && ttm!.revenue !== 0
+      ? (ttm!.ebit ?? ttm!.operatingIncome) / ttm!.revenue
+      : null);
 
   return (
     <Container>
@@ -382,10 +392,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Gross Margin", href: `/stocks/${ticker}/gross-profit`, value: formatPercentPlain(num(ratios?.grossProfitMarginTTM)) },
               { label: "Operating Margin", value: formatPercentPlain(num(ratios?.operatingProfitMarginTTM)) },
-              { label: "Pretax Margin", value: formatPercentPlain(num(ratios?.pretaxProfitMarginTTM)) },
+              { label: "Pretax Margin", value: formatPercentPlain(pretaxMargin) },
               { label: "Profit Margin", href: `/stocks/${ticker}/net-income`, value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
               { label: "EBITDA Margin", href: `/stocks/${ticker}/ebitda`, value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
-              { label: "EBIT Margin", value: formatPercentPlain(num(ratios?.ebitMarginTTM)) },
+              { label: "EBIT Margin", value: formatPercentPlain(ebitMargin) },
               { label: "FCF Margin", value: formatPercentPlain(fcfMargin) },
             ]}
           />
@@ -431,8 +441,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
                 href: `/stocks/${ticker}/forecast`,
                 value: targetUpside == null ? "—" : `${targetUpside > 0 ? "+" : ""}${targetUpside.toFixed(2)}%`,
               },
-              { label: "Consensus", href: `/stocks/${ticker}/forecast`, value: grades?.consensus ?? "—" },
-              { label: "Analyst Count", href: `/stocks/${ticker}/forecast`, value: analystCount ? formatNumber(analystCount, 0) : "—" },
+              { label: "Consensus", href: `/stocks/${ticker}/ratings`, value: grades?.consensus ?? "—" },
+              { label: "Analyst Count", href: `/stocks/${ticker}/ratings`, value: analystCount ? formatNumber(analystCount, 0) : "—" },
               { label: "Revenue Growth (est.)", value: formatPercentPlain(estimateCagr(estimates, "revenueAvg")) },
               { label: "EPS Growth (est.)", value: formatPercentPlain(estimateCagr(estimates, "epsAvg")) },
             ]}

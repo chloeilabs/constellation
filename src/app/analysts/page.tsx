@@ -5,16 +5,8 @@ import { SectionNav } from "@/components/section-nav";
 import { NEWS_NAV } from "@/lib/nav";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getGradesLatestNews } from "@/lib/fmp";
+import { gradeActionLabel } from "@/lib/grades";
 import { isForeignListingSymbol } from "@/lib/listings";
-
-function actionLabel(action: string) {
-  const value = (action || "").toLowerCase();
-  if (value === "initialise" || value === "initialize" || value === "init") return "Initiate";
-  if (value === "upgrade") return "Upgrade";
-  if (value === "downgrade") return "Downgrade";
-  if (value === "hold" || value === "maintain") return "Maintain";
-  return action ? action.replace(/^\w/, (char) => char.toUpperCase()) : "—";
-}
 
 export const metadata = {
   title: "Analyst Ratings",
@@ -71,7 +63,7 @@ export default async function AnalystsPage() {
                     </Link>
                   </td>
                   <td className="max-w-[160px] truncate">{row.gradingCompany || "—"}</td>
-                  <td>{actionLabel(row.action)}</td>
+                  <td>{gradeActionLabel(row.action)}</td>
                   <td>{row.previousGrade || "—"}</td>
                   <td className="font-medium">{row.newGrade || "—"}</td>
                   <td className="num">{formatPrice(row.priceWhenPosted)}</td>

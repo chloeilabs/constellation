@@ -151,7 +151,7 @@ export function QuoteStats({
         { label: "50-Day Average", value: px(quote?.priceAvg50) },
         { label: "200-Day Average", value: px(quote?.priceAvg200) },
         { label: "Profit Margin", value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
-        { label: "Analysts", href: `${base}/forecast`, value: formatAnalystConsensus(grades) },
+        { label: "Analysts", href: `${base}/ratings`, value: formatAnalystConsensus(grades) },
         {
           label: "Price Target",
           href: `${base}/forecast`,

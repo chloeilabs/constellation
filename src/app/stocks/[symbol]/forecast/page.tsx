@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
@@ -19,7 +20,7 @@ import {
   getRatingsHistorical,
 } from "@/lib/fmp";
 import type { FmpEstimate, FmpHistoricalGrade } from "@/lib/types";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { cn, nyDateString } from "@/lib/utils";
 
 function GradeMix({ row }: { row: FmpHistoricalGrade }) {
@@ -144,7 +145,18 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
 
   return (
     <Container>
-      <PageHeader title={`${ticker} Forecasts`} description="Analyst ratings, price targets, and earnings estimates." />
+      <PageHeader
+        title={`${ticker} Forecasts`}
+        description="Analyst ratings, price targets, and earnings estimates."
+        actions={
+          <Link
+            href={stockPath(ticker, "/ratings")}
+            className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+          >
+            Analyst Ratings
+          </Link>
+        }
+      />
       <div className="grid gap-6 md:grid-cols-3">
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Consensus</div>
@@ -301,7 +313,12 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Analyst Actions</h2>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <h2 className="text-lg font-semibold text-header">Analyst Actions</h2>
+          <Link href={stockPath(ticker, "/ratings")} className="text-sm text-link hover:underline">
+            Full ratings history
+          </Link>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
             <thead>
