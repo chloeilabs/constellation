@@ -15,8 +15,19 @@ import {
 } from "@/lib/fmp";
 import { industrySlug, sectorHref } from "@/lib/industries";
 import { decodeTicker, quoteHref } from "@/lib/listings";
+import { padCik } from "@/lib/institutional";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import type { ReactNode } from "react";
 import Link from "next/link";
+
+function IdentifierLink({ value }: { value?: string | null }) {
+  if (!value) return "—";
+  return (
+    <Link href={`/search?q=${encodeURIComponent(value)}`} className="text-link hover:underline">
+      {value}
+    </Link>
+  );
+}
 
 function formatFiscalYearEnd(value?: string | null) {
   if (!value) return null;
@@ -53,7 +64,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
     .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
     .slice(0, 12);
 
-  const details: Array<[string, string | number | null | undefined]> = [
+  const cik = padCik(profile?.cik || secProfile?.cik || "");
+  const details: Array<[string, ReactNode]> = [
     ["CEO", profile?.ceo],
     ["Sector", profile?.sector],
     ["Industry", profile?.industry],
@@ -67,9 +79,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
     ["Incorporated", secProfile?.stateOfIncorporation],
     ["SIC", secProfile?.sicCode ? `${secProfile.sicCode}${secProfile.sicDescription ? ` · ${secProfile.sicDescription}` : ""}` : null],
     ["Employer ID", secProfile?.taxIdentificationNumber],
-    ["CIK", profile?.cik || secProfile?.cik],
-    ["ISIN", profile?.isin || secProfile?.isin],
-    ["CUSIP", profile?.cusip],
+    ["CIK", <IdentifierLink key="cik" value={cik} />],
+    ["ISIN", <IdentifierLink key="isin" value={profile?.isin || secProfile?.isin} />],
+    ["CUSIP", <IdentifierLink key="cusip" value={profile?.cusip} />],
     ["Exchange", profile?.exchangeFullName],
   ];
 

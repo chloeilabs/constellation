@@ -204,7 +204,7 @@ export function PriceChart({
             </linearGradient>
           </defs>
           <path d={area} fill={`url(#chartFill-${symbol})`} />
-          <path d={path} fill="none" stroke={positive ? "#16a34a" : "#dc2626"} strokeWidth="2" />
+          <path d={path} fill="none" stroke={positive ? "#16a34a" : "#dc2626"} strokeWidth={points.length > 180 ? 1.25 : 2} />
           {ma50Path ? <path d={ma50Path} fill="none" stroke="#d97706" strokeWidth="1.5" /> : null}
           {ma200Path ? <path d={ma200Path} fill="none" stroke="#4f46e5" strokeWidth="1.5" /> : null}
           {ma50Y != null ? (

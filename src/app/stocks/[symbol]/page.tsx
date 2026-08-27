@@ -25,6 +25,7 @@ import {
   getQuote,
   getRatiosTtm,
   getSymbolNews,
+  getYearAgoMarketCap,
   withQuoteChanges,
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
@@ -35,6 +36,7 @@ import { QuoteFaq } from "@/components/quote-faq";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
+import { relativeChange } from "@/lib/utils";
 
 export default async function StockOverviewPage({
   params,
@@ -50,7 +52,7 @@ export default async function StockOverviewPage({
     return <IndexQuote ticker={ticker} range={rangeParam} />;
   }
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -69,6 +71,7 @@ export default async function StockOverviewPage({
       getEtfAssetExposure(ticker),
       getPriceChange(ticker),
       getDcf(ticker),
+      getYearAgoMarketCap(ticker),
     ]);
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
@@ -76,6 +79,11 @@ export default async function StockOverviewPage({
   const growth = growthRows[0] ?? null;
   const currency = reportingCurrency(profile?.currency, latestYear?.reportedCurrency, ttm?.reportedCurrency);
   const money = compactMoneyFn(currency);
+  const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
+  const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
+  const sharesYoy =
+    (typeof growth?.growthWeightedAverageShsOutDil === "number" ? growth.growthWeightedAverageShsOutDil : null) ??
+    relativeChange(latestYear?.weightedAverageShsOutDil, priorYear?.weightedAverageShsOutDil);
   const usEtfs = await listedUsEtfHolders(etfHolders);
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
@@ -143,6 +151,8 @@ export default async function StockOverviewPage({
           earningsDate={earnings[0]?.date}
           forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
           dcf={dcf?.dcf}
+          marketCapYoy={marketCapYoy}
+          sharesYoy={sharesYoy}
         />
       </div>
 

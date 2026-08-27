@@ -640,6 +640,8 @@ export type FmpIncomeGrowth = {
   growthNetIncome: number;
   growthEPS: number;
   growthEPSDiluted: number;
+  growthWeightedAverageShsOut?: number;
+  growthWeightedAverageShsOutDil?: number;
   [key: string]: string | number | undefined;
 };
 

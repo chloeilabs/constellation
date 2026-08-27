@@ -23,9 +23,11 @@ import {
   getEsgRatings,
   getGradesConsensus,
   getIncomeGrowth,
+  getIncomeStatements,
   getIncomeTtm,
   getKeyMetricsTtm,
   getLatestEma,
+  getLatestInstitutionalOwnership,
   getLatestRsi,
   getPriceChange,
   getPriceTarget,
@@ -36,8 +38,13 @@ import {
   getScores,
   getShareFloat,
   getSplits,
+  getYearAgoMarketCap,
 } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { padCik } from "@/lib/institutional";
+import { relativeChange } from "@/lib/utils";
+import { ChangePercent } from "@/components/change";
+import Link from "next/link";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -71,6 +78,9 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     esgRatings,
     target,
     grades,
+    quarterlyIncome,
+    yearAgoCap,
+    institutional,
   ] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
@@ -96,6 +106,9 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getEsgRatings(ticker),
     getPriceTarget(ticker),
     getGradesConsensus(ticker),
+    getIncomeStatements(ticker, "quarter", 2),
+    getYearAgoMarketCap(ticker),
+    getLatestInstitutionalOwnership(ticker, 0),
   ]);
 
   const sheet = balance[0] ?? null;
@@ -122,6 +135,18 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
   const enterpriseValue = num(metrics?.enterpriseValueTTM) ?? num(ratios?.enterpriseValueTTM);
   const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
+  const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
+  const sharesYoy =
+    num(growthRows[0]?.growthWeightedAverageShsOutDil) ??
+    num(growthRows[0]?.growthWeightedAverageShsOut);
+  const sharesQoq = relativeChange(
+    num(quarterlyIncome[0]?.weightedAverageShsOutDil),
+    num(quarterlyIncome[1]?.weightedAverageShsOutDil),
+  );
+  const institutionPct = num(institutional.summary?.ownershipPercent);
+  const cik = padCik(profile?.cik ?? "");
+  const isin = profile?.isin || "";
+  const cusip = profile?.cusip || "";
   const repurchase = num(cash?.commonStockRepurchased);
   const buybackYield =
     marketCap && marketCap > 0 && repurchase != null && repurchase !== 0 ? Math.abs(repurchase) / marketCap : null;
@@ -161,7 +186,12 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Total Valuation</h2>
           <StatGrid
             items={[
-              { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: money(marketCap) },
+              { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: (
+                <span className="inline-flex items-center gap-2">
+                  {money(marketCap)}
+                  {marketCapYoy != null ? <ChangePercent value={marketCapYoy} alreadyPercent={false} className="text-xs" /> : null}
+                </span>
+              ) },
               { label: "Enterprise Value", href: `/stocks/${ticker}/enterprise-value`, value: money(enterpriseValue) },
             ]}
           />
@@ -180,8 +210,15 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <StatGrid
             items={[
               { label: "Shares Outstanding", href: `/stocks/${ticker}/shares`, value: formatNumber(shares, 0) },
+              { label: "Shares Change (YoY)", href: `/stocks/${ticker}/shares`, value: sharesYoy == null ? "—" : <ChangePercent value={sharesYoy} alreadyPercent={false} /> },
+              { label: "Shares Change (QoQ)", href: `/stocks/${ticker}/shares`, value: sharesQoq == null ? "—" : <ChangePercent value={sharesQoq} alreadyPercent={false} /> },
               { label: "Float", href: `/stocks/${ticker}/shares`, value: formatNumber(shareFloat?.floatShares, 0) },
               { label: "Free Float", href: `/stocks/${ticker}/shares`, value: formatPercentPlain(shareFloat?.freeFloat, { alreadyPercent: true }) },
+              {
+                label: "Institutional Ownership",
+                href: `/stocks/${ticker}/ownership`,
+                value: formatPercentPlain(institutionPct, { alreadyPercent: true }),
+              },
             ]}
           />
         </section>
@@ -417,6 +454,45 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             ]}
           />
         </section>
+        {cik || isin || cusip ? (
+          <section>
+            <h2 className="mb-3 font-semibold text-header">Identifiers</h2>
+            <StatGrid
+              items={[
+                {
+                  label: "CIK",
+                  value: cik ? (
+                    <Link href={`/search?q=${encodeURIComponent(cik)}`} className="text-link hover:underline">
+                      {cik}
+                    </Link>
+                  ) : (
+                    "—"
+                  ),
+                },
+                {
+                  label: "ISIN",
+                  value: isin ? (
+                    <Link href={`/search?q=${encodeURIComponent(isin)}`} className="text-link hover:underline">
+                      {isin}
+                    </Link>
+                  ) : (
+                    "—"
+                  ),
+                },
+                {
+                  label: "CUSIP",
+                  value: cusip ? (
+                    <Link href={`/search?q=${encodeURIComponent(cusip)}`} className="text-link hover:underline">
+                      {cusip}
+                    </Link>
+                  ) : (
+                    "—"
+                  ),
+                },
+              ]}
+            />
+          </section>
+        ) : null}
       </div>
     </Container>
   );

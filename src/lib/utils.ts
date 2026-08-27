@@ -80,6 +80,13 @@ export function percentFromPriceChange(price: number | null | undefined, change:
   return change / previous;
 }
 
+/** `(current - prior) / |prior|` as a decimal, or null when either side is missing. */
+export function relativeChange(current?: number | null, prior?: number | null) {
+  if (typeof current !== "number" || typeof prior !== "number") return null;
+  if (!Number.isFinite(current) || !Number.isFinite(prior) || prior === 0) return null;
+  return (current - prior) / Math.abs(prior);
+}
+
 export function annualDividendPayments(frequency: string | null | undefined) {
   const value = (frequency || "").toLowerCase();
   if (value.includes("month")) return 12;

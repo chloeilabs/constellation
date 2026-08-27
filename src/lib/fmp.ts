@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { decodeTicker, looksLikeFund, usEtfHolders, WELL_KNOWN_MARKET_ASSETS } from "@/lib/listings";
-import { addDays, chunk, first, isoDate, recentFiscalQuarters } from "@/lib/utils";
+import { addDays, chunk, first, isoDate, nyDateString, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
   FmpAftermarketTrade,
@@ -1090,6 +1090,24 @@ export function getHistoricalMarketCap(symbol: string, limit = 90, from?: string
   );
 }
 
+/** Closest daily market cap to today−365, from a small date window (not the full history). */
+export async function getYearAgoMarketCap(symbol: string) {
+  const today = new Date(`${nyDateString()}T00:00:00Z`);
+  const target = isoDate(addDays(today, -365));
+  const from = isoDate(addDays(today, -375));
+  const to = isoDate(addDays(today, -355));
+  const rows = await getHistoricalMarketCap(symbol, 40, from, to);
+  if (!rows.length) return null;
+  const targetMs = Date.parse(`${target}T00:00:00Z`);
+  return (
+    [...rows].sort((a, b) => {
+      const da = Math.abs(Date.parse(`${a.date.slice(0, 10)}T00:00:00Z`) - targetMs);
+      const db = Math.abs(Date.parse(`${b.date.slice(0, 10)}T00:00:00Z`) - targetMs);
+      return da - db;
+    })[0] ?? null
+  );
+}
+
 export function getIncomeGrowth(symbol: string, period: StatementPeriod = "annual", limit = 8) {
   return fmpList<FmpIncomeGrowth>(
     "/income-statement-growth",
@@ -1155,7 +1173,7 @@ function isPlausible13F(row: FmpInstitutionalSummary) {
   return !(jump && row.ownershipPercent > 95);
 }
 
-export async function getLatestInstitutionalOwnership(symbol: string, holderLimit = 40) {
+async function findLatestInstitutionalSummary(symbol: string) {
   const ticker = decodeTicker(symbol);
   let backup: { year: number; quarter: number; row: FmpInstitutionalSummary } | null = null;
 
@@ -1168,26 +1186,30 @@ export async function getLatestInstitutionalOwnership(symbol: string, holderLimi
     const row = rows[0];
     if (!row) continue;
     if (isPlausible13F(row)) {
-      const holders = await fmpList<FmpInstitutionalHolder>(
-        "/institutional-ownership/extract-analytics/holder",
-        { symbol: ticker, year: period.year, quarter: period.quarter, page: 0, limit: holderLimit },
-        { revalidate: 3600 },
-      );
-      return { summary: row, year: period.year, quarter: period.quarter, holders };
+      return { summary: row, year: period.year, quarter: period.quarter };
     }
     backup ??= { ...period, row };
   }
 
   if (!backup) {
-    return { summary: null, year: null, quarter: null, holders: [] as FmpInstitutionalHolder[] };
+    return { summary: null, year: null, quarter: null };
+  }
+  return { summary: backup.row, year: backup.year, quarter: backup.quarter };
+}
+
+export async function getLatestInstitutionalOwnership(symbol: string, holderLimit = 40) {
+  const ticker = decodeTicker(symbol);
+  const latest = await findLatestInstitutionalSummary(ticker);
+  if (!latest.summary || holderLimit <= 0 || latest.year == null || latest.quarter == null) {
+    return { ...latest, holders: [] as FmpInstitutionalHolder[] };
   }
 
   const holders = await fmpList<FmpInstitutionalHolder>(
     "/institutional-ownership/extract-analytics/holder",
-    { symbol: ticker, year: backup.year, quarter: backup.quarter, page: 0, limit: holderLimit },
+    { symbol: ticker, year: latest.year, quarter: latest.quarter, page: 0, limit: holderLimit },
     { revalidate: 3600 },
   );
-  return { summary: backup.row, year: backup.year, quarter: backup.quarter, holders };
+  return { ...latest, holders };
 }
 
 export function getEmployeeCount(symbol: string, limit = 8) {

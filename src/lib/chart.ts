@@ -1,5 +1,5 @@
 import type { FmpIntradayCandle, FmpLightCandle, ChartPoint } from "@/lib/types";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import { addDays, isoDate, nyDateString, nySession, type NySession } from "@/lib/utils";
 import { getDailyChart, getIntradayChart, getTechnicalSeries } from "@/lib/fmp";
 import { resolveChartRange, type ChartRange } from "@/lib/chart-range";
 
@@ -59,9 +59,77 @@ export async function getChartMovingAverages(symbol: string, range: ChartRange) 
   return { ma50: smaPoints(sma50), ma200: smaPoints(sma200) };
 }
 
+const RTH_START = 9 * 60 + 30;
+const RTH_END = 16 * 60;
+const EXT_START = 4 * 60;
+const EXT_END = 20 * 60;
+
+function minutesOf(time: string) {
+  const match = time.match(/(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function inWindow(time: string, startMin: number, endMin: number) {
+  const mins = minutesOf(time);
+  return mins != null && mins >= startMin && mins < endMin;
+}
+
+function pointsOnDate(points: ChartPoint[], date: string) {
+  return points.filter((point) => point.time.slice(0, 10) === date);
+}
+
+function previousDate(points: ChartPoint[], before: string) {
+  const dates = [...new Set(points.map((point) => point.time.slice(0, 10)).filter((date) => date < before))].sort();
+  return dates.at(-1) ?? null;
+}
+
+/** Keep the visible 1D window aligned with the current NY session, matching stockanalysis.com. */
+export function sessionChartPoints(points: ChartPoint[], session: NySession = nySession()): ChartPoint[] {
+  if (points.length === 0) return points;
+  const today = nyDateString();
+  const todays = pointsOnDate(points, today);
+
+  if (session === "open") {
+    const rth = todays.filter((point) => inWindow(point.time, RTH_START, RTH_END));
+    if (rth.length >= 1) return rth;
+    if (todays.length >= 1) return todays;
+  }
+
+  if (session === "premarket") {
+    const pre = todays.filter((point) => inWindow(point.time, EXT_START, RTH_START));
+    if (pre.length >= 2) return pre;
+    const prior = previousDate(points, today);
+    if (prior) {
+      const priorRth = pointsOnDate(points, prior).filter((point) => inWindow(point.time, RTH_START, RTH_END));
+      const combined = [...(priorRth.length >= 10 ? priorRth : pointsOnDate(points, prior)), ...pre];
+      if (combined.length >= 2) return combined;
+    }
+    if (pre.length) return pre;
+  }
+
+  if (session === "afterhours") {
+    const day = todays.filter((point) => inWindow(point.time, RTH_START, EXT_END));
+    if (day.length >= 2) return day;
+    if (todays.length >= 2) return todays;
+  }
+
+  const sessionDate = todays.length >= 10 ? today : points.at(-1)?.time.slice(0, 10);
+  if (!sessionDate) return points.slice(-390);
+  const day = pointsOnDate(points, sessionDate);
+  const rthAh = day.filter((point) => inWindow(point.time, RTH_START, EXT_END));
+  if (rthAh.length >= 10) return rthAh;
+  const rth = day.filter((point) => inWindow(point.time, RTH_START, RTH_END));
+  if (rth.length >= 10) return rth;
+  return day.length >= 10 ? day : points.slice(-390);
+}
+
 export async function getChartData(symbol: string, range: ChartRange): Promise<ChartPoint[]> {
   if (range === "1D") {
-    return toIntradayPoints(await getIntradayChart(symbol, "5min")).slice(-90);
+    const oneMin = sessionChartPoints(toIntradayPoints(await getIntradayChart(symbol, "1min")));
+    if (oneMin.length >= 2) return oneMin;
+    const fiveMin = sessionChartPoints(toIntradayPoints(await getIntradayChart(symbol, "5min")));
+    return fiveMin.length >= 2 ? fiveMin : oneMin;
   }
   if (range === "5D") {
     return toIntradayPoints(await getIntradayChart(symbol, "15min")).slice(-200);

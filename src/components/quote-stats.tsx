@@ -72,6 +72,8 @@ export function QuoteStats({
   earningsDate,
   forwardPe,
   dcf,
+  marketCapYoy,
+  sharesYoy,
 }: {
   symbol: string;
   quote: FmpQuote | null;
@@ -85,6 +87,8 @@ export function QuoteStats({
   earningsDate?: string | null;
   forwardPe?: number | null;
   dcf?: number | null;
+  marketCapYoy?: number | null;
+  sharesYoy?: number | null;
 }) {
   const pe = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe ?? null;
   const currency = profile?.currency || "USD";
@@ -104,13 +108,13 @@ export function QuoteStats({
   return (
     <StatGrid
       items={[
-        { label: "Market Cap", href: `${base}/market-cap`, value: money(quote?.marketCap ?? profile?.marketCap) },
+        { label: "Market Cap", href: `${base}/market-cap`, value: withYoy(money(quote?.marketCap ?? profile?.marketCap), marketCapYoy) },
         { label: "Revenue (ttm)", href: `${base}/revenue`, value: withYoy(money(ttm?.revenue), growth?.growthRevenue) },
         { label: "Gross Profit (ttm)", href: `${base}/gross-profit`, value: money(ttm?.grossProfit) },
         { label: "Operating Income (ttm)", href: `${base}/operating-income`, value: money(ttm?.operatingIncome) },
         { label: "EBITDA (ttm)", href: `${base}/ebitda`, value: money(ttm?.ebitda) },
         { label: "Net Income (ttm)", href: `${base}/net-income`, value: withYoy(money(ttm?.netIncome), growth?.growthNetIncome) },
-        { label: "Shares Out", href: `${base}/shares`, value: formatCompactMoney(ttm?.weightedAverageShsOutDil, "USD").replace("$", "") },
+        { label: "Shares Out", href: `${base}/shares`, value: withYoy(formatCompactMoney(ttm?.weightedAverageShsOutDil, "USD").replace("$", ""), sharesYoy) },
         { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency), growth?.growthEPSDiluted ?? growth?.growthEPS) },
         { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(pe) },
         { label: "PEG Ratio", href: `${base}/peg-ratio`, value: formatRatio(peg) },
