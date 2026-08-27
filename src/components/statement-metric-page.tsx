@@ -6,7 +6,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
-import { getBalanceSheets, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import { getBalanceSheets, getCashFlows, getCashFlowTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
@@ -27,16 +27,18 @@ export async function StatementMetricPage({
   title: string;
   description: string;
   field: string;
-  kind: "income" | "balance";
+  kind: "income" | "balance" | "cash";
   ttmField?: string;
 }) {
   const ticker = decodeTicker(symbol);
   const path = stockPath(ticker, `/${slug}`);
-  const [annual, quarterly, ttm] = await Promise.all([
-    kind === "income" ? getIncomeStatements(ticker, "annual", 20) : getBalanceSheets(ticker, "annual", 20),
-    kind === "income" ? getIncomeStatements(ticker, "quarter", 12) : getBalanceSheets(ticker, "quarter", 12),
-    kind === "income" ? getIncomeTtm(ticker) : Promise.resolve(null),
-  ]);
+  const [annual, quarterly, ttm] = await Promise.all(
+    kind === "income"
+      ? [getIncomeStatements(ticker, "annual", 20), getIncomeStatements(ticker, "quarter", 12), getIncomeTtm(ticker)]
+      : kind === "cash"
+        ? [getCashFlows(ticker, "annual", 20), getCashFlows(ticker, "quarter", 12), getCashFlowTtm(ticker)]
+        : [getBalanceSheets(ticker, "annual", 20), getBalanceSheets(ticker, "quarter", 12), Promise.resolve(null)],
+  );
   const history = period === "quarter" ? quarterly : annual;
   const latest = history[0] as Record<string, unknown> | undefined;
   const prior = history[1] as Record<string, unknown> | undefined;
@@ -48,7 +50,9 @@ export async function StatementMetricPage({
       : latestValue;
   const fyGrowth = yearOverYear(latestValue, priorValue);
   const growth =
-    kind === "income" && ttmField ? ttmChange(quarterly as Array<Record<string, unknown>>, ttmField) ?? fyGrowth : fyGrowth;
+    (kind === "income" || kind === "cash") && ttmField
+      ? ttmChange(quarterly as Array<Record<string, unknown>>, ttmField) ?? fyGrowth
+      : fyGrowth;
   const currency = reportingCurrency(typeof latest?.reportedCurrency === "string" ? latest.reportedCurrency : null);
   const money = compactMoneyFn(currency);
 

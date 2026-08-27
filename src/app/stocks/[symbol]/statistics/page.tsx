@@ -38,12 +38,14 @@ import {
   getScores,
   getShareFloat,
   getSplits,
+  getTreasuryRates,
   getYearAgoMarketCap,
 } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
-import { indicatedAnnualDividend, relativeChange } from "@/lib/utils";
+import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { estimatedWacc } from "@/lib/wacc";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { ChangePercent } from "@/components/change";
 import Link from "next/link";
@@ -83,6 +85,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     quarterlyIncome,
     yearAgoCap,
     institutional,
+    treasury,
   ] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
@@ -111,14 +114,12 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getIncomeStatements(ticker, "quarter", 2),
     getYearAgoMarketCap(ticker),
     getLatestInstitutionalOwnership(ticker, 0),
+    getTreasuryRates(isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -30)), nyDateString()),
   ]);
   const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
 
   const sheet = balance[0] ?? null;
-  const shortCash = num(sheet?.cashAndShortTermInvestments);
-  const longInvestments = num(sheet?.longTermInvestments);
-  const cashAndInvestments =
-    shortCash != null || longInvestments != null ? (shortCash ?? 0) + (longInvestments ?? 0) : null;
+  const cashAndInvestments = cashAndInvestmentsOf(sheet);
   const totalDebt = num(sheet?.totalDebt);
   const netCash = cashAndInvestments != null && totalDebt != null ? cashAndInvestments - totalDebt : null;
   const shares = num(shareFloat?.outstandingShares) ?? num(ttm?.weightedAverageShsOutDil);
@@ -178,6 +179,15 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     (num(sheet?.totalCurrentAssets) != null && num(sheet?.totalCurrentLiabilities) != null
       ? sheet!.totalCurrentAssets - sheet!.totalCurrentLiabilities
       : null);
+  const latestTreasury = [...treasury].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+  const wacc = estimatedWacc({
+    marketCap: quote?.marketCap ?? profile?.marketCap,
+    beta: profile?.beta,
+    riskFreeYield: latestTreasury?.year10,
+    totalDebt: sheet?.totalDebt,
+    interestExpense: ttm?.interestExpense,
+    taxRate: ratios?.effectiveTaxRateTTM,
+  });
   const { lastReported, next } = splitCompanyEarnings(earnings);
   const earningsDate = lastReported?.date ?? next?.date ?? null;
   const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
@@ -301,7 +311,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "PEG Ratio", href: `/stocks/${ticker}/peg-ratio`, value: formatRatio(peg) },
               { label: "Graham Number", href: `/stocks/${ticker}/fair-value`, value: formatMoney(num(metrics?.grahamNumberTTM), currency) },
               { label: "Graham Net-Net", href: `/stocks/${ticker}/fair-value`, value: formatMoney(num(metrics?.grahamNetNetTTM), currency) },
-              { label: "Net Debt / EBITDA", value: formatRatio(num(metrics?.netDebtToEBITDATTM)) },
+              { label: "Net Debt / EBITDA", href: `/stocks/${ticker}/net-debt-ebitda`, value: formatRatio(num(metrics?.netDebtToEBITDATTM)) },
             ]}
           />
         </section>
@@ -354,7 +364,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               },
               { label: "Book Value", href: `/stocks/${ticker}/equity`, value: money(num(sheet?.totalStockholdersEquity)) },
               { label: "Book Value / Share", href: `/stocks/${ticker}/book-value`, value: formatMoney(num(ratios?.bookValuePerShareTTM), currency) },
-              { label: "Working Capital", value: money(workingCapital) },
+              { label: "Working Capital", href: `/stocks/${ticker}/working-capital`, value: money(workingCapital) },
+              { label: "WACC", href: `/stocks/${ticker}/wacc`, value: formatPercentPlain(wacc?.wacc) },
             ]}
           />
         </section>
@@ -367,7 +378,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Return on Capital", href: `/stocks/${ticker}/roic`, value: formatPercentPlain(num(metrics?.returnOnInvestedCapitalTTM)) },
               { label: "ROCE", href: `/stocks/${ticker}/roce`, value: formatPercentPlain(num(metrics?.returnOnCapitalEmployedTTM)) },
               { label: "Asset Turnover", href: `/stocks/${ticker}/asset-turnover`, value: formatRatio(num(ratios?.assetTurnoverTTM)) },
-              { label: "Inventory Turnover", value: formatRatio(num(ratios?.inventoryTurnoverTTM)) },
+              { label: "Inventory Turnover", href: `/stocks/${ticker}/inventory-turnover`, value: formatRatio(num(ratios?.inventoryTurnoverTTM)) },
+              { label: "Cash Conversion Cycle", href: `/stocks/${ticker}/cash-conversion-cycle`, value: num(metrics?.cashConversionCycleTTM) == null ? "—" : `${formatNumber(num(metrics?.cashConversionCycleTTM), 1)} days` },
+              { label: "Days Sales Outstanding", href: `/stocks/${ticker}/days-sales-outstanding`, value: num(metrics?.daysOfSalesOutstandingTTM) == null ? "—" : `${formatNumber(num(metrics?.daysOfSalesOutstandingTTM), 1)} days` },
+              { label: "Days Inventory Outstanding", href: `/stocks/${ticker}/days-inventory-outstanding`, value: num(metrics?.daysOfInventoryOutstandingTTM) == null ? "—" : `${formatNumber(num(metrics?.daysOfInventoryOutstandingTTM), 1)} days` },
+              { label: "Days Payables Outstanding", href: `/stocks/${ticker}/days-payables-outstanding`, value: num(metrics?.daysOfPayablesOutstandingTTM) == null ? "—" : `${formatNumber(num(metrics?.daysOfPayablesOutstandingTTM), 1)} days` },
               { label: "Employees", href: `/stocks/${ticker}/employees`, value: formatNumber(headcount, 0) },
               {
                 label: "Revenue / Employee",
@@ -385,7 +400,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <StatGrid
             items={[
               { label: "Income Tax", value: money(ttm?.incomeTaxExpense) },
-              { label: "Effective Tax Rate", value: formatPercentPlain(num(ratios?.effectiveTaxRateTTM)) },
+              { label: "Effective Tax Rate", href: `/stocks/${ticker}/effective-tax-rate`, value: formatPercentPlain(num(ratios?.effectiveTaxRateTTM)) },
             ]}
           />
         </section>
@@ -408,7 +423,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Cash Flow (ttm)</h2>
           <StatGrid
             items={[
-              { label: "Operating Cash Flow", value: money(cash?.operatingCashFlow) },
+              { label: "Operating Cash Flow", href: `/stocks/${ticker}/operating-cash-flow`, value: money(cash?.operatingCashFlow) },
               { label: "Capital Expenditures", href: `/stocks/${ticker}/capex`, value: money(cash?.capitalExpenditure) },
               { label: "Depreciation & Amortization", value: money(cash?.depreciationAndAmortization) },
               { label: "Net Borrowing", value: money(cash?.netDebtIssuance) },

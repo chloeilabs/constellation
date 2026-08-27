@@ -93,6 +93,21 @@ export function cashOutlay(value: number | null | undefined) {
   return Math.abs(value);
 }
 
+function finiteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** Cash + marketable securities, including long-term investments (Stock Analysis "Cash & Investments"). */
+export function cashAndInvestments(sheet?: {
+  cashAndShortTermInvestments?: number;
+  longTermInvestments?: number;
+} | null) {
+  const short = finiteNumber(sheet?.cashAndShortTermInvestments);
+  const long = finiteNumber(sheet?.longTermInvestments);
+  if (short == null && long == null) return null;
+  return (short ?? 0) + (long ?? 0);
+}
+
 export function annualDividendPayments(frequency: string | null | undefined) {
   const value = (frequency || "").toLowerCase();
   if (value.includes("month")) return 12;

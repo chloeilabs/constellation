@@ -4,7 +4,7 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
-import { formatPercentPlain, formatRatio } from "@/lib/format";
+import { formatCompactUsd, formatNumber, formatPercentPlain, formatRatio } from "@/lib/format";
 import { getKeyMetrics, getKeyMetricsTtm, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { periodFrom } from "@/components/statement-metric-page";
@@ -37,7 +37,7 @@ export async function RatioMetricPage({
   ttmField: string;
   valueLabel: string;
   formula?: string;
-  format?: "ratio" | "percent";
+  format?: "ratio" | "percent" | "money" | "days";
   source?: "ratios" | "metrics";
   zeroAsEmpty?: boolean;
 }) {
@@ -51,10 +51,13 @@ export async function RatioMetricPage({
   const history = period === "quarter" ? quarterly : annual;
   const latestTtm = num((ttm as Record<string, unknown> | null)?.[ttmField]);
   const display = (value: number | null) => (zeroAsEmpty && value === 0 ? null : value);
-  const formatValue =
-    format === "percent"
-      ? (value: number | null | undefined) => formatPercentPlain(display(num(value)))
-      : (value: number | null | undefined) => formatRatio(display(num(value)));
+  const formatValue = (value: number | null | undefined) => {
+    const shown = display(num(value));
+    if (format === "percent") return formatPercentPlain(shown);
+    if (format === "money") return formatCompactUsd(shown);
+    if (format === "days") return shown == null ? "—" : `${formatNumber(shown, 1)} days`;
+    return formatRatio(shown);
+  };
 
   return (
     <Container>

@@ -10,8 +10,10 @@ import {
   getCashFlows,
   getCashFlowTtm,
   getDividends,
+  getEstimates,
   getIncomeStatements,
   getIncomeTtm,
+  getQuote,
   getRatios,
   getRatiosTtm,
   getRevenueGeographicSegments,
@@ -19,6 +21,8 @@ import {
 } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { canonicalSegmentName, spanFrom, statementHref, statementLimit, trailingSum, ttmSegmentMap } from "@/lib/statements";
+import { cashAndInvestments } from "@/lib/utils";
+import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
@@ -61,10 +65,16 @@ function cashColumn(label: string, key: string, row: FmpCashFlow | null, prior: 
   };
 }
 
-function balanceColumn(label: string, key: string, row: FmpBalanceSheet | null, prior: FmpBalanceSheet | null): YearMetricColumn {
-  const cash = n(row?.cashAndShortTermInvestments);
+function balanceColumn(
+  label: string,
+  key: string,
+  row: FmpBalanceSheet | null,
+  prior: FmpBalanceSheet | null,
+  shares: number | null,
+): YearMetricColumn {
+  const cash = cashAndInvestments(row);
   const debt = n(row?.totalDebt);
-  const priorCash = n(prior?.cashAndShortTermInvestments);
+  const priorCash = cashAndInvestments(prior);
   const priorDebt = n(prior?.totalDebt);
   const netCash = cash != null && debt != null ? cash - debt : null;
   const priorNet = priorCash != null && priorDebt != null ? priorCash - priorDebt : null;
@@ -76,6 +86,7 @@ function balanceColumn(label: string, key: string, row: FmpBalanceSheet | null, 
       totalDebt: debt,
       netCash,
       netCashGrowth: yearOverYear(netCash, priorNet),
+      netCashPerShare: netCash != null && shares != null && shares > 0 ? netCash / shares : null,
     },
   };
 }
@@ -187,7 +198,7 @@ export default async function FinancialsOverviewPage({
   const yearCount = statementLimit("annual", span);
   const annualLimit = yearCount + 1;
   const base = stockPath(ticker, "/financials");
-  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends] =
+  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", annualLimit),
       getIncomeStatements(ticker, "quarter", 8),
@@ -204,6 +215,8 @@ export default async function FinancialsOverviewPage({
       getRevenueGeographicSegments(ticker, "annual"),
       getRevenueGeographicSegments(ticker, "quarter"),
       getDividends(ticker, span === "5" ? 24 : 80),
+      getQuote(ticker),
+      getEstimates(ticker, "annual"),
     ]);
 
   const incomeYears = annualIncome.slice(0, yearCount);
@@ -265,9 +278,24 @@ export default async function FinancialsOverviewPage({
 
   const balanceYears = annualBalance.slice(0, yearCount);
   const latestBalance = currentBalance[0] ?? balanceYears[0] ?? null;
+  const currentShares =
+    n(ttmIncomeSynthetic?.weightedAverageShsOutDil) ??
+    n(quarterlyIncome[0]?.weightedAverageShsOutDil) ??
+    n(incomeYears[0]?.weightedAverageShsOutDil);
+  const sharesByYear = new Map(
+    incomeYears.map((row) => [String(row.fiscalYear), n(row.weightedAverageShsOutDil)]),
+  );
   const cashDebtColumns = [
-    ...(latestBalance ? [balanceColumn("Current", "current", latestBalance, balanceYears[0] ?? null)] : []),
-    ...balanceYears.map((row, index) => balanceColumn(fyLabel(row.fiscalYear), row.date, row, balanceYears[index + 1] ?? null)),
+    ...(latestBalance ? [balanceColumn("Current", "current", latestBalance, balanceYears[0] ?? null, currentShares)] : []),
+    ...balanceYears.map((row, index) =>
+      balanceColumn(
+        fyLabel(row.fiscalYear),
+        row.date,
+        row,
+        balanceYears[index + 1] ?? null,
+        sharesByYear.get(String(row.fiscalYear)) ?? null,
+      ),
+    ),
   ];
 
   const ratioYears = annualRatios.slice(0, yearCount);
@@ -311,6 +339,15 @@ export default async function FinancialsOverviewPage({
     ...(ttmRatios ? [ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap)] : []),
     ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
   ];
+  if (valuationColumns[0]) {
+    valuationColumns[0] = {
+      ...valuationColumns[0],
+      values: {
+        ...valuationColumns[0].values,
+        forwardPe: forwardPeFromEstimates(quote?.price, estimates),
+      },
+    };
+  }
 
   const productTtm = ttmSegmentMap(productQuarters);
   const names = productTtm
@@ -455,6 +492,7 @@ export default async function FinancialsOverviewPage({
             { key: "totalDebt", label: "Total Debt", format: "money", href: `/stocks/${ticker}/debt` },
             { key: "netCash", label: "Net Cash (Debt)", format: "money", emphasize: true },
             { key: "netCashGrowth", label: "Net Cash Growth", format: "percent" },
+            { key: "netCashPerShare", label: "Net Cash Per Share", format: "eps" },
           ]}
         />
       </section>
@@ -469,7 +507,7 @@ export default async function FinancialsOverviewPage({
         <YearMetricTable
           columns={cashColumns}
           rows={[
-            { key: "operatingCashFlow", label: "Operating Cash Flow", format: "money" },
+            { key: "operatingCashFlow", label: "Operating Cash Flow", format: "money", href: `/stocks/${ticker}/operating-cash-flow` },
             { key: "capex", label: "Capital Expenditures", format: "money", href: `/stocks/${ticker}/capex` },
             { key: "freeCashFlow", label: "Free Cash Flow", format: "money", href: `/stocks/${ticker}/free-cash-flow`, emphasize: true },
             { key: "fcfGrowth", label: "FCF Growth", format: "percent" },
@@ -487,11 +525,11 @@ export default async function FinancialsOverviewPage({
         <YearMetricTable
           columns={marginColumns}
           rows={[
-            { key: "grossMargin", label: "Gross Margin", format: "margin", href: `/stocks/${ticker}/gross-profit` },
-            { key: "operatingMargin", label: "Operating Margin", format: "margin" },
-            { key: "pretaxMargin", label: "Pretax Margin", format: "margin" },
-            { key: "profitMargin", label: "Profit Margin", format: "margin", href: `/stocks/${ticker}/net-income` },
-            { key: "fcfMargin", label: "FCF Margin", format: "margin", href: `/stocks/${ticker}/free-cash-flow` },
+            { key: "grossMargin", label: "Gross Margin", format: "margin", href: `/stocks/${ticker}/gross-margin` },
+            { key: "operatingMargin", label: "Operating Margin", format: "margin", href: `/stocks/${ticker}/operating-margin` },
+            { key: "pretaxMargin", label: "Pretax Margin", format: "margin", href: `/stocks/${ticker}/pretax-margin` },
+            { key: "profitMargin", label: "Profit Margin", format: "margin", href: `/stocks/${ticker}/profit-margin` },
+            { key: "fcfMargin", label: "FCF Margin", format: "margin", href: `/stocks/${ticker}/fcf-margin` },
           ]}
         />
       </section>
@@ -515,16 +553,17 @@ export default async function FinancialsOverviewPage({
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-header">Valuation</h2>
-          <Link href={`/stocks/${ticker}/statistics`} className="text-sm text-link hover:underline">
-            Statistics
+          <Link href={`/stocks/${ticker}/financials/ratios`} className="text-sm text-link hover:underline">
+            Full ratios
           </Link>
         </div>
         <YearMetricTable
           columns={valuationColumns}
           rows={[
             { key: "pe", label: "PE Ratio", format: "ratio", href: `/stocks/${ticker}/pe-ratio` },
+            { key: "forwardPe", label: "Forward PE", format: "ratio", href: `/stocks/${ticker}/forward-pe` },
+            { key: "pfcf", label: "P/FCF Ratio", format: "ratio", href: `/stocks/${ticker}/pfcf-ratio` },
             { key: "ps", label: "PS Ratio", format: "ratio", href: `/stocks/${ticker}/ps-ratio` },
-            { key: "pfcf", label: "P/FCF Ratio", format: "ratio", href: `/stocks/${ticker}/free-cash-flow` },
           ]}
         />
       </section>
