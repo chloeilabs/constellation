@@ -10,7 +10,7 @@ import { compactMoneyFn, formatDate, formatMoney, formatPercent, reportingCurren
 import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
-import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
+import { earningsSurprise, revenueSurprise, splitCompanyEarnings } from "@/lib/earnings";
 
 export default async function EarningsPage({
   params,
@@ -102,18 +102,20 @@ export default async function EarningsPage({
                 <th className="num">Surprise</th>
                 <th className="num">Revenue</th>
                 <th className="num">Rev. Estimate</th>
+                <th className="num">Rev. Surprise</th>
               </tr>
             </thead>
             <tbody>
               {reported.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-muted">
+                  <td colSpan={7} className="text-muted">
                     No reported earnings available.
                   </td>
                 </tr>
               ) : (
                 reported.map((row) => {
                   const epsSurprise = earningsSurprise(row);
+                  const revSurprise = revenueSurprise(row);
                   return (
                     <tr key={row.date}>
                       <td>{formatDate(row.date)}</td>
@@ -124,6 +126,9 @@ export default async function EarningsPage({
                       </td>
                       <td className="num">{money(row.revenueActual)}</td>
                       <td className="num">{money(row.revenueEstimated)}</td>
+                      <td className="num">
+                        <ChangePercent value={revSurprise} alreadyPercent={false} />
+                      </td>
                     </tr>
                   );
                 })

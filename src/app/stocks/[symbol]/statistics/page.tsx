@@ -41,6 +41,7 @@ import {
   getYearAgoMarketCap,
 } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
 import { indicatedAnnualDividend, relativeChange } from "@/lib/utils";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
@@ -111,6 +112,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getYearAgoMarketCap(ticker),
     getLatestInstitutionalOwnership(ticker, 0),
   ]);
+  const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
 
   const sheet = balance[0] ?? null;
   const shortCash = num(sheet?.cashAndShortTermInvestments);
@@ -126,6 +128,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const dcfUpside = dcfPrice != null && quote?.price ? ((dcfPrice - quote.price) / quote.price) * 100 : null;
   const oneYear = num(changes?.["1Y"]);
   const peValue = num(ratios?.priceToEarningsRatioTTM) ?? quote?.pe ?? null;
+  const sectorPeVs = peValue != null && sectorPe ? peValue / sectorPe - 1 : null;
+  const industryPeVs = peValue != null && industryPe ? peValue / industryPe - 1 : null;
   const epsGrowth = num(growthRows[0]?.growthEPSDiluted) ?? num(growthRows[0]?.growthEPS);
   const peg =
     num(ratios?.priceToEarningsGrowthRatioTTM) ??
@@ -260,6 +264,34 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "PE Ratio", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(peValue) },
               { label: "Forward PE", value: formatRatio(forwardPeFromEstimates(quote?.price, estimates)) },
+              {
+                label: "Sector PE",
+                href: profile?.sector ? sectorHref(profile.sector) : undefined,
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {formatRatio(sectorPe)}
+                    {sectorPeVs != null ? (
+                      <span className="text-xs text-muted">
+                        {formatPercentPlain(Math.abs(sectorPeVs))} {sectorPeVs >= 0 ? "premium" : "discount"}
+                      </span>
+                    ) : null}
+                  </span>
+                ),
+              },
+              {
+                label: "Industry PE",
+                href: profile?.industry ? industryHref(profile.industry) : undefined,
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {formatRatio(industryPe)}
+                    {industryPeVs != null ? (
+                      <span className="text-xs text-muted">
+                        {formatPercentPlain(Math.abs(industryPeVs))} {industryPeVs >= 0 ? "premium" : "discount"}
+                      </span>
+                    ) : null}
+                  </span>
+                ),
+              },
               { label: "PS Ratio", href: `/stocks/${ticker}/ps-ratio`, value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
               { label: "Forward PS", value: formatRatio(forwardPs(marketCap, estimates)) },
               { label: "PB Ratio", href: `/stocks/${ticker}/pb-ratio`, value: formatRatio(num(ratios?.priceToBookRatioTTM)) },

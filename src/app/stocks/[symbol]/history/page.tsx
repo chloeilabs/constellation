@@ -19,6 +19,10 @@ function historyFrom(range: "1" | "5" | "10" | "max", today: string) {
   return isoDate(addDays(new Date(`${today}T00:00:00Z`), -days));
 }
 
+function historyCapLimit(range: "1" | "5" | "10" | "max") {
+  return range === "1" ? 400 : range === "5" ? 1500 : range === "10" ? 2800 : 5000;
+}
+
 export default async function StockHistoryPage({
   params,
   searchParams,
@@ -36,7 +40,7 @@ export default async function StockHistoryPage({
   const base = stockPath(ticker, "/history");
   const [prices, marketCaps, splits, profile] = await Promise.all([
     getFullDailyChart(ticker, from, today),
-    index ? Promise.resolve([]) : getHistoricalMarketCap(ticker, 90),
+    index ? Promise.resolve([]) : getHistoricalMarketCap(ticker, historyCapLimit(range), from, today),
     index ? Promise.resolve([]) : getSplits(ticker, 20),
     index ? Promise.resolve(null) : getProfile(ticker),
   ]);
@@ -45,6 +49,7 @@ export default async function StockHistoryPage({
   const daily = [...prices].sort((a, b) => b.date.localeCompare(a.date));
   const caps = [...marketCaps].sort((a, b) => b.date.localeCompare(a.date));
   const shown = daily.slice(0, 250);
+  const shownCaps = caps.slice(0, 250);
 
   return (
     <Container>
@@ -133,12 +138,26 @@ export default async function StockHistoryPage({
       {index ? null : (
         <>
           <section className="mt-10">
-            <div className="mb-3 flex items-end justify-between">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <h2 className="text-lg font-semibold text-header">Market Cap</h2>
-              <Link href={stockPath(ticker, "/market-cap")} className="text-sm text-link hover:underline">
-                Full history
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                {caps.length ? (
+                  <DownloadCsvButton
+                    filename={`${ticker}-market-cap-${range === "max" ? "max" : `${range}y`}`}
+                    headers={["Date", "Market Cap"]}
+                    rows={caps.map((row) => [row.date, row.marketCap])}
+                  />
+                ) : null}
+                <Link href={stockPath(ticker, "/market-cap")} className="text-sm text-link hover:underline">
+                  Full history
+                </Link>
+              </div>
             </div>
+            <p className="mb-2 text-xs text-muted">
+              {shownCaps.length < caps.length
+                ? `Showing the latest ${shownCaps.length.toLocaleString("en-US")} of ${caps.length.toLocaleString("en-US")} sessions. Download CSV for the full window.`
+                : `${caps.length.toLocaleString("en-US")} sessions in this window.`}
+            </p>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="sa-table">
                 <thead>
@@ -148,12 +167,20 @@ export default async function StockHistoryPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {caps.slice(0, 60).map((row) => (
-                    <tr key={row.date}>
-                      <td>{formatDate(row.date)}</td>
-                      <td className="num">{money(row.marketCap)}</td>
+                  {shownCaps.length === 0 ? (
+                    <tr>
+                      <td colSpan={2} className="text-muted">
+                        No market cap history available.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    shownCaps.map((row) => (
+                      <tr key={row.date}>
+                        <td>{formatDate(row.date)}</td>
+                        <td className="num">{money(row.marketCap)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

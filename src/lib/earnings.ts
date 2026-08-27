@@ -17,3 +17,8 @@ export function earningsSurprise(row: FmpEarnings | null | undefined) {
   if (row?.epsActual == null || row.epsEstimated == null || row.epsEstimated === 0) return null;
   return (row.epsActual - row.epsEstimated) / Math.abs(row.epsEstimated);
 }
+
+export function revenueSurprise(row: FmpEarnings | null | undefined) {
+  if (row?.revenueActual == null || row.revenueEstimated == null || row.revenueEstimated === 0) return null;
+  return (row.revenueActual - row.revenueEstimated) / Math.abs(row.revenueEstimated);
+}

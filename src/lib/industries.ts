@@ -173,6 +173,44 @@ export function sectorHref(name: string) {
   return `/stocks/sector/${industrySlug(name)}`;
 }
 
+export function industryHref(name: string) {
+  return `/stocks/industry/${industrySlug(name)}`;
+}
+
+function namedPe<T extends { pe: number }>(
+  rows: T[],
+  name: string | null | undefined,
+  key: (row: T) => string,
+) {
+  if (!name) return null;
+  const exact = rows.find((row) => key(row) === name);
+  if (exact && Number.isFinite(exact.pe) && exact.pe > 0) return exact.pe;
+  const needle = name.toLowerCase();
+  const fuzzy = rows.find((row) => key(row).toLowerCase() === needle);
+  return fuzzy && Number.isFinite(fuzzy.pe) && fuzzy.pe > 0 ? fuzzy.pe : null;
+}
+
+/** Latest US-exchange sector/industry PE snapshots for a stock's profile names. */
+export async function sectorIndustryPe(sector?: string | null, industry?: string | null) {
+  const today = nyDateString();
+  const yesterday = isoDate(addDays(new Date(`${today}T00:00:00Z`), -1));
+  const [sectorToday, sectorYesterday, industryToday, industryYesterday] = await Promise.all([
+    getSectorPeSnapshot(today),
+    getSectorPeSnapshot(yesterday),
+    getIndustryPeSnapshot(today),
+    getIndustryPeSnapshot(yesterday),
+  ]);
+  const sectors = uniqueByPreferUsExchange(sectorToday.length ? sectorToday : sectorYesterday, (row) => row.sector);
+  const industries = uniqueByPreferUsExchange(
+    industryToday.length ? industryToday : industryYesterday,
+    (row) => row.industry,
+  );
+  return {
+    sectorPe: namedPe(sectors, sector, (row) => row.sector),
+    industryPe: namedPe(industries, industry, (row) => row.industry),
+  };
+}
+
 export async function resolveSectorSlug(slug: string) {
   const live = await getSectors();
   const names = live.length ? live : SECTOR_FALLBACK;
