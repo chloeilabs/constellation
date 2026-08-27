@@ -35,7 +35,13 @@ export default async function FundQuotePage({
     <Container>
       <div className="mb-8">
         <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>
-          <PriceChart points={points} range={range} symbol={ticker} />
+          <PriceChart
+            points={points}
+            range={range}
+            symbol={ticker}
+            ma50={quote?.priceAvg50}
+            ma200={quote?.priceAvg200}
+          />
         </Suspense>
         <ReturnsTable changes={priceChange} />
       </div>

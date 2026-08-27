@@ -4,6 +4,7 @@ import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
 import { formatPrice, formatUsd } from "@/lib/format";
 import { industrySlug } from "@/lib/industries";
+import { nyExtendedCopy } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
 
 export function StockHeader({
@@ -22,6 +23,7 @@ export function StockHeader({
   const afterPrice = afterHours?.lastPrice || afterHours?.bidPrice || afterHours?.askPrice;
   const afterChange = afterPrice && price ? afterPrice - price : null;
   const afterPct = afterChange != null && price ? (afterChange / price) * 100 : null;
+  const extendedLabel = nyExtendedCopy().label;
 
   return (
     <div className="bg-white">
@@ -85,7 +87,7 @@ export function StockHeader({
               </div>
               {afterPrice ? (
                 <p className="mt-1 text-sm text-muted">
-                  After hours {formatPrice(afterPrice)}{" "}
+                  {extendedLabel} {formatPrice(afterPrice)}{" "}
                   <ChangeValue change={afterChange} percent={afterPct} />
                 </p>
               ) : null}

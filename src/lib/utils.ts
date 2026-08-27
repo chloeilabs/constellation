@@ -88,3 +88,35 @@ export function annualDividendPayments(frequency: string | null | undefined) {
   if (value.includes("annual") || value.includes("year")) return 1;
   return 4;
 }
+
+export type NySession = "premarket" | "open" | "afterhours" | "closed";
+
+/** Regular U.S. cash session in America/New_York: 9:30–16:00 on weekdays. */
+export function nySession(now = new Date()): NySession {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const weekday = parts.find((part) => part.type === "weekday")?.value;
+  if (weekday === "Sat" || weekday === "Sun") return "closed";
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value);
+  const mins = hour * 60 + minute;
+  if (mins >= 4 * 60 && mins < 9 * 60 + 30) return "premarket";
+  if (mins >= 9 * 60 + 30 && mins < 16 * 60) return "open";
+  if (mins >= 16 * 60 && mins < 20 * 60) return "afterhours";
+  return "closed";
+}
+
+export function nyExtendedKind(now = new Date()): "premarket" | "afterhours" {
+  return nySession(now) === "premarket" ? "premarket" : "afterhours";
+}
+
+export function nyExtendedCopy(kind: "premarket" | "afterhours" = nyExtendedKind()) {
+  return kind === "premarket"
+    ? { label: "Pre-market", title: "Premarket", href: "/markets/premarket" as const }
+    : { label: "After hours", title: "After Hours", href: "/markets/afterhours" as const };
+}

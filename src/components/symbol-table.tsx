@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
+import { currencyForCountry, formatCompactMoney, formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
 import { industrySlug } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
 
@@ -17,6 +17,8 @@ export type SymbolTableRow = {
   dividendYield?: number | null;
   founded?: number | null;
   country?: string | null;
+  isEtf?: boolean | null;
+  isFund?: boolean | null;
 };
 
 export function SymbolTable({
@@ -27,6 +29,7 @@ export function SymbolTable({
   showYield = false,
   showFounded = false,
   showCountry = false,
+  localCurrency = false,
 }: {
   rows: SymbolTableRow[];
   hrefBase?: string;
@@ -35,6 +38,7 @@ export function SymbolTable({
   showYield?: boolean;
   showFounded?: boolean;
   showCountry?: boolean;
+  localCurrency?: boolean;
 }) {
   const colSpan = 6 + (showIndustry ? 1 : 0) + (showYield ? 1 : 0) + (showFounded ? 1 : 0) + (showCountry ? 1 : 0);
   return (
@@ -68,8 +72,8 @@ export function SymbolTable({
                   <Link
                     href={quoteHref(row.symbol, {
                       name: row.name,
-                      isEtf: hrefBase === "/etf",
-                      isFund: hrefBase === "/funds",
+                      isEtf: row.isEtf ?? hrefBase === "/etf",
+                      isFund: row.isFund ?? hrefBase === "/funds",
                     })}
                     className="text-link hover:underline"
                   >
@@ -78,7 +82,11 @@ export function SymbolTable({
                 </td>
                 <td className="max-w-[280px] truncate">{row.name}</td>
                 {showFounded ? <td className="num">{row.founded ?? "—"}</td> : null}
-                <td className="num">{formatCompactUsd(row.marketCap)}</td>
+                <td className="num">
+                  {localCurrency
+                    ? formatCompactMoney(row.marketCap, currencyForCountry(row.country))
+                    : formatCompactUsd(row.marketCap)}
+                </td>
                 <td className="num">{formatPrice(row.price)}</td>
                 <td className="num">
                   <ChangePercent value={row.changePercentage} />

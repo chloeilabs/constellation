@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 export {
   MARKET_NAV,
+  extendedHoursNav,
   CALENDAR_NAV,
   IPO_NAV,
   STOCKS_NAV,

@@ -14,16 +14,20 @@ export function PriceChart({
   range,
   symbol,
   chartHref,
+  ma50,
+  ma200,
 }: {
   points: ChartPoint[];
   range: ChartRange;
   symbol: string;
   chartHref?: string;
+  ma50?: number | null;
+  ma200?: number | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const pathname = usePathname();
 
-  const { path, area, min, max, width, height, positive, volumes } = useMemo(() => {
+  const { path, area, min, max, width, height, positive, volumes, ma50Y, ma200Y } = useMemo(() => {
     const width = 720;
     const chartHeight = 220;
     const volHeight = 52;
@@ -41,15 +45,19 @@ export function PriceChart({
         chartHeight,
         positive: true,
         volumes: [] as { x: number; barWidth: number; barHeight: number; y: number }[],
+        ma50Y: null as number | null,
+        ma200Y: null as number | null,
       };
     }
     const values = points.map((point) => point.value);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    const extras = [ma50, ma200].filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    const min = Math.min(...values, ...extras);
+    const max = Math.max(...values, ...extras);
     const span = max - min || 1;
+    const yOf = (value: number) => pad + ((max - value) / span) * (chartHeight - pad * 2);
     const coords = points.map((point, index) => {
       const x = pad + (index / Math.max(points.length - 1, 1)) * (width - pad * 2);
-      const y = pad + ((max - point.value) / span) * (chartHeight - pad * 2);
+      const y = yOf(point.value);
       return { x, y };
     });
     const path = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" ");
@@ -62,8 +70,20 @@ export function PriceChart({
       const barHeight = ((point.volume ?? 0) / maxVolume) * volHeight;
       return { x, barWidth, barHeight, y: height - barHeight };
     });
-    return { path, area, min, max, width, height, chartHeight, positive, volumes };
-  }, [points]);
+    return {
+      path,
+      area,
+      min,
+      max,
+      width,
+      height,
+      chartHeight,
+      positive,
+      volumes,
+      ma50Y: typeof ma50 === "number" && Number.isFinite(ma50) ? yOf(ma50) : null,
+      ma200Y: typeof ma200 === "number" && Number.isFinite(ma200) ? yOf(ma200) : null,
+    };
+  }, [points, ma50, ma200]);
 
   const active = hover != null ? points[hover] : points.at(-1);
   const start = points[0]?.value;
@@ -79,6 +99,12 @@ export function PriceChart({
           {active ? <span className="text-xs text-muted">{active.time}</span> : null}
           {hasVolume && active?.volume ? (
             <span className="text-xs text-muted">Vol {formatCompact(active.volume)}</span>
+          ) : null}
+          {typeof ma50 === "number" ? (
+            <span className="text-xs font-medium text-amber-600">MA50 {formatPrice(ma50)}</span>
+          ) : null}
+          {typeof ma200 === "number" ? (
+            <span className="text-xs font-medium text-indigo-600">MA200 {formatPrice(ma200)}</span>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-1">
@@ -121,6 +147,12 @@ export function PriceChart({
           </defs>
           <path d={area} fill={`url(#chartFill-${symbol})`} />
           <path d={path} fill="none" stroke={positive ? "#16a34a" : "#dc2626"} strokeWidth="2" />
+          {ma50Y != null ? (
+            <line x1="8" x2={width - 8} y1={ma50Y} y2={ma50Y} stroke="#d97706" strokeDasharray="5 4" strokeWidth="1.25" />
+          ) : null}
+          {ma200Y != null ? (
+            <line x1="8" x2={width - 8} y1={ma200Y} y2={ma200Y} stroke="#4f46e5" strokeDasharray="5 4" strokeWidth="1.25" />
+          ) : null}
           {hasVolume
             ? volumes.map((bar, index) => (
                 <rect

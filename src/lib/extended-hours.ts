@@ -66,3 +66,16 @@ export async function getExtendedHoursRows(): Promise<ExtendedHoursRow[]> {
     })
     .filter((row) => row.extended != null);
 }
+
+export function splitExtendedHours(rows: ExtendedHoursRow[]) {
+  const withMove = rows.filter((row) => row.changePct != null && Number.isFinite(row.changePct));
+  return {
+    gainers: [...withMove]
+      .filter((row) => (row.changePct ?? 0) > 0)
+      .sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0)),
+    losers: [...withMove]
+      .filter((row) => (row.changePct ?? 0) < 0)
+      .sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0)),
+    active: [...rows].sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)),
+  };
+}

@@ -1,4 +1,4 @@
-import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
+import { formatAnalystConsensus, formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import type { FmpGradesConsensus, FmpIncomeStatement, FmpPriceTarget, FmpProfile, FmpQuote, FmpRatiosTtm } from "@/lib/types";
 
 export function QuoteFaq({
@@ -54,7 +54,7 @@ export function QuoteFaq({
       a:
         grades || target
           ? [
-              grades ? `Consensus is ${grades.consensus}.` : null,
+              grades?.consensus ? `Consensus is ${formatAnalystConsensus(grades)}.` : null,
               target?.targetConsensus && price
                 ? `The average price target is $${formatPrice(target.targetConsensus)}.`
                 : null,

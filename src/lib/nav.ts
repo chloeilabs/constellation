@@ -1,10 +1,19 @@
 export type NavItem = { href: string; label: string; match?: "exact" | "prefix" };
 
+export function extendedHoursNav(base: "/markets/premarket" | "/markets/afterhours"): NavItem[] {
+  return [
+    { href: base, label: "Overview", match: "exact" },
+    { href: `${base}/gainers`, label: "Gainers" },
+    { href: `${base}/losers`, label: "Losers" },
+    { href: `${base}/active`, label: "Most Active" },
+  ];
+}
+
 export const MARKET_NAV: NavItem[] = [
   { href: "/markets", label: "Overview" },
   { href: "/markets/heatmap", label: "Heatmap" },
-  { href: "/markets/premarket", label: "Premarket" },
-  { href: "/markets/afterhours", label: "After Hours" },
+  { href: "/markets/premarket", label: "Premarket", match: "prefix" },
+  { href: "/markets/afterhours", label: "After Hours", match: "prefix" },
   { href: "/markets/index-changes", label: "Index Changes" },
   { href: "/markets/gainers", label: "Gainers" },
   { href: "/markets/losers", label: "Losers" },

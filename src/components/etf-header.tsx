@@ -3,6 +3,7 @@ import { WatchlistButton } from "@/components/watchlist-button";
 import { EtfSubnav } from "@/components/etf-subnav";
 import { ChangeValue } from "@/components/change";
 import { formatPrice, formatUsd } from "@/lib/format";
+import { nyExtendedCopy } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpEtfInfo, FmpQuote } from "@/lib/types";
 
 export function EtfHeader({
@@ -21,6 +22,7 @@ export function EtfHeader({
   const afterPrice = afterHours?.lastPrice || afterHours?.bidPrice || afterHours?.askPrice;
   const afterChange = afterPrice && price ? afterPrice - price : null;
   const afterPct = afterChange != null && price ? (afterChange / price) * 100 : null;
+  const extendedLabel = nyExtendedCopy().label;
 
   return (
     <div className="bg-white">
@@ -47,7 +49,7 @@ export function EtfHeader({
             </div>
             {afterPrice ? (
               <p className="mt-1 text-sm text-muted">
-                After hours {formatPrice(afterPrice)}{" "}
+                {extendedLabel} {formatPrice(afterPrice)}{" "}
                 <ChangeValue change={afterChange} percent={afterPct} />
               </p>
             ) : null}

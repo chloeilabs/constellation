@@ -29,7 +29,9 @@ export default async function ScreenerPage({
     exchange?: string;
     type?: string;
     minCap?: string;
+    maxCap?: string;
     minPrice?: string;
+    maxPrice?: string;
     minBeta?: string;
     minVolume?: string;
     minYield?: string;
@@ -47,10 +49,18 @@ export default async function ScreenerPage({
     industry: params.industry,
     exchange: params.exchange,
     marketCapMoreThan: params.minCap ? Number(params.minCap) * 1e9 : undefined,
+    marketCapLowerThan: params.maxCap ? Number(params.maxCap) * 1e9 : undefined,
     priceMoreThan: params.minPrice ? Number(params.minPrice) : undefined,
+    priceLowerThan: params.maxPrice ? Number(params.maxPrice) : undefined,
     betaMoreThan: params.minBeta ? Number(params.minBeta) : undefined,
     volumeMoreThan: params.minVolume ? Number(params.minVolume) : undefined,
-    ...(type === "etf" ? { isEtf: true, isFund: false } : type === "all" ? { isEtf: undefined } : { isEtf: false }),
+    ...(type === "etf"
+      ? { isEtf: true, isFund: false }
+      : type === "fund"
+        ? { isEtf: false, isFund: true }
+        : type === "all"
+          ? { isEtf: undefined, isFund: undefined }
+          : { isEtf: false, isFund: false }),
   };
   const [rows, sectors, industries] = await Promise.all([
     getScreener(filters, { page, limit: country === "US" && !params.exchange ? 100 : 50 }),
@@ -74,7 +84,7 @@ export default async function ScreenerPage({
     <Container>
       <PageHeader
         title="Stock Screener"
-        description="Filter stocks and ETFs by country, sector, market cap, beta, volume, and dividend yield using live FMP data."
+        description="Filter stocks, ETFs, and funds by country, sector, market cap, price, beta, volume, and dividend yield using live FMP data."
       />
       <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <label className="text-sm">
@@ -85,6 +95,12 @@ export default async function ScreenerPage({
             <option value="GB">United Kingdom</option>
             <option value="JP">Japan</option>
             <option value="DE">Germany</option>
+            <option value="IN">India</option>
+            <option value="FR">France</option>
+            <option value="BR">Brazil</option>
+            <option value="AU">Australia</option>
+            <option value="HK">Hong Kong</option>
+            <option value="CN">China</option>
           </select>
         </label>
         <label className="text-sm">
@@ -92,7 +108,8 @@ export default async function ScreenerPage({
           <select name="type" defaultValue={type} className="h-9 w-full rounded-md border border-border bg-white px-2">
             <option value="stock">Stocks</option>
             <option value="etf">ETFs</option>
-            <option value="all">Stocks & ETFs</option>
+            <option value="fund">Funds</option>
+            <option value="all">Stocks, ETFs & Funds</option>
           </select>
         </label>
         <label className="text-sm">
@@ -138,6 +155,17 @@ export default async function ScreenerPage({
           />
         </label>
         <label className="text-sm">
+          <span className="mb-1 block text-muted">Max market cap ($B)</span>
+          <input
+            name="maxCap"
+            type="number"
+            min="0"
+            step="1"
+            defaultValue={params.maxCap ?? ""}
+            className="h-9 w-full rounded-md border border-border bg-white px-2"
+          />
+        </label>
+        <label className="text-sm">
           <span className="mb-1 block text-muted">Min price</span>
           <input
             name="minPrice"
@@ -145,6 +173,17 @@ export default async function ScreenerPage({
             min="0"
             step="0.01"
             defaultValue={params.minPrice ?? ""}
+            className="h-9 w-full rounded-md border border-border bg-white px-2"
+          />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Max price</span>
+          <input
+            name="maxPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={params.maxPrice ?? ""}
             className="h-9 w-full rounded-md border border-border bg-white px-2"
           />
         </label>
@@ -190,8 +229,9 @@ export default async function ScreenerPage({
       <p className="mb-3 text-sm text-muted">{withChanges.length} results on this page</p>
       <SymbolTable
         empty="No securities matched these filters."
-        hrefBase={type === "etf" ? "/etf" : "/stocks"}
+        hrefBase={type === "etf" ? "/etf" : type === "fund" ? "/funds" : "/stocks"}
         showYield={minYield != null && minYield > 0}
+        localCurrency={country !== "US"}
         rows={withChanges.map((row) => ({
           symbol: row.symbol,
           name: row.companyName,
@@ -200,7 +240,10 @@ export default async function ScreenerPage({
           changePercentage: row.changePercentage,
           industry: row.industry,
           volume: row.volume,
+          country: row.country,
           dividendYield: row.price && row.lastAnnualDividend ? row.lastAnnualDividend / row.price : null,
+          isEtf: row.isEtf,
+          isFund: row.isFund,
         }))}
       />
       <div className="mt-4 flex gap-3 text-sm">

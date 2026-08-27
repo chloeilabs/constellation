@@ -7,6 +7,7 @@ import { Container } from "@/components/container";
 import { PopularStocks } from "@/components/popular-stocks";
 import { SectorStrip } from "@/components/sector-strip";
 import { Toolkit } from "@/components/toolkit";
+import { ExtendedHoursTables } from "@/components/extended-hours-tables";
 import { formatDate } from "@/lib/format";
 import {
   getGainers,
@@ -20,8 +21,9 @@ import {
   getStockNews,
   POPULAR_SYMBOLS,
 } from "@/lib/fmp";
+import { getExtendedHoursRows } from "@/lib/extended-hours";
 import { quoteHref } from "@/lib/listings";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import { addDays, isoDate, nyDateString, nyExtendedCopy, nySession } from "@/lib/utils";
 import type { FmpIpo } from "@/lib/types";
 
 const MARKET_LINKS = [
@@ -64,7 +66,7 @@ function IpoTable({ title, rows }: { title: string; rows: FmpIpo[] }) {
                   <td>{formatDate(ipo.date)}</td>
                   <td className="symbol">
                     {ipo.symbol ? (
-                      <Link href={`/stocks/${ipo.symbol}`} className="text-link hover:underline">
+                      <Link href={quoteHref(ipo.symbol, { name: ipo.company })} className="text-link hover:underline">
                         {ipo.symbol}
                       </Link>
                     ) : (
@@ -88,11 +90,14 @@ export default async function HomePage() {
   const to = isoDate(addDays(today, 30));
   const todayStr = nyDateString();
   const yesterday = isoDate(addDays(today, -1));
-  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday] =
+  const session = nySession();
+  const showExtended = session !== "open";
+  const extended = nyExtendedCopy();
+  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday, extendedRows] =
     await Promise.all([
       getIndexQuotes(),
-      getGainers(),
-      getLosers(),
+      showExtended ? Promise.resolve([]) : getGainers(),
+      showExtended ? Promise.resolve([]) : getLosers(),
       getStockNews(20),
       getIpos(from, to),
       getMarketHours("NASDAQ"),
@@ -100,6 +105,7 @@ export default async function HomePage() {
       getMostActive(),
       getSectorPerformance(todayStr),
       getSectorPerformance(yesterday),
+      showExtended ? getExtendedHoursRows() : Promise.resolve([]),
     ]);
 
   const recentIpos = ipos.filter((ipo) => ipo.date <= todayStr).slice(0, 8);
@@ -156,10 +162,24 @@ export default async function HomePage() {
           ))}
         </nav>
         <SectorStrip rows={sectors} />
-        <div className="mt-12 grid gap-8 lg:grid-cols-2">
-          <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 10)} />
-          <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 10)} />
-        </div>
+        {showExtended ? (
+          <div className="mt-12">
+            <ExtendedHoursTables
+              rows={extendedRows}
+              limit={10}
+              showActive={false}
+              gainerHref={`${extended.href}/gainers`}
+              loserHref={`${extended.href}/losers`}
+              gainerTitle={`${extended.title} Gainers`}
+              loserTitle={`${extended.title} Losers`}
+            />
+          </div>
+        ) : (
+          <div className="mt-12 grid gap-8 lg:grid-cols-2">
+            <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 10)} />
+            <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 10)} />
+          </div>
+        )}
         <div className="mt-12">
           <Toolkit />
         </div>

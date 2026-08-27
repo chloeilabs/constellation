@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { CALENDAR_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { getEarningsCalendar } from "@/lib/fmp";
-import { quoteHref } from "@/lib/listings";
+import { isForeignListingSymbol, quoteHref } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function EarningsCalendarPage({
@@ -17,7 +17,7 @@ export default async function EarningsCalendarPage({
   const today = nyDateString();
   const from = params.from || today;
   const to = params.to || isoDate(addDays(new Date(`${today}T00:00:00Z`), 7));
-  const rows = await getEarningsCalendar(from, to);
+  const rows = (await getEarningsCalendar(from, to)).filter((row) => !isForeignListingSymbol(row.symbol));
 
   return (
     <Container>

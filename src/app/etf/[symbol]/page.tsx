@@ -64,7 +64,14 @@ export default async function EtfPage({
   return (
     <Container>
       <div className="mb-8">
-        <PriceChart points={points} range={range} symbol={ticker} chartHref={`/etf/${ticker}/chart`} />
+        <PriceChart
+          points={points}
+          range={range}
+          symbol={ticker}
+          chartHref={`/etf/${ticker}/chart`}
+          ma50={quote?.priceAvg50}
+          ma200={quote?.priceAvg200}
+        />
         <ReturnsTable changes={changes} />
       </div>
 

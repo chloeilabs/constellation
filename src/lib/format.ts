@@ -37,6 +37,32 @@ export function formatCompactUsd(value: number | null | undefined) {
   return `${sign}$${formatCompact(Math.abs(value))}`;
 }
 
+const COUNTRY_CURRENCY: Record<string, string> = {
+  US: "USD",
+  CA: "CAD",
+  GB: "GBP",
+  JP: "JPY",
+  DE: "EUR",
+  FR: "EUR",
+  IN: "INR",
+  BR: "BRL",
+  AU: "AUD",
+  HK: "HKD",
+  CN: "CNY",
+};
+
+export function currencyForCountry(country?: string | null) {
+  if (!country) return "USD";
+  return COUNTRY_CURRENCY[country.toUpperCase()] ?? "USD";
+}
+
+export function formatCompactMoney(value: number | null | undefined, currency?: string | null) {
+  if (value == null || Number.isNaN(value)) return "—";
+  if (!currency || currency === "USD") return formatCompactUsd(value);
+  const sign = value < 0 ? "-" : "";
+  return `${sign}${formatCompact(Math.abs(value))} ${currency}`;
+}
+
 export function formatMillions(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
   const millions = value / 1e6;
@@ -100,6 +126,24 @@ export function formatInteger(value: number | null | undefined) {
 export function formatRatio(value: number | null | undefined, digits = 2) {
   if (value == null || Number.isNaN(value)) return "—";
   return numberFormatter.format(Number(value.toFixed(digits)));
+}
+
+export function formatAnalystConsensus(grades?: {
+  consensus?: string | null;
+  strongBuy?: number | null;
+  buy?: number | null;
+  hold?: number | null;
+  sell?: number | null;
+  strongSell?: number | null;
+} | null) {
+  if (!grades?.consensus) return "—";
+  const count =
+    (grades.strongBuy || 0) +
+    (grades.buy || 0) +
+    (grades.hold || 0) +
+    (grades.sell || 0) +
+    (grades.strongSell || 0);
+  return count > 0 ? `${grades.consensus} (${count})` : grades.consensus;
 }
 
 export function formatVolume(value: number | null | undefined) {

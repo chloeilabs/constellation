@@ -113,7 +113,13 @@ export default async function StockOverviewPage({
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
         <div>
           <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>
-            <PriceChart points={points} range={range} symbol={ticker} />
+            <PriceChart
+              points={points}
+              range={range}
+              symbol={ticker}
+              ma50={quote?.priceAvg50}
+              ma200={quote?.priceAvg200}
+            />
           </Suspense>
           <ReturnsTable changes={priceChange} />
         </div>

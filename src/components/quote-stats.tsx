@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import {
+  formatAnalystConsensus,
   formatCompactUsd,
   formatDate,
   formatInteger,
@@ -122,7 +123,7 @@ export function QuoteStats({
         { label: "50-Day Average", value: formatPrice(quote?.priceAvg50) },
         { label: "200-Day Average", value: formatPrice(quote?.priceAvg200) },
         { label: "Profit Margin", value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
-        { label: "Analysts", href: `${base}/forecast`, value: grades?.consensus ?? "—" },
+        { label: "Analysts", href: `${base}/forecast`, value: formatAnalystConsensus(grades) },
         {
           label: "Price Target",
           href: `${base}/forecast`,

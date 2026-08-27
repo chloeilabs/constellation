@@ -12,7 +12,11 @@ const nextConfig: NextConfig = {
       { source: "/list/semiconductors", destination: "/list/semiconductor-stocks", permanent: false },
       { source: "/list/reits", destination: "/list/reit-stocks", permanent: false },
       { source: "/list/banks", destination: "/list/bank-stocks", permanent: false },
+      { source: "/list/airlines", destination: "/list/airline-stocks", permanent: false },
+      { source: "/list/gold", destination: "/list/gold-stocks", permanent: false },
+      { source: "/list/restaurants", destination: "/list/restaurant-stocks", permanent: false },
       { source: "/list/faang-stocks", destination: "/list/faang", permanent: false },
+      { source: "/stocks/screener", destination: "/screener", permanent: false },
     ];
   },
   images: {

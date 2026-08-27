@@ -2,18 +2,27 @@ import Link from "next/link";
 import { ChangePercent, ChangeValue } from "@/components/change";
 import { formatInteger, formatPrice } from "@/lib/format";
 import { quoteHref } from "@/lib/listings";
-import type { ExtendedHoursRow } from "@/lib/extended-hours";
+import { splitExtendedHours, type ExtendedHoursRow } from "@/lib/extended-hours";
 
 function Table({
   title,
+  href,
   rows,
 }: {
   title: string;
+  href?: string;
   rows: ExtendedHoursRow[];
 }) {
   return (
     <section>
-      <h2 className="mb-3 text-xl font-semibold text-header">{title}</h2>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <h2 className="text-xl font-semibold text-header">{title}</h2>
+        {href ? (
+          <Link href={href} className="text-sm text-link hover:underline">
+            See all
+          </Link>
+        ) : null}
+      </div>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -62,17 +71,48 @@ function Table({
   );
 }
 
-export function ExtendedHoursTables({ rows }: { rows: ExtendedHoursRow[] }) {
-  const withMove = rows.filter((row) => row.changePct != null && Number.isFinite(row.changePct));
-  const gainers = [...withMove].filter((row) => (row.changePct ?? 0) > 0).sort((a, b) => (b.changePct ?? 0) - (a.changePct ?? 0));
-  const losers = [...withMove].filter((row) => (row.changePct ?? 0) < 0).sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0));
-  const active = [...rows].sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+export function ExtendedHoursTables({
+  rows,
+  limit = 25,
+  showActive = true,
+  gainerHref,
+  loserHref,
+  activeHref,
+  gainerTitle = "Top Gainers",
+  loserTitle = "Top Losers",
+  activeTitle = "Most Active",
+}: {
+  rows: ExtendedHoursRow[];
+  limit?: number;
+  showActive?: boolean;
+  gainerHref?: string;
+  loserHref?: string;
+  activeHref?: string;
+  gainerTitle?: string;
+  loserTitle?: string;
+  activeTitle?: string;
+}) {
+  const { gainers, losers, active } = splitExtendedHours(rows);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-1">
-      <Table title="Top Gainers" rows={gainers.slice(0, 25)} />
-      <Table title="Top Losers" rows={losers.slice(0, 25)} />
-      <Table title="Most Active" rows={active.slice(0, 25)} />
+    <div className={showActive ? "grid gap-8" : "grid gap-8 lg:grid-cols-2"}>
+      <Table title={gainerTitle} href={gainerHref} rows={gainers.slice(0, limit)} />
+      <Table title={loserTitle} href={loserHref} rows={losers.slice(0, limit)} />
+      {showActive ? <Table title={activeTitle} href={activeHref} rows={active.slice(0, limit)} /> : null}
     </div>
   );
+}
+
+export function ExtendedHoursKindTable({
+  rows,
+  kind,
+  limit = 50,
+}: {
+  rows: ExtendedHoursRow[];
+  kind: "gainers" | "losers" | "active";
+  limit?: number;
+}) {
+  const split = splitExtendedHours(rows);
+  const title = kind === "gainers" ? "Top Gainers" : kind === "losers" ? "Top Losers" : "Most Active";
+  return <Table title={title} rows={split[kind].slice(0, limit)} />;
 }
