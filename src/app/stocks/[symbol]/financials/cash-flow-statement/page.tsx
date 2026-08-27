@@ -3,6 +3,7 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
 import { getCashFlows } from "@/lib/fmp";
+import { reportingCurrency } from "@/lib/format";
 import { CASH_FLOW_ROWS, toStatementColumns } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -18,12 +19,13 @@ export default async function CashFlowPage({
   const ticker = symbol.toUpperCase();
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const rows = await getCashFlows(ticker, period, 8);
+  const currency = reportingCurrency(rows[0]?.reportedCurrency);
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Cash Flow Statement`}
-        description="Operating, investing, and financing cash flows. Figures in millions of USD."
+        description={`Operating, investing, and financing cash flows. Figures in millions of ${currency}.`}
         actions={
           <PeriodToggle
             period={period}
@@ -37,7 +39,8 @@ export default async function CashFlowPage({
         rows={CASH_FLOW_ROWS}
         columns={toStatementColumns(rows, period)}
         scale="millions"
-        caption="Values in millions. Green/red percentages are year-over-year change."
+        currency={currency}
+        caption={`Values in millions of ${currency}. Green/red percentages are year-over-year change.`}
       />
     </Container>
   );

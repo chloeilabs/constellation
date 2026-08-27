@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatDate, formatInteger, formatPrice } from "@/lib/format";
-import { getFullDailyChart, getHistoricalMarketCap, getSplits } from "@/lib/fmp";
+import { compactMoneyFn, formatDate, formatInteger, formatMoney } from "@/lib/format";
+import { getFullDailyChart, getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function StockHistoryPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -11,11 +11,14 @@ export default async function StockHistoryPage({ params }: { params: Promise<{ s
   const ticker = symbol.toUpperCase();
   const today = nyDateString();
   const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -400));
-  const [prices, marketCaps, splits] = await Promise.all([
+  const [prices, marketCaps, splits, profile] = await Promise.all([
     getFullDailyChart(ticker, from, today),
     getHistoricalMarketCap(ticker, 90),
     getSplits(ticker, 20),
+    getProfile(ticker),
   ]);
+  const money = compactMoneyFn(profile?.currency);
+  const px = (value: number | null | undefined) => formatMoney(value, profile?.currency);
   const daily = [...prices].sort((a, b) => b.date.localeCompare(a.date));
   const caps = [...marketCaps].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -52,10 +55,10 @@ export default async function StockHistoryPage({ params }: { params: Promise<{ s
                 daily.slice(0, 120).map((row) => (
                   <tr key={row.date}>
                     <td>{formatDate(row.date)}</td>
-                    <td className="num">{formatPrice(row.open)}</td>
-                    <td className="num">{formatPrice(row.high)}</td>
-                    <td className="num">{formatPrice(row.low)}</td>
-                    <td className="num">{formatPrice(row.close)}</td>
+                    <td className="num">{px(row.open)}</td>
+                    <td className="num">{px(row.high)}</td>
+                    <td className="num">{px(row.low)}</td>
+                    <td className="num">{px(row.close)}</td>
                     <td className="num">
                       <ChangePercent value={row.changePercent} />
                     </td>
@@ -87,7 +90,7 @@ export default async function StockHistoryPage({ params }: { params: Promise<{ s
               {caps.slice(0, 60).map((row) => (
                 <tr key={row.date}>
                   <td>{formatDate(row.date)}</td>
-                  <td className="num">{formatCompactUsd(row.marketCap)}</td>
+                  <td className="num">{money(row.marketCap)}</td>
                 </tr>
               ))}
             </tbody>

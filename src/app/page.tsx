@@ -8,9 +8,11 @@ import { PopularStocks } from "@/components/popular-stocks";
 import { SectorStrip } from "@/components/sector-strip";
 import { Toolkit } from "@/components/toolkit";
 import { ExtendedHoursTables } from "@/components/extended-hours-tables";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import {
+  getEarningsCalendar,
   getGainers,
+  getIndexConstituents,
   getIndexQuotes,
   getIpos,
   getLosers,
@@ -24,7 +26,7 @@ import {
 import { getExtendedHoursRows } from "@/lib/extended-hours";
 import { quoteHref } from "@/lib/listings";
 import { addDays, isoDate, nyDateString, nyExtendedCopy, nySession } from "@/lib/utils";
-import type { FmpIpo } from "@/lib/types";
+import type { FmpEarnings, FmpIpo } from "@/lib/types";
 
 const MARKET_LINKS = [
   ["/markets/premarket", "Pre-Market"],
@@ -35,6 +37,9 @@ const MARKET_LINKS = [
   ["/markets/treasury", "Treasury"],
   ["/list/magnificent-seven", "Mag 7"],
   ["/list/faang", "FAANG"],
+  ["/list/ai-stocks", "AI"],
+  ["/list/ev-stocks", "EVs"],
+  ["/list/highest-revenue", "Revenue"],
   ["/list/dividend-aristocrats", "Aristocrats"],
   ["/list/reit-stocks", "REITs"],
   ["/list/52-week-high", "52-Week High"],
@@ -84,6 +89,46 @@ function IpoTable({ title, rows }: { title: string; rows: FmpIpo[] }) {
   );
 }
 
+function EarningsTable({ title, rows }: { title: string; rows: FmpEarnings[] }) {
+  return (
+    <section>
+      <h2 className="mb-3 text-xl font-semibold text-header">{title}</h2>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Symbol</th>
+              <th className="num">EPS Est.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="text-muted">
+                  No S&P 500 earnings in this window.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={`${row.symbol}-${row.date}`}>
+                  <td>{formatDate(row.date)}</td>
+                  <td className="symbol">
+                    <Link href={quoteHref(row.symbol)} className="text-link hover:underline">
+                      {row.symbol}
+                    </Link>
+                  </td>
+                  <td className="num">{formatPrice(row.epsEstimated)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   const today = new Date(`${nyDateString()}T00:00:00Z`);
   const from = isoDate(addDays(today, -30));
@@ -93,7 +138,7 @@ export default async function HomePage() {
   const session = nySession();
   const showExtended = session !== "open";
   const extended = nyExtendedCopy();
-  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday, extendedRows] =
+  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday, extendedRows, earnings, sp500] =
     await Promise.all([
       getIndexQuotes(),
       showExtended ? Promise.resolve([]) : getGainers(),
@@ -106,10 +151,14 @@ export default async function HomePage() {
       getSectorPerformance(todayStr),
       getSectorPerformance(yesterday),
       showExtended ? getExtendedHoursRows() : Promise.resolve([]),
+      getEarningsCalendar(todayStr, isoDate(addDays(today, 7))),
+      getIndexConstituents("sp500"),
     ]);
 
   const recentIpos = ipos.filter((ipo) => ipo.date <= todayStr).slice(0, 8);
   const upcomingIpos = ipos.filter((ipo) => ipo.date > todayStr).slice(0, 8);
+  const spSet = new Set(sp500.map((row) => row.symbol));
+  const spEarnings = earnings.filter((row) => spSet.has(row.symbol)).slice(0, 8);
   const sectors = sectorsToday.length ? sectorsToday : sectorsYesterday;
 
   return (
@@ -196,9 +245,14 @@ export default async function HomePage() {
           <div className="space-y-8">
             <IpoTable title="Recent IPOs" rows={recentIpos} />
             <IpoTable title="Upcoming IPOs" rows={upcomingIpos} />
+            <EarningsTable title="S&P 500 Earnings" rows={spEarnings} />
             <p className="text-sm">
               <Link href="/calendar/ipos" className="text-link hover:underline">
                 Full IPO calendar
+              </Link>
+              {" · "}
+              <Link href="/calendar/earnings" className="text-link hover:underline">
+                Earnings calendar
               </Link>
             </p>
           </div>

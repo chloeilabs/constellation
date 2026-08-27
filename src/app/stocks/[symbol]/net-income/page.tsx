@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getIncomeStatements, getIncomeTtm, getRatiosTtm } from "@/lib/fmp";
 
 export default async function NetIncomePage({
@@ -28,6 +28,7 @@ export default async function NetIncomePage({
   const history = period === "quarter" ? quarterly : annual;
   const growth = yearOverYear(annual[0]?.netIncome, annual[1]?.netIncome);
   const margin = ttm?.revenue ? ttm.netIncome / ttm.revenue : null;
+  const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency));
 
   return (
     <Container>
@@ -38,7 +39,7 @@ export default async function NetIncomePage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: "Net Income (ttm)", value: formatCompactUsd(ttm?.netIncome) },
+          { label: "Net Income (ttm)", value: money(ttm?.netIncome) },
           {
             label: "FY Growth",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
@@ -59,7 +60,7 @@ export default async function NetIncomePage({
         quarterHref={`/stocks/${ticker}/net-income?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} Net Income`}
         valueLabel="Net Income"
-        formatValue={formatCompactUsd}
+        formatValue={money}
         empty="No net income history available."
         rows={history.map((row) => ({
           key: `${row.date}-${row.period}`,

@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -45,6 +45,8 @@ export async function StatementMetricPage({
       ? ((ttm as Record<string, unknown>)[ttmField] as number)
       : latestValue;
   const growth = yearOverYear(latestValue, priorValue);
+  const currency = reportingCurrency(typeof latest?.reportedCurrency === "string" ? latest.reportedCurrency : null);
+  const money = compactMoneyFn(currency);
 
   return (
     <Container>
@@ -52,7 +54,7 @@ export async function StatementMetricPage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: ttmField ? "Trailing 12 Months" : "Latest", value: formatCompactUsd(ttmValue) },
+          { label: ttmField ? "Trailing 12 Months" : "Latest", value: money(ttmValue) },
           {
             label: "Change",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
@@ -65,7 +67,7 @@ export async function StatementMetricPage({
         quarterHref={`${path}?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} History`}
         valueLabel="Value"
-        formatValue={formatCompactUsd}
+        formatValue={money}
         empty="No history available."
         rows={history.map((row) => {
           const values = row as Record<string, unknown>;

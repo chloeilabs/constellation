@@ -4,11 +4,11 @@ import { SectionNav } from "@/components/section-nav";
 import { StatGrid } from "@/components/quote-stats";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import {
-  formatCompactUsd,
+  formatCompactMoney,
   formatDate,
+  formatMoney,
   formatNumber,
   formatPercentPlain,
-  formatPrice,
   formatRatio,
 } from "@/lib/format";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
@@ -20,6 +20,8 @@ import {
   getDividends,
   getEmployeeCount,
   getEstimates,
+  getEsgRatings,
+  getIncomeGrowth,
   getIncomeTtm,
   getKeyMetricsTtm,
   getLatestRsi,
@@ -40,7 +42,7 @@ function num(value: unknown) {
 export default async function StatisticsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, profile, ratios, metrics, scores, shareFloat, dcf, ratings, ttm, cash, balance, earnings, dividends, splits, employees, estimates, changes, rsi] =
+  const [quote, profile, ratios, metrics, scores, shareFloat, dcf, ratings, ttm, cash, balance, earnings, dividends, splits, employees, estimates, changes, rsi, growthRows, esgRatings] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -60,6 +62,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
       getEstimates(ticker, "annual"),
       getPriceChange(ticker),
       getLatestRsi(ticker),
+      getIncomeGrowth(ticker, "annual", 1),
+      getEsgRatings(ticker),
     ]);
 
   const sheet = balance[0] ?? null;
@@ -72,6 +76,12 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const dcfPrice = dcf?.dcf;
   const dcfUpside = dcfPrice != null && quote?.price ? ((dcfPrice - quote.price) / quote.price) * 100 : null;
   const oneYear = num(changes?.["1Y"]);
+  const peValue = num(ratios?.priceToEarningsRatioTTM) ?? quote?.pe ?? null;
+  const epsGrowth = num(growthRows[0]?.growthEPSDiluted) ?? num(growthRows[0]?.growthEPS);
+  const peg = peValue != null && epsGrowth != null && epsGrowth > 0 ? peValue / (epsGrowth * 100) : null;
+  const currency = profile?.currency || "USD";
+  const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
+  const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
 
   return (
     <Container>
@@ -85,8 +95,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Total Valuation</h2>
           <StatGrid
             items={[
-              { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
-              { label: "Enterprise Value", href: `/stocks/${ticker}/enterprise-value`, value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
+              { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: money(quote?.marketCap ?? profile?.marketCap) },
+              { label: "Enterprise Value", href: `/stocks/${ticker}/enterprise-value`, value: money(num(metrics?.enterpriseValueTTM)) },
             ]}
           />
         </section>
@@ -113,12 +123,14 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Valuation Ratios</h2>
           <StatGrid
             items={[
-              { label: "PE Ratio", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(num(ratios?.priceToEarningsRatioTTM) ?? quote?.pe) },
+              { label: "PE Ratio", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(peValue) },
               { label: "Forward PE", value: formatRatio(forwardPeFromEstimates(quote?.price, estimates)) },
               { label: "PS Ratio", href: `/stocks/${ticker}/ps-ratio`, value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
               { label: "PB Ratio", href: `/stocks/${ticker}/pb-ratio`, value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
               { label: "P/FCF", href: `/stocks/${ticker}/free-cash-flow`, value: formatRatio(num(ratios?.priceToFreeCashFlowRatioTTM)) },
-              { label: "PEG Ratio", value: formatRatio(num((metrics as Record<string, unknown> | null)?.pegRatioTTM)) },
+              { label: "PEG Ratio", value: formatRatio(peg ?? num(metrics?.pegRatioTTM)) },
+              { label: "Graham Number", value: formatMoney(num(metrics?.grahamNumberTTM), currency) },
+              { label: "Net Debt / EBITDA", value: formatRatio(num(metrics?.netDebtToEBITDATTM)) },
             ]}
           />
         </section>
@@ -139,10 +151,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Current Ratio", href: `/stocks/${ticker}/current-ratio`, value: formatRatio(num(ratios?.currentRatioTTM ?? metrics?.currentRatioTTM)) },
               { label: "Quick Ratio", value: formatRatio(num(ratios?.quickRatioTTM)) },
               { label: "Debt / Equity", value: formatRatio(num(ratios?.debtToEquityRatioTTM)) },
-              { label: "Cash & Investments", href: `/stocks/${ticker}/cash`, value: formatCompactUsd(cashAndInvestments) },
-              { label: "Total Debt", href: `/stocks/${ticker}/debt`, value: formatCompactUsd(totalDebt) },
-              { label: "Net Cash", value: formatCompactUsd(netCash) },
-              { label: "Book Value", href: `/stocks/${ticker}/equity`, value: formatCompactUsd(num(sheet?.totalStockholdersEquity)) },
+              { label: "Cash & Investments", href: `/stocks/${ticker}/cash`, value: money(cashAndInvestments) },
+              { label: "Total Debt", href: `/stocks/${ticker}/debt`, value: money(totalDebt) },
+              { label: "Net Cash", value: money(netCash) },
+              { label: "Book Value", href: `/stocks/${ticker}/equity`, value: money(num(sheet?.totalStockholdersEquity)) },
             ]}
           />
         </section>
@@ -156,7 +168,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Employees", href: `/stocks/${ticker}/employees`, value: formatNumber(headcount, 0) },
               {
                 label: "Revenue / Employee",
-                value: ttm?.revenue && headcount ? formatCompactUsd(ttm.revenue / headcount) : "—",
+                value: ttm?.revenue && headcount ? money(ttm.revenue / headcount) : "—",
               },
             ]}
           />
@@ -165,14 +177,14 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Income Statement (ttm)</h2>
           <StatGrid
             items={[
-              { label: "Revenue", href: `/stocks/${ticker}/revenue`, value: formatCompactUsd(ttm?.revenue) },
-              { label: "Gross Profit", href: `/stocks/${ticker}/gross-profit`, value: formatCompactUsd(ttm?.grossProfit) },
-              { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: formatCompactUsd(ttm?.operatingIncome) },
-              { label: "Pretax Income", value: formatCompactUsd(ttm?.incomeBeforeTax) },
-              { label: "Net Income", href: `/stocks/${ticker}/net-income`, value: formatCompactUsd(ttm?.netIncome) },
-              { label: "EBITDA", href: `/stocks/${ticker}/ebitda`, value: formatCompactUsd(ttm?.ebitda) },
-              { label: "EPS", href: `/stocks/${ticker}/earnings`, value: formatPrice(ttm?.epsDiluted ?? ttm?.eps) },
-              { label: "Income Tax", value: formatCompactUsd(ttm?.incomeTaxExpense) },
+              { label: "Revenue", href: `/stocks/${ticker}/revenue`, value: money(ttm?.revenue) },
+              { label: "Gross Profit", href: `/stocks/${ticker}/gross-profit`, value: money(ttm?.grossProfit) },
+              { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: money(ttm?.operatingIncome) },
+              { label: "Pretax Income", value: money(ttm?.incomeBeforeTax) },
+              { label: "Net Income", href: `/stocks/${ticker}/net-income`, value: money(ttm?.netIncome) },
+              { label: "EBITDA", href: `/stocks/${ticker}/ebitda`, value: money(ttm?.ebitda) },
+              { label: "EPS", href: `/stocks/${ticker}/earnings`, value: formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency) },
+              { label: "Income Tax", value: money(ttm?.incomeTaxExpense) },
             ]}
           />
         </section>
@@ -180,10 +192,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Cash Flow (ttm)</h2>
           <StatGrid
             items={[
-              { label: "Operating Cash Flow", value: formatCompactUsd(cash?.operatingCashFlow) },
-              { label: "Capital Expenditures", href: `/stocks/${ticker}/capex`, value: formatCompactUsd(cash?.capitalExpenditure) },
-              { label: "Free Cash Flow", href: `/stocks/${ticker}/free-cash-flow`, value: formatCompactUsd(cash?.freeCashFlow) },
-              { label: "FCF / Share", value: shares && cash?.freeCashFlow ? `$${formatPrice(cash.freeCashFlow / shares)}` : "—" },
+              { label: "Operating Cash Flow", value: money(cash?.operatingCashFlow) },
+              { label: "Capital Expenditures", href: `/stocks/${ticker}/capex`, value: money(cash?.capitalExpenditure) },
+              { label: "Free Cash Flow", href: `/stocks/${ticker}/free-cash-flow`, value: money(cash?.freeCashFlow) },
+              { label: "FCF / Share", value: shares && cash?.freeCashFlow ? formatMoney(cash.freeCashFlow / shares, currency) : "—" },
               { label: "FCF Yield", value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
             ]}
           />
@@ -203,7 +215,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Dividends & Yields</h2>
           <StatGrid
             items={[
-              { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: dividends[0] ? `$${formatPrice(dividends[0].dividend)}` : "—" },
+              { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: dividends[0] ? formatMoney(dividends[0].dividend, currency) : "—" },
               { label: "Dividend Yield", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
               { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Earnings Yield", value: formatPercentPlain(num(metrics?.earningsYieldTTM)) },
@@ -216,10 +228,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Beta", value: formatRatio(profile?.beta) },
               { label: "52-Week Change", value: oneYear == null ? "—" : formatPercentPlain(oneYear, { alreadyPercent: true }) },
-              { label: "52-Week High", value: formatPrice(quote?.yearHigh) },
-              { label: "52-Week Low", value: formatPrice(quote?.yearLow) },
-              { label: "50-Day Average", value: formatPrice(quote?.priceAvg50) },
-              { label: "200-Day Average", value: formatPrice(quote?.priceAvg200) },
+              { label: "52-Week High", value: formatMoney(quote?.yearHigh, currency) },
+              { label: "52-Week Low", value: formatMoney(quote?.yearLow, currency) },
+              { label: "50-Day Average", value: formatMoney(quote?.priceAvg50, currency) },
+              { label: "200-Day Average", value: formatMoney(quote?.priceAvg200, currency) },
               { label: "RSI (14)", value: formatNumber(rsi?.rsi) },
               { label: "Average Volume", value: formatNumber(quote?.avgVolume ?? profile?.averageVolume, 0) },
             ]}
@@ -229,7 +241,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Fair Value</h2>
           <StatGrid
             items={[
-              { label: "DCF Fair Value", value: dcfPrice != null ? `$${formatPrice(dcfPrice)}` : "—" },
+              { label: "DCF Fair Value", value: dcfPrice != null ? formatMoney(dcfPrice, currency) : "—" },
               {
                 label: "DCF Upside",
                 value: dcfUpside == null ? "—" : `${dcfUpside > 0 ? "+" : ""}${dcfUpside.toFixed(1)}%`,
@@ -258,6 +270,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Altman Z-Score", value: formatNumber(scores?.altmanZScore) },
               { label: "Piotroski Score", value: scores?.piotroskiScore ?? "—" },
+              { label: "ESG Rating", href: `/stocks/${ticker}/company`, value: esgRating?.ESGRiskRating ?? "—" },
+              { label: "ESG Industry Rank", href: `/stocks/${ticker}/company`, value: esgRating?.industryRank ?? "—" },
             ]}
           />
         </section>

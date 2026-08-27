@@ -1,7 +1,7 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
-import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
+import { compactMoneyFn, formatDate, formatMoney, formatPrice, reportingCurrency } from "@/lib/format";
 import {
   getCompanyEarnings,
   getDcf,
@@ -12,6 +12,7 @@ import {
   getLeveredDcf,
   getPriceTarget,
   getPriceTargetSummary,
+  getProfile,
   getQuote,
   getRatingsHistorical,
 } from "@/lib/fmp";
@@ -46,9 +47,10 @@ function GradeMix({ row }: { row: FmpHistoricalGrade }) {
 export default async function ForecastPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, target, grades, history, estimates, earnings, dcf, levered, gradeTrend, ratingTrend, targetSummary] =
+  const [quote, profile, target, grades, history, estimates, earnings, dcf, levered, gradeTrend, ratingTrend, targetSummary] =
     await Promise.all([
       getQuote(ticker),
+      getProfile(ticker),
       getPriceTarget(ticker),
       getGradesConsensus(ticker),
       getGrades(ticker, 16),
@@ -60,6 +62,9 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
       getRatingsHistorical(ticker, 12),
       getPriceTargetSummary(ticker),
     ]);
+  const currency = reportingCurrency(profile?.currency);
+  const money = compactMoneyFn(currency);
+  const px = (value: number | null | undefined) => formatMoney(value, currency);
 
   const upside =
     target && quote?.price ? ((target.targetConsensus - quote.price) / quote.price) * 100 : null;
@@ -83,10 +88,9 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Price Target</div>
-          <div className="mt-1 text-2xl font-semibold tabular">${formatPrice(target?.targetConsensus)}</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{px(target?.targetConsensus)}</div>
           <p className="mt-2 text-sm text-muted">
-            High ${formatPrice(target?.targetHigh)} · Low ${formatPrice(target?.targetLow)} · Median $
-            {formatPrice(target?.targetMedian)}
+            High {px(target?.targetHigh)} · Low {px(target?.targetLow)} · Median {px(target?.targetMedian)}
           </p>
         </div>
         <div className="rounded-lg border border-border p-4">
@@ -94,7 +98,7 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
           <div className="mt-1 text-2xl font-semibold tabular">
             {upside == null ? "—" : `${upside > 0 ? "+" : ""}${upside.toFixed(2)}%`}
           </div>
-          <p className="mt-2 text-sm text-muted">From last price ${formatPrice(quote?.price)}</p>
+          <p className="mt-2 text-sm text-muted">From last price {px(quote?.price)}</p>
         </div>
       </div>
 
@@ -105,22 +109,22 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
             items={[
               {
                 label: "Last Month",
-                value: `$${formatPrice(targetSummary.lastMonthAvgPriceTarget)}`,
+                value: px(targetSummary.lastMonthAvgPriceTarget),
                 hint: `${targetSummary.lastMonthCount} analysts`,
               },
               {
                 label: "Last Quarter",
-                value: `$${formatPrice(targetSummary.lastQuarterAvgPriceTarget)}`,
+                value: px(targetSummary.lastQuarterAvgPriceTarget),
                 hint: `${targetSummary.lastQuarterCount} analysts`,
               },
               {
                 label: "Last Year",
-                value: `$${formatPrice(targetSummary.lastYearAvgPriceTarget)}`,
+                value: px(targetSummary.lastYearAvgPriceTarget),
                 hint: `${targetSummary.lastYearCount} analysts`,
               },
               {
                 label: "All Time",
-                value: `$${formatPrice(targetSummary.allTimeAvgPriceTarget)}`,
+                value: px(targetSummary.allTimeAvgPriceTarget),
                 hint: `${targetSummary.allTimeCount} analysts`,
               },
             ]}
@@ -134,17 +138,17 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
           items={[
             {
               label: "Unlevered DCF",
-              value: dcf?.dcf != null ? `$${formatPrice(dcf.dcf)}` : "—",
+              value: dcf?.dcf != null ? px(dcf.dcf) : "—",
               hint: dcfGap == null ? undefined : `${dcfGap > 0 ? "+" : ""}${dcfGap.toFixed(1)}% vs price`,
             },
             {
               label: "Levered DCF",
-              value: levered?.dcf != null ? `$${formatPrice(levered.dcf)}` : "—",
+              value: levered?.dcf != null ? px(levered.dcf) : "—",
               hint: leveredGap == null ? undefined : `${leveredGap > 0 ? "+" : ""}${leveredGap.toFixed(1)}% vs price`,
             },
             {
               label: "Last Price",
-              value: `$${formatPrice(quote?.price ?? dcf?.stockPrice)}`,
+              value: px(quote?.price ?? dcf?.stockPrice),
               hint: dcf?.date ? `Model date ${formatDate(dcf.date)}` : undefined,
             },
           ]}
@@ -301,7 +305,7 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
                   <tr key={row.date}>
                     <td>{formatDate(row.date)}</td>
                     <td className="num">{formatPrice(row.epsAvg)}</td>
-                    <td className="num">{formatCompactUsd(row.revenueAvg)}</td>
+                    <td className="num">{money(row.revenueAvg)}</td>
                     <td className="num">{row.numAnalystsEps ?? row.numAnalystsRevenue ?? "—"}</td>
                   </tr>
                 ))
@@ -330,8 +334,8 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
                   <td>{formatDate(row.date)}</td>
                   <td className="num">{formatPrice(row.epsEstimated)}</td>
                   <td className="num">{formatPrice(row.epsActual)}</td>
-                  <td className="num">{formatCompactUsd(row.revenueEstimated)}</td>
-                  <td className="num">{formatCompactUsd(row.revenueActual)}</td>
+                  <td className="num">{money(row.revenueEstimated)}</td>
+                  <td className="num">{money(row.revenueActual)}</td>
                 </tr>
               ))}
             </tbody>

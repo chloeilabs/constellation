@@ -3,6 +3,7 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
 import { getKeyMetrics } from "@/lib/fmp";
+import { reportingCurrency } from "@/lib/format";
 import { KEY_METRIC_ROWS, toStatementColumns } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -18,12 +19,13 @@ export default async function MetricsPage({
   const ticker = symbol.toUpperCase();
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const rows = await getKeyMetrics(ticker, period, 8);
+  const currency = reportingCurrency(rows[0]?.reportedCurrency);
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Key Metrics`}
-        description="Valuation, profitability, and efficiency metrics from FMP key-metrics."
+        description={`Valuation, profitability, and efficiency metrics from FMP key-metrics.`}
         actions={
           <PeriodToggle
             period={period}
@@ -36,7 +38,8 @@ export default async function MetricsPage({
       <StatementTable
         rows={KEY_METRIC_ROWS}
         columns={toStatementColumns(rows, period)}
-        caption="Dollar amounts are shown in full. Ratios, yields, and day counts are unscaled."
+        currency={currency}
+        caption={`Amounts are shown in ${currency}. Ratios, yields, and day counts are unscaled.`}
       />
     </Container>
   );

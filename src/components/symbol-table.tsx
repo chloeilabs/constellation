@@ -19,6 +19,10 @@ export type SymbolTableRow = {
   country?: string | null;
   isEtf?: boolean | null;
   isFund?: boolean | null;
+  revenue?: number | null;
+  employees?: number | null;
+  incomeTax?: number | null;
+  netIncome?: number | null;
 };
 
 export function SymbolTable({
@@ -30,6 +34,10 @@ export function SymbolTable({
   showFounded = false,
   showCountry = false,
   localCurrency = false,
+  showRevenue = false,
+  showEmployees = false,
+  showTax = false,
+  showProfit = false,
 }: {
   rows: SymbolTableRow[];
   hrefBase?: string;
@@ -39,8 +47,21 @@ export function SymbolTable({
   showFounded?: boolean;
   showCountry?: boolean;
   localCurrency?: boolean;
+  showRevenue?: boolean;
+  showEmployees?: boolean;
+  showTax?: boolean;
+  showProfit?: boolean;
 }) {
-  const colSpan = 6 + (showIndustry ? 1 : 0) + (showYield ? 1 : 0) + (showFounded ? 1 : 0) + (showCountry ? 1 : 0);
+  const colSpan =
+    6 +
+    (showIndustry ? 1 : 0) +
+    (showYield ? 1 : 0) +
+    (showFounded ? 1 : 0) +
+    (showCountry ? 1 : 0) +
+    (showRevenue ? 1 : 0) +
+    (showEmployees ? 1 : 0) +
+    (showTax ? 1 : 0) +
+    (showProfit ? 1 : 0);
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="sa-table">
@@ -50,6 +71,10 @@ export function SymbolTable({
             <th>Company Name</th>
             {showFounded ? <th className="num">Founded</th> : null}
             <th className="num">Market Cap</th>
+            {showRevenue ? <th className="num">Revenue (ttm)</th> : null}
+            {showProfit ? <th className="num">Net Income (ttm)</th> : null}
+            {showEmployees ? <th className="num">Employees</th> : null}
+            {showTax ? <th className="num">Income Tax (ttm)</th> : null}
             <th className="num">Stock Price</th>
             <th className="num">% Change</th>
             {showYield ? <th className="num">Yield</th> : null}
@@ -87,6 +112,10 @@ export function SymbolTable({
                     ? formatCompactMoney(row.marketCap, currencyForCountry(row.country))
                     : formatCompactUsd(row.marketCap)}
                 </td>
+                {showRevenue ? <td className="num">{formatCompactUsd(row.revenue)}</td> : null}
+                {showProfit ? <td className="num">{formatCompactUsd(row.netIncome)}</td> : null}
+                {showEmployees ? <td className="num">{formatInteger(row.employees)}</td> : null}
+                {showTax ? <td className="num">{formatCompactUsd(row.incomeTax)}</td> : null}
                 <td className="num">{formatPrice(row.price)}</td>
                 <td className="num">
                   <ChangePercent value={row.changePercentage} />

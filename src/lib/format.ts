@@ -21,6 +21,31 @@ export function formatUsd(value: number | null | undefined, digits = 2) {
   return `$${formatPrice(value, digits)}`;
 }
 
+const CURRENCY_PREFIX: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CNY: "¥",
+  HKD: "HK$",
+  CAD: "C$",
+  AUD: "A$",
+  INR: "₹",
+  BRL: "R$",
+  KRW: "₩",
+};
+
+export function formatMoney(value: number | null | undefined, currency?: string | null, digits = 2) {
+  if (value == null || Number.isNaN(value)) return "—";
+  const code = (currency || "USD").toUpperCase();
+  const prefix = CURRENCY_PREFIX[code];
+  const amount =
+    code === "JPY" || code === "KRW"
+      ? value.toLocaleString("en-US", { maximumFractionDigits: 0 })
+      : formatPrice(value, digits);
+  return prefix ? `${prefix}${amount}` : `${amount} ${code}`;
+}
+
 export function formatCompact(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
   const abs = Math.abs(value);
@@ -31,10 +56,8 @@ export function formatCompact(value: number | null | undefined) {
   return formatPrice(value);
 }
 
-export function formatCompactUsd(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return "—";
-  const sign = value < 0 ? "-" : "";
-  return `${sign}$${formatCompact(Math.abs(value))}`;
+export function formatCompactUsd(value: number | null | undefined, currency?: string | null) {
+  return formatCompactMoney(value, currency);
 }
 
 const COUNTRY_CURRENCY: Record<string, string> = {
@@ -51,16 +74,50 @@ const COUNTRY_CURRENCY: Record<string, string> = {
   CN: "CNY",
 };
 
+const SUFFIX_CURRENCY: Record<string, string> = {
+  T: "JPY",
+  HK: "HKD",
+  L: "GBP",
+  PA: "EUR",
+  DE: "EUR",
+  TO: "CAD",
+  AX: "AUD",
+  NS: "INR",
+  SA: "BRL",
+  SW: "CHF",
+};
+
 export function currencyForCountry(country?: string | null) {
   if (!country) return "USD";
   return COUNTRY_CURRENCY[country.toUpperCase()] ?? "USD";
 }
 
+export function currencyForSymbol(symbol?: string | null) {
+  if (!symbol) return "USD";
+  const parts = symbol.toUpperCase().split(".");
+  if (parts.length < 2) return "USD";
+  return SUFFIX_CURRENCY[parts[parts.length - 1]] ?? "USD";
+}
+
+export function compactMoneyFn(currency?: string | null) {
+  return (value: number | null | undefined) => formatCompactMoney(value, currency);
+}
+
+export function reportingCurrency(...candidates: Array<string | number | null | undefined>) {
+  for (const value of candidates) {
+    if (typeof value === "string" && /^[A-Z]{3}$/i.test(value)) return value.toUpperCase();
+  }
+  return "USD";
+}
+
 export function formatCompactMoney(value: number | null | undefined, currency?: string | null) {
   if (value == null || Number.isNaN(value)) return "—";
-  if (!currency || currency === "USD") return formatCompactUsd(value);
+  const code = (currency || "USD").toUpperCase();
   const sign = value < 0 ? "-" : "";
-  return `${sign}${formatCompact(Math.abs(value))} ${currency}`;
+  const compact = formatCompact(Math.abs(value));
+  if (!currency || code === "USD") return `${sign}$${compact}`;
+  const prefix = CURRENCY_PREFIX[code];
+  return prefix ? `${sign}${prefix}${compact}` : `${sign}${compact} ${code}`;
 }
 
 export function formatMillions(value: number | null | undefined) {

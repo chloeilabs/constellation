@@ -3,6 +3,7 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
 import { getIncomeStatements } from "@/lib/fmp";
+import { reportingCurrency } from "@/lib/format";
 import { INCOME_ROWS, toStatementColumns } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -22,12 +23,13 @@ export default async function IncomeStatementPage({
   const ticker = symbol.toUpperCase();
   const period = periodFrom(periodParam);
   const rows = await getIncomeStatements(ticker, period, 8);
+  const currency = reportingCurrency(rows[0]?.reportedCurrency);
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Income Statement`}
-        description="Revenue, expenses, and profitability. Figures in millions of USD except per-share items."
+        description={`Revenue, expenses, and profitability. Figures in millions of ${currency} except per-share items.`}
         actions={
           <PeriodToggle
             period={period}
@@ -41,7 +43,8 @@ export default async function IncomeStatementPage({
         rows={INCOME_ROWS}
         columns={toStatementColumns(rows, period)}
         scale="millions"
-        caption="Values in millions. Green/red percentages are year-over-year change."
+        currency={currency}
+        caption={`Values in millions of ${currency}. Green/red percentages are year-over-year change.`}
       />
     </Container>
   );

@@ -5,19 +5,21 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
-import { getHistoricalMarketCap, getKeyMetricsTtm, getQuote } from "@/lib/fmp";
+import { compactMoneyFn, formatDate, formatMoney } from "@/lib/format";
+import { getHistoricalMarketCap, getKeyMetricsTtm, getProfile, getQuote } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString, yearEndSnapshots } from "@/lib/utils";
 
 export default async function MarketCapPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
   const today = nyDateString();
-  const [quote, metrics, history] = await Promise.all([
+  const [quote, profile, metrics, history] = await Promise.all([
     getQuote(ticker),
+    getProfile(ticker),
     getKeyMetricsTtm(ticker),
     getHistoricalMarketCap(ticker, 5000, "1998-01-01", today),
   ]);
+  const money = compactMoneyFn(profile?.currency);
   const annual = yearEndSnapshots(history);
   const latest = history[0] ?? annual[0];
   const yearAgoDate = isoDate(addDays(new Date(`${today}T00:00:00Z`), -365));
@@ -42,19 +44,19 @@ export default async function MarketCapPage({ params }: { params: Promise<{ symb
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: "Market Cap", value: formatCompactUsd(quote?.marketCap ?? latest?.marketCap) },
-          { label: "Enterprise Value", value: formatCompactUsd(typeof metrics?.enterpriseValueTTM === "number" ? metrics.enterpriseValueTTM : null) },
+          { label: "Market Cap", value: money(quote?.marketCap ?? latest?.marketCap) },
+          { label: "Enterprise Value", value: money(typeof metrics?.enterpriseValueTTM === "number" ? metrics.enterpriseValueTTM : null) },
           {
             label: "1-Year Change",
             value: yoy == null ? "—" : <ChangePercent value={yoy} alreadyPercent={false} className="text-2xl" />,
           },
-          { label: "Stock Price", value: `$${formatPrice(quote?.price)}` },
+          { label: "Stock Price", value: formatMoney(quote?.price, profile?.currency) },
         ]}
       />
       {chartItems.length > 1 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-semibold text-header">Market Cap History</h2>
-          <HistoryBars items={chartItems} formatValue={formatCompactUsd} />
+          <HistoryBars items={chartItems} formatValue={money} />
         </section>
       ) : null}
       <section className="mt-10">
@@ -83,7 +85,7 @@ export default async function MarketCapPage({ params }: { params: Promise<{ symb
                   return (
                     <tr key={row.date}>
                       <td>{formatDate(row.date)}</td>
-                      <td className="num">{formatCompactUsd(row.marketCap)}</td>
+                      <td className="num">{money(row.marketCap)}</td>
                       <td className="num">
                         <ChangePercent value={change} alreadyPercent={false} />
                       </td>

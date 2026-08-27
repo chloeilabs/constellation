@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm, getQuote, getRatiosTtm } from "@/lib/fmp";
 
 export default async function FreeCashFlowPage({
@@ -30,6 +30,7 @@ export default async function FreeCashFlowPage({
   const growth = yearOverYear(annual[0]?.freeCashFlow, annual[1]?.freeCashFlow);
   const fcfYield =
     ttm?.freeCashFlow && quote?.marketCap ? ttm.freeCashFlow / quote.marketCap : null;
+  const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency));
 
   return (
     <Container>
@@ -40,9 +41,9 @@ export default async function FreeCashFlowPage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: "FCF (ttm)", value: formatCompactUsd(ttm?.freeCashFlow) },
-          { label: "Operating CF (ttm)", value: formatCompactUsd(ttm?.operatingCashFlow) },
-          { label: "Capex (ttm)", value: formatCompactUsd(ttm?.capitalExpenditure) },
+          { label: "FCF (ttm)", value: money(ttm?.freeCashFlow) },
+          { label: "Operating CF (ttm)", value: money(ttm?.operatingCashFlow) },
+          { label: "Capex (ttm)", value: money(ttm?.capitalExpenditure) },
           {
             label: "FY Growth",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
@@ -66,7 +67,7 @@ export default async function FreeCashFlowPage({
         quarterHref={`/stocks/${ticker}/free-cash-flow?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} Free Cash Flow`}
         valueLabel="Free Cash Flow"
-        formatValue={formatCompactUsd}
+        formatValue={money}
         empty="No free cash flow history available."
         rows={history.map((row) => ({
           key: `${row.date}-${row.period}`,

@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatDate, formatPrice, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, formatDate, formatMoney, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 
 export default async function EarningsPage({
@@ -33,6 +33,9 @@ export default async function EarningsPage({
     latestReport?.epsActual != null && latestReport.epsEstimated
       ? (latestReport.epsActual - latestReport.epsEstimated) / Math.abs(latestReport.epsEstimated)
       : null;
+  const currency = reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency);
+  const money = compactMoneyFn(currency);
+  const px = (value: number | null | undefined) => formatMoney(value, currency);
 
   return (
     <Container>
@@ -43,14 +46,14 @@ export default async function EarningsPage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: "EPS (ttm)", value: eps == null ? "—" : `$${formatPrice(eps)}` },
+          { label: "EPS (ttm)", value: eps == null ? "—" : px(eps) },
           {
             label: "FY Growth",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
           },
           {
             label: "Latest EPS",
-            value: latestReport?.epsActual == null ? "—" : `$${formatPrice(latestReport.epsActual)}`,
+            value: latestReport?.epsActual == null ? "—" : px(latestReport.epsActual),
             hint: latestReport ? formatDate(latestReport.date) : undefined,
           },
           {
@@ -65,7 +68,7 @@ export default async function EarningsPage({
         quarterHref={`/stocks/${ticker}/earnings?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} EPS`}
         valueLabel="EPS"
-        formatValue={(value) => (value == null ? "—" : `$${formatPrice(value)}`)}
+        formatValue={(value) => (value == null ? "—" : px(value))}
         empty="No EPS history available."
         rows={history.map((row) => ({
           key: `${row.date}-${row.period}`,
@@ -104,13 +107,13 @@ export default async function EarningsPage({
                   return (
                     <tr key={row.date}>
                       <td>{formatDate(row.date)}</td>
-                      <td className="num">{row.epsActual == null ? "—" : `$${formatPrice(row.epsActual)}`}</td>
-                      <td className="num">{row.epsEstimated == null ? "—" : `$${formatPrice(row.epsEstimated)}`}</td>
+                      <td className="num">{row.epsActual == null ? "—" : px(row.epsActual)}</td>
+                      <td className="num">{row.epsEstimated == null ? "—" : px(row.epsEstimated)}</td>
                       <td className="num">
                         <ChangePercent value={epsSurprise} alreadyPercent={false} />
                       </td>
-                      <td className="num">{formatCompactUsd(row.revenueActual)}</td>
-                      <td className="num">{formatCompactUsd(row.revenueEstimated)}</td>
+                      <td className="num">{money(row.revenueActual)}</td>
+                      <td className="num">{money(row.revenueEstimated)}</td>
                     </tr>
                   );
                 })

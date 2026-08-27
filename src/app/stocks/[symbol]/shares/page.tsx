@@ -3,13 +3,13 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
-import { formatCompact, formatCompactUsd, formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
-import { getQuote, getShareFloat } from "@/lib/fmp";
+import { formatCompact, formatCompactMoney, formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
+import { getProfile, getQuote, getShareFloat } from "@/lib/fmp";
 
 export default async function SharesPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [quote, shareFloat] = await Promise.all([getQuote(ticker), getShareFloat(ticker)]);
+  const [quote, profile, shareFloat] = await Promise.all([getQuote(ticker), getProfile(ticker), getShareFloat(ticker)]);
   const outstanding = shareFloat?.outstandingShares;
   const floatShares = shareFloat?.floatShares;
   const restricted =
@@ -31,8 +31,8 @@ export default async function SharesPage({ params }: { params: Promise<{ symbol:
             value: formatPercentPlain(shareFloat?.freeFloat, { alreadyPercent: true }),
           },
           { label: "Restricted", value: formatCompact(restricted) },
-          { label: "Market Cap", value: formatCompactUsd(quote?.marketCap) },
-          { label: "Stock Price", value: `$${formatPrice(quote?.price)}` },
+          { label: "Market Cap", value: formatCompactMoney(quote?.marketCap, profile?.currency) },
+          { label: "Stock Price", value: formatMoney(quote?.price, profile?.currency) },
         ]}
       />
       <p className="mt-4 text-sm text-muted">

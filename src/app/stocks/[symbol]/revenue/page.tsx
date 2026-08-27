@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars, SegmentBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatDate, formatInteger, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, formatDate, formatInteger, reportingCurrency, yearOverYear } from "@/lib/format";
 import {
   getHistoricalEmployeeCount,
   getIncomeStatements,
@@ -47,6 +47,8 @@ export default async function RevenuePage({
   const latestAnnual = annual[0];
   const priorAnnual = annual[1];
   const growth = yearOverYear(latestAnnual?.revenue, priorAnnual?.revenue);
+  const currency = reportingCurrency(ttm?.reportedCurrency, latestAnnual?.reportedCurrency);
+  const money = compactMoneyFn(currency);
   const headcount = employees[0]?.employeeCount;
   const revenuePerEmployee =
     ttm?.revenue && headcount ? ttm.revenue / headcount : latestAnnual?.revenue && headcount ? latestAnnual.revenue / headcount : null;
@@ -73,8 +75,8 @@ export default async function RevenuePage({
       </div>
       <MetricCards
         items={[
-          { label: "Revenue (ttm)", value: formatCompactUsd(ttm?.revenue) },
-          { label: "Net Income (ttm)", value: formatCompactUsd(ttm?.netIncome) },
+          { label: "Revenue (ttm)", value: money(ttm?.revenue) },
+          { label: "Net Income (ttm)", value: money(ttm?.netIncome) },
           {
             label: "FY Growth",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
@@ -83,14 +85,14 @@ export default async function RevenuePage({
             label: "P/S Ratio",
             value: typeof ratios?.priceToSalesRatioTTM === "number" ? ratios.priceToSalesRatioTTM.toFixed(2) : "—",
           },
-          { label: "Revenue / Employee", value: revenuePerEmployee ? formatCompactUsd(revenuePerEmployee) : "—" },
+          { label: "Revenue / Employee", value: revenuePerEmployee ? money(revenuePerEmployee) : "—" },
           { label: "Employees", value: formatInteger(headcount) },
         ]}
       />
       {chartItems.length > 1 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-semibold text-header">Revenue Chart</h2>
-          <HistoryBars items={chartItems} formatValue={formatCompactUsd} />
+          <HistoryBars items={chartItems} formatValue={money} />
         </section>
       ) : null}
       <section className="mt-10">
@@ -120,8 +122,8 @@ export default async function RevenuePage({
                   return (
                     <tr key={`${row.date}-${row.period}`}>
                       <td>{formatDate(row.date)}</td>
-                      <td className="num">{formatCompactUsd(row.revenue)}</td>
-                      <td className="num">{formatCompactUsd(change)}</td>
+                      <td className="num">{money(row.revenue)}</td>
+                      <td className="num">{money(change)}</td>
                       <td className="num">
                         <ChangePercent value={yoy} alreadyPercent={false} />
                       </td>

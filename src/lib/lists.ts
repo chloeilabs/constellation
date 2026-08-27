@@ -1,4 +1,4 @@
-import { getDividendCalendar, getIndexConstituents, getProfile, getQuotes, getScreener, getScreenerPages } from "@/lib/fmp";
+import { getDividendCalendar, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getScreener, getScreenerPages } from "@/lib/fmp";
 import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
@@ -93,6 +93,14 @@ type IndustryMatchList = {
   hrefBase?: "/stocks" | "/etf" | "/funds";
 };
 
+type FundamentalsRankList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "fundamentals-rank";
+  rank: "revenue" | "employees" | "tax" | "profit";
+};
+
 type StockList =
   | ScreenerList
   | ConstituentList
@@ -103,7 +111,8 @@ type StockList =
   | SymbolsList
   | EtfIssuerList
   | WeekRangeList
-  | IndustryMatchList;
+  | IndustryMatchList
+  | FundamentalsRankList;
 
 export const STOCK_LISTS = {
   "sp-500-stocks": {
@@ -135,6 +144,38 @@ export const STOCK_LISTS = {
     filters: { country: "US" },
     limit: 100,
     sort: "marketCap",
+  },
+  "highest-revenue": {
+    title: "Highest Revenue",
+    description:
+      "Major U.S. listed companies ranked by trailing-twelve-month revenue from live FMP filings. FMP has no bulk revenue screener, so this ranks a Fortune-style mega-issuer set rather than every U.S. listing.",
+    category: "popular",
+    source: "fundamentals-rank",
+    rank: "revenue",
+  },
+  "highest-employees": {
+    title: "Most Employees",
+    description:
+      "Major U.S. listed companies ranked by reported headcount from live FMP profiles.",
+    category: "popular",
+    source: "fundamentals-rank",
+    rank: "employees",
+  },
+  "highest-taxes": {
+    title: "Highest Income Taxes",
+    description:
+      "Major U.S. listed companies ranked by trailing income-tax expense from live FMP filings.",
+    category: "popular",
+    source: "fundamentals-rank",
+    rank: "tax",
+  },
+  "highest-profit": {
+    title: "Most Profitable",
+    description:
+      "Major U.S. listed companies ranked by trailing-twelve-month net income from live FMP filings. FMP has no bulk earnings screener, so this ranks a Fortune-style mega-issuer set rather than every U.S. listing.",
+    category: "popular",
+    source: "fundamentals-rank",
+    rank: "profit",
   },
   "oldest-companies": {
     title: "Oldest S&P 500 Companies",
@@ -474,6 +515,223 @@ export const STOCK_LISTS = {
     sector: "Consumer Cyclical",
     industryPattern: "Restaurant",
   },
+  "solar-stocks": {
+    title: "Solar Stocks",
+    description: "U.S. solar companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Solar" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "steel-stocks": {
+    title: "Steel Stocks",
+    description: "U.S. steel companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Steel" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "uranium-stocks": {
+    title: "Uranium Stocks",
+    description: "U.S.-listed uranium companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Uranium" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "tobacco-stocks": {
+    title: "Tobacco Stocks",
+    description: "U.S. tobacco companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Tobacco" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "casino-stocks": {
+    title: "Casino Stocks",
+    description: "U.S. gambling, resort, and casino companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Gambling, Resorts & Casinos" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "shipping-stocks": {
+    title: "Shipping Stocks",
+    description: "U.S. marine shipping companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Marine Shipping" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "beverage-stocks": {
+    title: "Beverage Stocks",
+    description: "U.S. beverage companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Consumer Defensive",
+    industryPattern: "Beverages",
+  },
+  "retail-stocks": {
+    title: "Retail Stocks",
+    description: "U.S. specialty and apparel retailers, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Consumer Cyclical",
+    industryPattern: "Retail",
+  },
+  "ev-stocks": {
+    title: "Electric Vehicle Stocks",
+    description: "U.S.-listed auto makers with significant EV exposure, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["TSLA", "GM", "F", "RIVN", "LCID", "NIO", "XPEV", "LI"],
+  },
+  "cybersecurity-stocks": {
+    title: "Cybersecurity Stocks",
+    description: "U.S. cybersecurity software and infrastructure companies, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["CRWD", "PANW", "FTNT", "ZS", "CYBR", "OKTA", "CHKP", "S", "QLYS", "TENB", "RPD", "NET"],
+  },
+  "ai-stocks": {
+    title: "Artificial Intelligence Stocks",
+    description: "U.S.-listed companies with significant AI exposure, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["NVDA", "MSFT", "GOOGL", "AMZN", "META", "AVGO", "AMD", "TSM", "PLTR", "SNOW", "CRWV", "ARM", "PATH", "SOUN"],
+  },
+  "cloud-stocks": {
+    title: "Cloud Computing Stocks",
+    description: "U.S.-listed cloud infrastructure and software companies, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["AMZN", "MSFT", "GOOGL", "ORCL", "CRM", "NOW", "SNOW", "DDOG", "NET", "CFLT", "MDB", "ESTC", "TEAM", "WDAY"],
+  },
+  "social-media-stocks": {
+    title: "Social Media Stocks",
+    description: "U.S.-listed social and user-generated content platforms, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["META", "GOOGL", "SNAP", "PINS", "RDDT", "MTCH"],
+  },
+  "streaming-stocks": {
+    title: "Streaming Stocks",
+    description: "U.S.-listed video, music, and live-entertainment streamers, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["NFLX", "DIS", "WBD", "SPOT", "ROKU", "LYV", "PARA"],
+  },
+  "fintech-stocks": {
+    title: "Fintech Stocks",
+    description: "U.S. payments, brokerage, and digital-finance companies, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["V", "MA", "AXP", "PYPL", "XYZ", "COIN", "HOOD", "AFRM", "SOFI", "TOST", "BILL"],
+  },
+  "advertising-stocks": {
+    title: "Advertising Stocks",
+    description: "U.S. advertising agencies and ad-tech companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Advertising Agencies" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "video-game-stocks": {
+    title: "Video Game Stocks",
+    description: "U.S. electronic gaming and interactive-media companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Electronic Gaming & Multimedia" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "healthcare-stocks": {
+    title: "Healthcare Stocks",
+    description: "The largest U.S. healthcare companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Healthcare",
+    industryPattern: ".+",
+  },
+  "internet-stocks": {
+    title: "Internet Stocks",
+    description: "U.S. internet content and information companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Communication Services",
+    industryPattern: "Internet Content",
+  },
+  "lithium-stocks": {
+    title: "Lithium Stocks",
+    description: "U.S.-listed lithium producers, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["ALB", "SQM", "PLL", "SGML", "LAR"],
+  },
+  "copper-stocks": {
+    title: "Copper Stocks",
+    description: "U.S.-listed copper miners, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Copper" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "silver-stocks": {
+    title: "Silver Stocks",
+    description: "U.S.-listed silver miners, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["PAAS", "CDE", "HL", "AG", "MAG", "SVM", "EXK", "FSM"],
+  },
+  "coal-stocks": {
+    title: "Coal Stocks",
+    description: "U.S. coal producers, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Coal" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "semiconductor-equipment-stocks": {
+    title: "Semiconductor Equipment Stocks",
+    description: "Chip-equipment makers listed in the U.S., with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["ASML", "AMAT", "LRCX", "KLAC", "TER", "ENTG", "ACLS", "ONTO"],
+  },
+  "cannabis-stocks": {
+    title: "Cannabis Stocks",
+    description: "U.S.-listed cannabis companies, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["TLRY", "CGC", "CRON", "ACB", "SNDL"],
+  },
+  "commodity-etfs": {
+    title: "Commodity ETFs",
+    description: "U.S. gold, silver, oil, and broad-commodity ETFs, with live FMP quotes.",
+    category: "etf",
+    source: "symbols",
+    hrefBase: "/etf",
+    symbols: ["GLD", "IAU", "SLV", "USO", "UNG", "DBC", "PDBC", "CPER"],
+  },
   "sector-etfs": {
     title: "Sector ETFs",
     description: "The 11 SPDR sector ETFs, with live FMP quotes.",
@@ -681,6 +939,10 @@ export const LIST_NAV = [
   { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },
   { href: "/list/dow-jones-stocks", label: "Dow Jones" },
   { href: "/list/biggest-companies", label: "Biggest" },
+  { href: "/list/highest-revenue", label: "Revenue" },
+  { href: "/list/highest-profit", label: "Profit" },
+  { href: "/list/highest-employees", label: "Employees" },
+  { href: "/list/highest-taxes", label: "Taxes" },
   { href: "/list/oldest-companies", label: "Oldest" },
   { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
@@ -696,6 +958,13 @@ export const LIST_NAV = [
   { href: "/list/airline-stocks", label: "Airlines" },
   { href: "/list/gold-stocks", label: "Gold" },
   { href: "/list/restaurant-stocks", label: "Restaurants" },
+  { href: "/list/retail-stocks", label: "Retail" },
+  { href: "/list/ev-stocks", label: "EVs" },
+  { href: "/list/ai-stocks", label: "AI" },
+  { href: "/list/cloud-stocks", label: "Cloud" },
+  { href: "/list/healthcare-stocks", label: "Healthcare" },
+  { href: "/list/solar-stocks", label: "Solar" },
+  { href: "/list/cybersecurity-stocks", label: "Cyber" },
   { href: "/list/semiconductor-stocks", label: "Chips" },
   { href: "/list/highest-volume", label: "Volume" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
@@ -749,6 +1018,10 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     return loadIndustryMatchList(list.sector, list.industryPattern);
   }
 
+  if (list.source === "fundamentals-rank") {
+    return loadFundamentalsRank(list.rank);
+  }
+
   if (list.source === "etf-issuer") {
     return loadEtfIssuerList(list.namePattern);
   }
@@ -771,6 +1044,9 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     "symbolPattern" in list && typeof list.symbolPattern === "string" ? new RegExp(list.symbolPattern, "i") : null;
   const raw = await getScreener({ ...list.filters }, { limit: list.limit });
   let selected = listing === "raw" ? uniqueBySymbol(raw) : preferPrimaryListings(raw);
+  if (listing !== "raw") {
+    selected = selected.filter((row) => row.isActivelyTrading !== false);
+  }
   if (symbolPattern) {
     selected = selected.filter((row) => symbolPattern.test(row.symbol));
   }
@@ -895,10 +1171,58 @@ async function loadWeekRangeList(direction: "high" | "low"): Promise<SymbolTable
   return scored.slice(0, 100).map((item) => item.row);
 }
 
+const MEGA_US_FUNDAMENTALS = [
+  "WMT", "AMZN", "AAPL", "UNH", "XOM", "BRK.B", "CVS", "GOOGL", "MCK", "COST",
+  "MSFT", "CI", "F", "GM", "ELV", "JPM", "BAC", "CVX", "HD", "T",
+  "VZ", "META", "TSLA", "PFE", "JNJ", "WFC", "C", "KR", "TGT", "PEP",
+  "KO", "IBM", "GE", "BA", "LLY", "ABBV", "MRK", "UPS", "FDX", "DIS",
+] as const;
+
+async function loadFundamentalsRank(rank: "revenue" | "employees" | "tax" | "profit"): Promise<SymbolTableRow[]> {
+  const [quotes, statements, profiles] = await Promise.all([
+    getQuotes([...MEGA_US_FUNDAMENTALS]),
+    Promise.all(MEGA_US_FUNDAMENTALS.map((symbol) => getIncomeTtm(symbol))),
+    Promise.all(MEGA_US_FUNDAMENTALS.map((symbol) => getProfile(symbol))),
+  ]);
+  const quoteBy = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const rows = MEGA_US_FUNDAMENTALS.map((symbol, index) => {
+    const quote = quoteBy.get(symbol);
+    const ttm = statements[index];
+    const profile = profiles[index];
+    const employees = profile?.fullTimeEmployees ? Number(profile.fullTimeEmployees) : null;
+    return {
+      symbol,
+      name: quote?.name || profile?.companyName || symbol,
+      industry: profile?.industry,
+      marketCap: quote?.marketCap ?? profile?.marketCap ?? null,
+      price: quote?.price ?? profile?.price ?? null,
+      changePercentage: quote?.changePercentage ?? profile?.changePercentage ?? null,
+      volume: quote?.volume ?? profile?.volume ?? null,
+      revenue: ttm?.revenue ?? null,
+      employees: Number.isFinite(employees) ? employees : null,
+      incomeTax: ttm?.incomeTaxExpense ?? null,
+      netIncome: ttm?.netIncome ?? null,
+    } satisfies SymbolTableRow;
+  });
+  const key =
+    rank === "revenue"
+      ? "revenue"
+      : rank === "employees"
+        ? "employees"
+        : rank === "tax"
+          ? "incomeTax"
+          : "netIncome";
+  return rows
+    .filter((row) => (row[key] ?? 0) > 0)
+    .sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
+}
+
 async function loadIndustryMatchList(sector: string | undefined, industryPattern: string): Promise<SymbolTableRow[]> {
   const matcher = new RegExp(industryPattern, "i");
   const raw = await getScreenerPages({ country: "US", ...(sector ? { sector } : {}) }, { pages: 1, limit: 1000, revalidate: 1800 });
-  const selected = preferPrimaryListings(raw).filter((row) => matcher.test(row.industry || ""));
+  const selected = preferPrimaryListings(raw)
+    .filter((row) => matcher.test(row.industry || ""))
+    .filter((row) => row.isActivelyTrading !== false);
   const rows = await toScreenerRows(selected);
   return rows
     .filter((row) => (row.marketCap ?? 0) >= 50_000_000)

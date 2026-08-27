@@ -82,6 +82,7 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/bond-etfs", label: "Bond ETFs" },
   { href: "/list/income-etfs", label: "Equity Income" },
   { href: "/list/crypto-etfs", label: "Crypto ETFs" },
+  { href: "/list/commodity-etfs", label: "Commodity ETFs" },
   { href: "/list/leveraged-etfs", label: "Leveraged" },
   { href: "/list/sector-etfs", label: "Sector ETFs" },
   { href: "/funds", label: "Mutual Funds" },

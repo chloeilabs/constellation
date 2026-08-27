@@ -4,7 +4,7 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
-import { formatCompactUsd, formatPrice, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, formatMoney, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getOwnerEarnings, getQuote } from "@/lib/fmp";
 
 export default async function OwnerEarningsPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -16,6 +16,8 @@ export default async function OwnerEarningsPage({ params }: { params: Promise<{ 
   const growth = yearOverYear(latest?.ownersEarnings, prior?.ownersEarnings);
   const yieldOnPrice =
     latest?.ownersEarningsPerShare && quote?.price ? latest.ownersEarningsPerShare / quote.price : null;
+  const currency = reportingCurrency(latest?.reportedCurrency);
+  const money = compactMoneyFn(currency);
 
   return (
     <Container>
@@ -26,10 +28,10 @@ export default async function OwnerEarningsPage({ params }: { params: Promise<{ 
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: "Owner Earnings", value: formatCompactUsd(latest?.ownersEarnings) },
-          { label: "Per Share", value: latest?.ownersEarningsPerShare != null ? `$${formatPrice(latest.ownersEarningsPerShare)}` : "—" },
-          { label: "Maintenance Capex", value: formatCompactUsd(latest?.maintenanceCapex) },
-          { label: "Growth Capex", value: formatCompactUsd(latest?.growthCapex) },
+          { label: "Owner Earnings", value: money(latest?.ownersEarnings) },
+          { label: "Per Share", value: latest?.ownersEarningsPerShare != null ? formatMoney(latest.ownersEarningsPerShare, currency) : "—" },
+          { label: "Maintenance Capex", value: money(latest?.maintenanceCapex) },
+          { label: "Growth Capex", value: money(latest?.growthCapex) },
           {
             label: "Period Growth",
             value: growth == null ? "—" : `${growth > 0 ? "+" : ""}${(growth * 100).toFixed(2)}%`,
@@ -47,7 +49,7 @@ export default async function OwnerEarningsPage({ params }: { params: Promise<{ 
       <MetricHistory
         title="Owner Earnings History"
         valueLabel="Owner Earnings"
-        formatValue={formatCompactUsd}
+        formatValue={money}
         empty="No owner earnings history available."
         rows={rows.map((row) => ({
           key: `${row.date}-${row.period}`,

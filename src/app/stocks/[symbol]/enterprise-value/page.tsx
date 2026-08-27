@@ -5,8 +5,8 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatDate, formatPrice, yearOverYear } from "@/lib/format";
-import { getEnterpriseValues, getIncomeTtm, getQuote } from "@/lib/fmp";
+import { compactMoneyFn, formatDate, formatMoney, yearOverYear } from "@/lib/format";
+import { getEnterpriseValues, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 
 export default async function EnterpriseValuePage({
   params,
@@ -19,11 +19,14 @@ export default async function EnterpriseValuePage({
   const { period: periodParam } = await searchParams;
   const ticker = symbol.toUpperCase();
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [history, ttm, quote] = await Promise.all([
+  const [history, ttm, quote, profile] = await Promise.all([
     getEnterpriseValues(ticker, period, 20),
     getIncomeTtm(ticker),
     getQuote(ticker),
+    getProfile(ticker),
   ]);
+  const money = compactMoneyFn(profile?.currency);
+  const px = (value: number | null | undefined) => formatMoney(value, profile?.currency);
   const latest = history[0];
   const prior = history[1];
   const growth = yearOverYear(latest?.enterpriseValue, prior?.enterpriseValue);
@@ -54,18 +57,18 @@ export default async function EnterpriseValuePage({
       </div>
       <MetricCards
         items={[
-          { label: "Enterprise Value", value: formatCompactUsd(latest?.enterpriseValue) },
-          { label: "Market Cap", value: formatCompactUsd(latest?.marketCapitalization ?? quote?.marketCap) },
-          { label: "Total Debt", value: formatCompactUsd(latest?.addTotalDebt) },
-          { label: "Cash", value: formatCompactUsd(latest?.minusCashAndCashEquivalents) },
-          { label: "Net Debt", value: formatCompactUsd(netDebt) },
+          { label: "Enterprise Value", value: money(latest?.enterpriseValue) },
+          { label: "Market Cap", value: money(latest?.marketCapitalization ?? quote?.marketCap) },
+          { label: "Total Debt", value: money(latest?.addTotalDebt) },
+          { label: "Cash", value: money(latest?.minusCashAndCashEquivalents) },
+          { label: "Net Debt", value: money(netDebt) },
           { label: "EV / Sales", value: evSales == null ? "—" : evSales.toFixed(2) },
         ]}
       />
       {chartItems.length > 1 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-semibold text-header">Enterprise Value Chart</h2>
-          <HistoryBars items={chartItems} formatValue={formatCompactUsd} />
+          <HistoryBars items={chartItems} formatValue={money} />
         </section>
       ) : null}
       <section className="mt-10">
@@ -99,11 +102,11 @@ export default async function EnterpriseValuePage({
                   return (
                     <tr key={row.date}>
                       <td>{formatDate(row.date)}</td>
-                      <td className="num">{formatPrice(row.stockPrice)}</td>
-                      <td className="num">{formatCompactUsd(row.marketCapitalization)}</td>
-                      <td className="num">{formatCompactUsd(row.addTotalDebt)}</td>
-                      <td className="num">{formatCompactUsd(row.minusCashAndCashEquivalents)}</td>
-                      <td className="num">{formatCompactUsd(row.enterpriseValue)}</td>
+                      <td className="num">{px(row.stockPrice)}</td>
+                      <td className="num">{money(row.marketCapitalization)}</td>
+                      <td className="num">{money(row.addTotalDebt)}</td>
+                      <td className="num">{money(row.minusCashAndCashEquivalents)}</td>
+                      <td className="num">{money(row.enterpriseValue)}</td>
                       <td className="num">
                         <ChangePercent value={index === 0 ? growth : yoy} alreadyPercent={false} />
                       </td>

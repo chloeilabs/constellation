@@ -3,11 +3,11 @@ import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import {
   formatAnalystConsensus,
-  formatCompactUsd,
+  formatCompactMoney,
   formatDate,
   formatInteger,
+  formatMoney,
   formatPercentPlain,
-  formatPrice,
   formatRatio,
   rangeLabel,
 } from "@/lib/format";
@@ -71,6 +71,7 @@ export function QuoteStats({
   growth,
   earningsDate,
   forwardPe,
+  dcf,
 }: {
   symbol: string;
   quote: FmpQuote | null;
@@ -83,26 +84,34 @@ export function QuoteStats({
   growth?: FmpIncomeGrowth | null;
   earningsDate?: string | null;
   forwardPe?: number | null;
+  dcf?: number | null;
 }) {
-  const pe = ratios?.priceToEarningsRatioTTM;
+  const pe = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe ?? null;
+  const currency = profile?.currency || "USD";
+  const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
+  const px = (value: number | null | undefined) => formatMoney(value, currency);
+  const epsGrowth = growth?.growthEPSDiluted ?? growth?.growthEPS;
+  const peg = pe != null && typeof epsGrowth === "number" && epsGrowth > 0 ? pe / (epsGrowth * 100) : null;
   const upside =
     target?.targetConsensus && quote?.price
       ? ((target.targetConsensus - quote.price) / quote.price) * 100
       : null;
+  const dcfUpside = dcf != null && quote?.price ? ((dcf - quote.price) / quote.price) * 100 : null;
   const base = `/stocks/${symbol}`;
 
   return (
     <StatGrid
       items={[
-        { label: "Market Cap", href: `${base}/market-cap`, value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
-        { label: "Revenue (ttm)", href: `${base}/revenue`, value: withYoy(formatCompactUsd(ttm?.revenue), growth?.growthRevenue) },
-        { label: "Gross Profit (ttm)", href: `${base}/gross-profit`, value: formatCompactUsd(ttm?.grossProfit) },
-        { label: "Operating Income (ttm)", href: `${base}/operating-income`, value: formatCompactUsd(ttm?.operatingIncome) },
-        { label: "EBITDA (ttm)", href: `${base}/ebitda`, value: formatCompactUsd(ttm?.ebitda) },
-        { label: "Net Income (ttm)", href: `${base}/net-income`, value: withYoy(formatCompactUsd(ttm?.netIncome), growth?.growthNetIncome) },
-        { label: "Shares Out", href: `${base}/shares`, value: formatCompactUsd(ttm?.weightedAverageShsOutDil).replace("$", "") },
-        { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatPrice(ttm?.epsDiluted ?? ttm?.eps), growth?.growthEPSDiluted ?? growth?.growthEPS) },
-        { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(typeof pe === "number" ? pe : quote?.pe ?? null) },
+        { label: "Market Cap", href: `${base}/market-cap`, value: money(quote?.marketCap ?? profile?.marketCap) },
+        { label: "Revenue (ttm)", href: `${base}/revenue`, value: withYoy(money(ttm?.revenue), growth?.growthRevenue) },
+        { label: "Gross Profit (ttm)", href: `${base}/gross-profit`, value: money(ttm?.grossProfit) },
+        { label: "Operating Income (ttm)", href: `${base}/operating-income`, value: money(ttm?.operatingIncome) },
+        { label: "EBITDA (ttm)", href: `${base}/ebitda`, value: money(ttm?.ebitda) },
+        { label: "Net Income (ttm)", href: `${base}/net-income`, value: withYoy(money(ttm?.netIncome), growth?.growthNetIncome) },
+        { label: "Shares Out", href: `${base}/shares`, value: formatCompactMoney(ttm?.weightedAverageShsOutDil, "USD").replace("$", "") },
+        { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency), growth?.growthEPSDiluted ?? growth?.growthEPS) },
+        { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(pe) },
+        { label: "PEG Ratio", value: formatRatio(peg) },
         { label: "PS Ratio", href: `${base}/ps-ratio`, value: formatRatio(typeof ratios?.priceToSalesRatioTTM === "number" ? ratios.priceToSalesRatioTTM : null) },
         { label: "PB Ratio", href: `${base}/pb-ratio`, value: formatRatio(typeof ratios?.priceToBookRatioTTM === "number" ? ratios.priceToBookRatioTTM : null) },
         { label: "Forward PE", value: formatRatio(forwardPe) },
@@ -111,25 +120,33 @@ export function QuoteStats({
           href: `${base}/dividend`,
           value: formatPercentPlain(typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null),
         },
-        { label: "Dividend", value: dividend ? `$${formatPrice(dividend.dividend)}` : profile?.lastDividend ? `$${formatPrice(profile.lastDividend)}` : "—" },
+        { label: "Dividend", value: dividend ? px(dividend.dividend) : profile?.lastDividend ? px(profile.lastDividend) : "—" },
         { label: "Ex-Dividend Date", value: formatDate(dividend?.date) },
         { label: "Volume", value: formatInteger(quote?.volume ?? profile?.volume) },
         { label: "Average Volume", value: formatInteger(quote?.avgVolume ?? profile?.averageVolume) },
-        { label: "Open", value: formatPrice(quote?.open) },
-        { label: "Previous Close", value: formatPrice(quote?.previousClose) },
-        { label: "Day's Range", value: quote ? `${formatPrice(quote.dayLow)} - ${formatPrice(quote.dayHigh)}` : "—" },
-        { label: "52-Week Range", value: quote ? `${formatPrice(quote.yearLow)} - ${formatPrice(quote.yearHigh)}` : rangeLabel(profile?.range) },
+        { label: "Open", value: px(quote?.open) },
+        { label: "Previous Close", value: px(quote?.previousClose) },
+        { label: "Day's Range", value: quote ? `${px(quote.dayLow)} - ${px(quote.dayHigh)}` : "—" },
+        { label: "52-Week Range", value: quote ? `${px(quote.yearLow)} - ${px(quote.yearHigh)}` : rangeLabel(profile?.range) },
         { label: "Beta", value: formatRatio(profile?.beta) },
-        { label: "50-Day Average", value: formatPrice(quote?.priceAvg50) },
-        { label: "200-Day Average", value: formatPrice(quote?.priceAvg200) },
+        { label: "50-Day Average", value: px(quote?.priceAvg50) },
+        { label: "200-Day Average", value: px(quote?.priceAvg200) },
         { label: "Profit Margin", value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
         { label: "Analysts", href: `${base}/forecast`, value: formatAnalystConsensus(grades) },
         {
           label: "Price Target",
           href: `${base}/forecast`,
           value: target?.targetConsensus
-            ? `${formatPrice(target.targetConsensus)}${upside != null ? ` (${upside > 0 ? "+" : ""}${upside.toFixed(1)}%)` : ""}`
+            ? `${px(target.targetConsensus)}${upside != null ? ` (${upside > 0 ? "+" : ""}${upside.toFixed(1)}%)` : ""}`
             : "—",
+        },
+        {
+          label: "DCF Fair Value",
+          href: `${base}/forecast`,
+          value:
+            dcf != null
+              ? `${px(dcf)}${dcfUpside != null ? ` (${dcfUpside > 0 ? "+" : ""}${dcfUpside.toFixed(1)}%)` : ""}`
+              : "—",
         },
         { label: "Earnings Date", value: formatDate(earningsDate) },
       ]}

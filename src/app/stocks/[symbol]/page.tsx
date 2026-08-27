@@ -5,10 +5,11 @@ import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
-import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
+import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice, formatRatio, reportingCurrency } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import {
   getCompanyEarnings,
+  getDcf,
   getDividends,
   getEstimates,
   getEtfAssetExposure,
@@ -44,7 +45,7 @@ export default async function StockOverviewPage({
   const ticker = symbol.toUpperCase();
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders, priceChange] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -62,10 +63,13 @@ export default async function StockOverviewPage({
       getEstimates(ticker, "annual"),
       getEtfAssetExposure(ticker),
       getPriceChange(ticker),
+      getDcf(ticker),
     ]);
   const latestYear = annual[0];
   const priorYear = annual[1];
   const growth = growthRows[0] ?? null;
+  const currency = reportingCurrency(profile?.currency, latestYear?.reportedCurrency, ttm?.reportedCurrency);
+  const money = compactMoneyFn(currency);
   const usEtfs = etfHolders.filter((row) => {
     if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
     if (!(row.sharesNumber > 0) || !(row.marketValue > 0)) return false;
@@ -135,6 +139,7 @@ export default async function StockOverviewPage({
           growth={growth}
           earningsDate={earnings[0]?.date}
           forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
+          dcf={dcf?.dcf}
         />
       </div>
 
@@ -196,11 +201,11 @@ export default async function StockOverviewPage({
           <h2 className="mb-3 text-xl font-semibold text-header">Financial Performance</h2>
           <p className="max-w-4xl text-sm leading-7 text-header/90">
             In fiscal year {latestYear.fiscalYear}, {profile?.companyName ?? ticker} reported revenue of{" "}
-            {formatCompactUsd(latestYear.revenue)}
+            {money(latestYear.revenue)}
             {typeof growth?.growthRevenue === "number" && priorYear
-              ? `, ${growth.growthRevenue >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthRevenue))} compared to the previous year's ${formatCompactUsd(priorYear.revenue)}`
+              ? `, ${growth.growthRevenue >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthRevenue))} compared to the previous year's ${money(priorYear.revenue)}`
               : ""}
-            . Earnings were {formatCompactUsd(latestYear.netIncome)}
+            . Earnings were {money(latestYear.netIncome)}
             {typeof growth?.growthNetIncome === "number" && priorYear
               ? `, ${growth.growthNetIncome >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthNetIncome))}`
               : ""}
@@ -230,7 +235,7 @@ export default async function StockOverviewPage({
             ) : null}{" "}
             {target ? (
               <>
-                The average 12-month price target is ${formatPrice(target.targetConsensus)}
+                The average 12-month price target is {formatMoney(target.targetConsensus, currency)}
                 {quote?.price
                   ? `, ${(((target.targetConsensus - quote.price) / quote.price) * 100).toFixed(2)}% from the latest price.`
                   : "."}
@@ -269,7 +274,7 @@ export default async function StockOverviewPage({
                       <ChangePercent value={peer.changePercentage} alreadyPercent />
                     </td>
                     <td className="num">{formatRatio(peer.pe)}</td>
-                    <td className="num">{formatCompactUsd(peer.mktCap)}</td>
+                    <td className="num">{formatCompactUsd(peer.mktCap, currencyForSymbol(peer.symbol))}</td>
                   </tr>
                 ))}
               </tbody>

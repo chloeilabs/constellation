@@ -4,7 +4,7 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader } from "@/components/page-header";
 import { HistoryBars } from "@/components/history-bars";
 import { YearMetricTable, type YearMetricColumn } from "@/components/year-metric-table";
-import { formatCompactUsd, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import {
   getBalanceSheets,
   getCashFlows,
@@ -157,6 +157,8 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
     ]);
 
   const incomeYears = annualIncome.slice(0, 5);
+  const currency = reportingCurrency(annualIncome[0]?.reportedCurrency, ttmIncome?.reportedCurrency);
+  const money = compactMoneyFn(currency);
   const ttmIncomeSynthetic: FmpIncomeStatement | null = ttmIncome
     ? ttmIncome
     : quarterlyIncome.length >= 4
@@ -267,7 +269,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
     <Container>
       <PageHeader
         title={`${ticker} Financials Overview`}
-        description="Revenue, profits, segments, cash, and valuation in millions of USD except ratios and per-share items."
+        description={`Revenue, profits, segments, cash, and valuation in millions of ${currency} except ratios and per-share items.`}
       />
       <FinancialsNav symbol={ticker} />
 
@@ -292,7 +294,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
         />
         {revenueBars.length > 1 ? (
           <div className="mt-4">
-            <HistoryBars items={revenueBars} formatValue={formatCompactUsd} />
+            <HistoryBars items={revenueBars} formatValue={money} />
           </div>
         ) : null}
       </section>

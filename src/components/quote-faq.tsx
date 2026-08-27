@@ -1,4 +1,4 @@
-import { formatAnalystConsensus, formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
+import { formatAnalystConsensus, formatCompactMoney, formatDate, formatInteger, formatMoney, formatPercentPlain, formatRatio } from "@/lib/format";
 import type { FmpGradesConsensus, FmpIncomeStatement, FmpPriceTarget, FmpProfile, FmpQuote, FmpRatiosTtm } from "@/lib/types";
 
 export function QuoteFaq({
@@ -20,12 +20,13 @@ export function QuoteFaq({
 }) {
   const name = profile?.companyName ?? quote?.name ?? symbol;
   const price = quote?.price ?? profile?.price;
+  const currency = profile?.currency || "USD";
   const pe = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe;
   const yieldValue = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
   const items = [
     {
       q: `What is ${symbol}'s market cap?`,
-      a: `${name} has a market capitalization of ${formatCompactUsd(quote?.marketCap ?? profile?.marketCap)}.`,
+      a: `${name} has a market capitalization of ${formatCompactMoney(quote?.marketCap ?? profile?.marketCap, currency)}.`,
     },
     {
       q: `What is the PE ratio for ${symbol}?`,
@@ -34,7 +35,7 @@ export function QuoteFaq({
     {
       q: `How much revenue does ${name} make?`,
       a: ttm?.revenue
-        ? `${name} reported trailing-twelve-month revenue of ${formatCompactUsd(ttm.revenue)}.`
+        ? `${name} reported trailing-twelve-month revenue of ${formatCompactMoney(ttm.revenue, currency)}.`
         : `Trailing revenue is not available for ${symbol}.`,
     },
     {
@@ -56,7 +57,7 @@ export function QuoteFaq({
           ? [
               grades?.consensus ? `Consensus is ${formatAnalystConsensus(grades)}.` : null,
               target?.targetConsensus && price
-                ? `The average price target is $${formatPrice(target.targetConsensus)}.`
+                ? `The average price target is ${formatMoney(target.targetConsensus, currency)}.`
                 : null,
             ]
               .filter(Boolean)

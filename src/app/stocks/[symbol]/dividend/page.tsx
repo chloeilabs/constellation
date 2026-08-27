@@ -1,7 +1,7 @@
 import { Container } from "@/components/container";
 import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
-import { formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
+import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getDividends, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { annualDividendPayments, nyDateString } from "@/lib/utils";
 
@@ -42,6 +42,8 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const last = five.at(-1) ? byYear.get(five.at(-1)!) : null;
   const span = five.length - 1;
   const cagr = first && last && first > 0 && span > 0 ? Math.pow(last / first, 1 / span) - 1 : null;
+  const currency = profile?.currency || "USD";
+  const px = (value: number | null | undefined) => formatMoney(value, currency);
 
   return (
     <Container>
@@ -49,7 +51,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Last Dividend</div>
-          <div className="mt-1 text-2xl font-semibold tabular">${formatPrice(latest?.dividend ?? profile?.lastDividend)}</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{px(latest?.dividend ?? profile?.lastDividend)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Indicated Yield</div>
@@ -75,7 +77,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
       {bars.length > 1 ? (
         <div className="mt-8">
           <h2 className="mb-3 text-lg font-semibold text-header">Annual Dividends Per Share</h2>
-          <HistoryBars items={bars} formatValue={(value) => `$${formatPrice(value)}`} />
+          <HistoryBars items={bars} formatValue={(value) => px(value)} />
         </div>
       ) : null}
       <div className="mt-8 overflow-x-auto rounded-lg border border-border">
@@ -102,7 +104,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
                   <td>{formatDate(row.date)}</td>
                   <td>{formatDate(row.recordDate)}</td>
                   <td>{formatDate(row.paymentDate)}</td>
-                  <td className="num">${formatPrice(row.dividend)}</td>
+                  <td className="num">{px(row.dividend)}</td>
                   <td className="num">{row.yield != null ? `${Number(row.yield).toFixed(2)}%` : "—"}</td>
                 </tr>
               ))

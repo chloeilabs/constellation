@@ -1,7 +1,7 @@
 import {
   changeClass,
   formatCompact,
-  formatCompactUsd,
+  formatCompactMoney,
   formatMillions,
   formatNumber,
   formatPercent,
@@ -16,11 +16,12 @@ function formatCell(
   value: unknown,
   format: StatementRow["format"],
   scale?: "millions",
+  currency?: string | null,
 ) {
   if (typeof value !== "number" || Number.isNaN(value)) return "—";
   switch (format) {
     case "money":
-      return scale === "millions" ? formatMillions(value) : formatCompactUsd(value);
+      return scale === "millions" ? formatMillions(value) : formatCompactMoney(value, currency);
     case "share":
       return scale === "millions" ? formatMillions(value) : formatCompact(value);
     case "eps":
@@ -31,7 +32,7 @@ function formatCell(
     case "number":
       return formatNumber(value);
     default:
-      return scale === "millions" ? formatMillions(value) : formatCompactUsd(value);
+      return scale === "millions" ? formatMillions(value) : formatCompactMoney(value, currency);
   }
 }
 
@@ -40,11 +41,13 @@ export function StatementTable({
   columns,
   scale,
   caption,
+  currency,
 }: {
   rows: StatementRow[];
   columns: { key: string; label: string; values: Record<string, unknown> }[];
   scale?: "millions";
   caption?: string;
+  currency?: string | null;
 }) {
   if (columns.length === 0) {
     return <p className="text-sm text-muted">No statement data available for this period.</p>;
@@ -80,7 +83,7 @@ export function StatementTable({
                     const value = column.values[row.key];
                     const previous = columns[index + 1]?.values[row.key];
                     const yoy = showYoy ? yearOverYear(value, previous) : null;
-                    const text = formatCell(value, row.format, scale);
+                    const text = formatCell(value, row.format, scale, currency);
                     return (
                       <td key={column.key} className={cn("num align-top", text === "—" ? "text-muted" : "")}>
                         <div>{text}</div>

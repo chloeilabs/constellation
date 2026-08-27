@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatDate, formatInteger, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, formatDate, formatInteger, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getHistoricalEmployeeCount, getIncomeTtm } from "@/lib/fmp";
 
 export default async function EmployeesPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -19,6 +19,7 @@ export default async function EmployeesPage({ params }: { params: Promise<{ symb
   const change = latest && prior ? latest.employeeCount - prior.employeeCount : null;
   const revenuePerEmployee = ttm?.revenue && latest?.employeeCount ? ttm.revenue / latest.employeeCount : null;
   const profitPerEmployee = ttm?.netIncome && latest?.employeeCount ? ttm.netIncome / latest.employeeCount : null;
+  const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency));
   const chartItems = [...ordered].reverse().map((row) => ({
     label: row.periodOfReport.slice(0, 4),
     value: row.employeeCount,
@@ -39,8 +40,8 @@ export default async function EmployeesPage({ params }: { params: Promise<{ symb
             label: "Growth (1Y)",
             value: yoy == null ? "—" : <ChangePercent value={yoy} alreadyPercent={false} className="text-2xl" />,
           },
-          { label: "Revenue / Employee", value: revenuePerEmployee ? formatCompactUsd(revenuePerEmployee) : "—" },
-          { label: "Profits / Employee", value: profitPerEmployee ? formatCompactUsd(profitPerEmployee) : "—" },
+          { label: "Revenue / Employee", value: revenuePerEmployee ? money(revenuePerEmployee) : "—" },
+          { label: "Profits / Employee", value: profitPerEmployee ? money(profitPerEmployee) : "—" },
           { label: "As of", value: formatDate(latest?.periodOfReport) },
         ]}
       />

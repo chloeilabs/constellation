@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm } from "@/lib/fmp";
 
 export default async function CapexPage({
@@ -26,6 +26,7 @@ export default async function CapexPage({
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const growth = yearOverYear(annual[0]?.capitalExpenditure, annual[1]?.capitalExpenditure);
+  const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency));
 
   return (
     <Container>
@@ -36,7 +37,7 @@ export default async function CapexPage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: "Capex (ttm)", value: formatCompactUsd(ttm?.capitalExpenditure) },
+          { label: "Capex (ttm)", value: money(ttm?.capitalExpenditure) },
           {
             label: "FY Growth",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
@@ -49,7 +50,7 @@ export default async function CapexPage({
         quarterHref={`/stocks/${ticker}/capex?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} Capital Expenditures`}
         valueLabel="Capex"
-        formatValue={formatCompactUsd}
+        formatValue={money}
         empty="No capital expenditure history available."
         rows={history.map((row) => ({
           key: `${row.date}-${row.period}`,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
-import { formatPrice, formatUsd } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { industrySlug } from "@/lib/industries";
 import { nyExtendedCopy } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
@@ -82,12 +82,14 @@ export function StockHeader({
                 ) : null}
               </p>
               <div className="mt-3 flex flex-wrap items-end gap-4">
-                <div className="text-4xl font-semibold tabular">{price != null ? formatUsd(price) : "—"}</div>
+                <div className="text-4xl font-semibold tabular">
+                  {price != null ? formatMoney(price, profile?.currency) : "—"}
+                </div>
                 <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
               </div>
               {afterPrice ? (
                 <p className="mt-1 text-sm text-muted">
-                  {extendedLabel} {formatPrice(afterPrice)}{" "}
+                  {extendedLabel} {formatMoney(afterPrice, profile?.currency)}{" "}
                   <ChangeValue change={afterChange} percent={afterPct} />
                 </p>
               ) : null}

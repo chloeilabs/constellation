@@ -64,7 +64,7 @@ export async function getExtendedHoursRows(): Promise<ExtendedHoursRow[]> {
         ask: book?.askPrice ?? null,
       };
     })
-    .filter((row) => row.extended != null);
+    .filter((row) => row.extended != null && (row.last ?? 0) >= 1);
 }
 
 export function splitExtendedHours(rows: ExtendedHoursRow[]) {

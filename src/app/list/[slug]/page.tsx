@@ -45,6 +45,10 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
         showFounded={slug === "oldest-companies"}
         showCountry={list.category === "international" || slug === "foreign-stocks"}
         localCurrency={list.category === "international"}
+        showRevenue={slug === "highest-revenue"}
+        showProfit={slug === "highest-profit"}
+        showEmployees={slug === "highest-employees"}
+        showTax={slug === "highest-taxes"}
       />
     </Container>
   );
