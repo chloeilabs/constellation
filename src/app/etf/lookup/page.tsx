@@ -27,10 +27,11 @@ export default async function EtfLookupPage({
   const [quote, exposure] = ticker
     ? await Promise.all([getQuote(ticker), getEtfAssetExposure(ticker)])
     : [null, []];
-  const holders = (await listedUsEtfHolders(exposure))
+  const ranked = (await listedUsEtfHolders(exposure))
     .slice()
-    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
-    .slice(0, 200);
+    .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0));
+  const total = ranked.length;
+  const holders = ranked.slice(0, 200);
   const name = quote?.name || ticker;
 
   return (
@@ -70,11 +71,12 @@ export default async function EtfLookupPage({
       {ticker ? (
         <>
           <p className="mb-3 text-sm text-muted">
-            {holders.length} ETF{holders.length === 1 ? "" : "s"} report{" "}
+            {total} ETF{total === 1 ? "" : "s"} report{" "}
             <Link href={quoteHref(ticker, { name })} className="text-link hover:underline">
               {name} ({ticker})
             </Link>{" "}
-            as a holding.
+            as a holding
+            {total > holders.length ? ` (showing the largest ${holders.length} by position value)` : ""}.
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">

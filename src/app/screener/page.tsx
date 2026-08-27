@@ -309,9 +309,8 @@ export default async function ScreenerPage({
       </form>
       {index ? (
         <p className="mb-3 text-sm text-muted">
-          {indexLabel} constituents from FMP ({total} match{total === 1 ? "" : "es"} after filters). Sector names follow
-          the index file (GICS-style), not the company screener. Beta and yield filters apply to the company screener
-          only.
+          {indexLabel} constituents from FMP ({total} match{total === 1 ? "" : "es"} after filters). Sector names
+          come from the FMP constituent file. Beta and yield filters apply to the company screener only.
         </p>
       ) : (
         <p className="mb-3 text-sm text-muted">{rows.length} results on this page</p>
