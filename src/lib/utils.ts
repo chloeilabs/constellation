@@ -96,6 +96,18 @@ export function annualDividendPayments(frequency: string | null | undefined) {
   return 4;
 }
 
+/** Indicated annual dividend from the latest payment, matching Stock Analysis quote stats. */
+export function indicatedAnnualDividend(
+  dividend?: { dividend?: number | null; frequency?: string | null } | null,
+  fallback?: number | null,
+) {
+  const latest = dividend?.dividend;
+  if (typeof latest === "number" && Number.isFinite(latest) && latest > 0) {
+    return latest * annualDividendPayments(dividend?.frequency);
+  }
+  return typeof fallback === "number" && Number.isFinite(fallback) ? fallback : null;
+}
+
 export type NySession = "premarket" | "open" | "afterhours" | "closed";
 
 /** Regular U.S. cash session in America/New_York: 9:30–16:00 on weekdays. */

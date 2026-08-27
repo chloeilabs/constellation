@@ -12,6 +12,7 @@ import {
   rangeLabel,
 } from "@/lib/format";
 import { stockPath } from "@/lib/listings";
+import { indicatedAnnualDividend } from "@/lib/utils";
 import type {
   FmpDividend,
   FmpGradesConsensus,
@@ -117,6 +118,12 @@ export function QuoteStats({
       : null;
   const dcfUpside = dcf != null && quote?.price ? ((dcf - quote.price) / quote.price) * 100 : null;
   const base = stockPath(symbol);
+  const annualDividend = indicatedAnnualDividend(dividend, profile?.lastDividend);
+  const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
+  const dividendValue =
+    annualDividend != null
+      ? `${px(annualDividend)}${dividendYield != null ? ` (${formatPercentPlain(dividendYield)})` : ""}`
+      : "—";
 
   return (
     <StatGrid
@@ -134,12 +141,7 @@ export function QuoteStats({
         { label: "PS Ratio", href: `${base}/ps-ratio`, value: formatRatio(typeof ratios?.priceToSalesRatioTTM === "number" ? ratios.priceToSalesRatioTTM : null) },
         { label: "PB Ratio", href: `${base}/pb-ratio`, value: formatRatio(typeof ratios?.priceToBookRatioTTM === "number" ? ratios.priceToBookRatioTTM : null) },
         { label: "Forward PE", value: formatRatio(forwardPe) },
-        {
-          label: "Dividend Yield",
-          href: `${base}/dividend`,
-          value: formatPercentPlain(typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null),
-        },
-        { label: "Dividend", value: dividend ? px(dividend.dividend) : profile?.lastDividend ? px(profile.lastDividend) : "—" },
+        { label: "Dividend", href: `${base}/dividend`, value: dividendValue },
         { label: "Ex-Dividend Date", value: formatDate(dividend?.date) },
         { label: "Volume", value: formatInteger(quote?.volume ?? profile?.volume) },
         { label: "Average Volume", value: formatInteger(quote?.avgVolume ?? profile?.averageVolume) },

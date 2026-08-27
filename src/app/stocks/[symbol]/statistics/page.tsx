@@ -42,7 +42,7 @@ import {
 } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { padCik } from "@/lib/institutional";
-import { relativeChange } from "@/lib/utils";
+import { indicatedAnnualDividend, relativeChange } from "@/lib/utils";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { ChangePercent } from "@/components/change";
 import Link from "next/link";
@@ -404,7 +404,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Dividends & Yields</h2>
           <StatGrid
             items={[
-              { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: dividends[0] ? formatMoney(dividends[0].dividend, currency) : "—" },
+              { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: formatMoney(indicatedAnnualDividend(dividends[0], profile?.lastDividend), currency) },
               { label: "Dividend Yield", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(dividendYield) },
               { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Buyback Yield", value: formatPercentPlain(buybackYield) },

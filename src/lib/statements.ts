@@ -282,6 +282,7 @@ export function statementChartItems(
 
 export type StatementSource = "standardized" | "reported";
 export type StatementSpan = "5" | "10" | "max";
+export type StatementView = "dollars" | "common-size";
 
 export function sourceFrom(value?: string): StatementSource {
   return value === "reported" || value === "as-reported" ? "reported" : "standardized";
@@ -290,6 +291,10 @@ export function sourceFrom(value?: string): StatementSource {
 export function spanFrom(value?: string): StatementSpan {
   if (value === "10" || value === "max") return value;
   return "5";
+}
+
+export function viewFrom(value?: string): StatementView {
+  return value === "common-size" || value === "common" ? "common-size" : "dollars";
 }
 
 export function statementLimit(period: "annual" | "quarter", span: StatementSpan) {
@@ -302,11 +307,13 @@ export function statementHref(
   period: "annual" | "quarter",
   source: StatementSource = "standardized",
   span: StatementSpan = "5",
+  view: StatementView = "dollars",
 ) {
   const params = new URLSearchParams();
   if (period === "quarter") params.set("period", "quarter");
   if (source === "reported") params.set("source", "reported");
   if (span !== "5") params.set("years", span);
+  if (view === "common-size") params.set("view", "common-size");
   const query = params.toString();
   return query ? `${base}?${query}` : base;
 }
@@ -316,16 +323,39 @@ export function statementToolbarHrefs(
   period: "annual" | "quarter",
   source: StatementSource,
   span: StatementSpan,
+  view: StatementView = "dollars",
 ) {
   return {
-    annualHref: statementHref(base, "annual", source, span),
-    quarterHref: statementHref(base, "quarter", source, span),
-    standardizedHref: statementHref(base, period, "standardized", span),
-    reportedHref: statementHref(base, period, "reported", span),
-    fiveHref: statementHref(base, period, source, "5"),
-    tenHref: statementHref(base, period, source, "10"),
-    maxHref: statementHref(base, period, source, "max"),
+    annualHref: statementHref(base, "annual", source, span, view),
+    quarterHref: statementHref(base, "quarter", source, span, view),
+    standardizedHref: statementHref(base, period, "standardized", span, view),
+    reportedHref: statementHref(base, period, "reported", span, "dollars"),
+    fiveHref: statementHref(base, period, source, "5", view),
+    tenHref: statementHref(base, period, source, "10", view),
+    maxHref: statementHref(base, period, source, "max", view),
+    dollarsHref: statementHref(base, period, source, span, "dollars"),
+    commonHref: statementHref(base, period, source, span, "common-size"),
   };
+}
+
+export function withRevenueBase(
+  columns: { key: string; label: string; values: Record<string, unknown> }[],
+  income: Array<{ fiscalYear: string; period: string; revenue?: number }>,
+  ttmRevenue?: number | null,
+) {
+  const byPeriod = new Map(income.map((row) => [`${row.fiscalYear}-${row.period}`, row.revenue]));
+  return columns.map((column) => {
+    if (typeof column.values.revenue === "number") return column;
+    const fy = column.values.fiscalYear;
+    const period = column.values.period;
+    const revenue =
+      column.key === "ttm" || column.label === "TTM"
+        ? ttmRevenue
+        : typeof fy === "string" && typeof period === "string"
+          ? byPeriod.get(`${fy}-${period}`)
+          : undefined;
+    return revenue == null ? column : { ...column, values: { ...column.values, revenue } };
+  });
 }
 
 const XBRL_LABELS: Record<string, string> = {

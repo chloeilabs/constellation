@@ -12,6 +12,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { StatementRow } from "@/lib/statements";
 
+function formatCommonSize(value: unknown, base: unknown) {
+  if (typeof value !== "number" || typeof base !== "number" || !Number.isFinite(value) || !Number.isFinite(base) || base === 0) {
+    return "—";
+  }
+  return formatPercentPlain(value / base);
+}
+
 function formatCell(
   value: unknown,
   format: StatementRow["format"],
@@ -42,12 +49,14 @@ export function StatementTable({
   scale,
   caption,
   currency,
+  commonSizeBase,
 }: {
   rows: StatementRow[];
   columns: { key: string; label: string; values: Record<string, unknown> }[];
   scale?: "millions";
   caption?: string;
   currency?: string | null;
+  commonSizeBase?: string;
 }) {
   if (columns.length === 0) {
     return <p className="text-sm text-muted">No statement data available for this period.</p>;
@@ -70,7 +79,8 @@ export function StatementTable({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const showYoy = row.format === "money" || row.format === "share";
+              const asPercent = Boolean(commonSizeBase) && (row.format === "money" || !row.format);
+              const showYoy = !asPercent && (row.format === "money" || row.format === "share");
               return (
                 <tr key={row.key} className={row.emphasize ? "bg-muted-bg/60 font-semibold" : undefined}>
                   <td
@@ -83,7 +93,9 @@ export function StatementTable({
                     const value = column.values[row.key];
                     const previous = columns[index + 1]?.values[row.key];
                     const yoy = showYoy && column.label !== "TTM" ? yearOverYear(value, previous) : null;
-                    const text = formatCell(value, row.format, scale, currency);
+                    const text = asPercent && commonSizeBase
+                      ? formatCommonSize(value, column.values[commonSizeBase])
+                      : formatCell(value, row.format, scale, currency);
                     return (
                       <td key={column.key} className={cn("num align-top", text === "—" ? "text-muted" : "")}>
                         <div>{text}</div>

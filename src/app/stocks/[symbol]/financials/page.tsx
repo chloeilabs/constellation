@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader, YearToggle } from "@/components/page-header";
 import { HistoryBars } from "@/components/history-bars";
 import { YearMetricTable, type YearMetricColumn } from "@/components/year-metric-table";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
@@ -18,7 +18,7 @@ import {
   getRevenueProductSegments,
 } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { canonicalSegmentName, trailingSum, ttmSegmentMap } from "@/lib/statements";
+import { canonicalSegmentName, spanFrom, statementHref, statementLimit, trailingSum, ttmSegmentMap } from "@/lib/statements";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
@@ -157,40 +157,56 @@ function segmentColumnFromMap(label: string, key: string, data: Record<string, n
   return { key, label, values };
 }
 
-function segmentColumns(rows: FmpRevenueSegment[], names: string[], ttm?: Record<string, number> | null): YearMetricColumn[] {
+function segmentColumns(
+  rows: FmpRevenueSegment[],
+  names: string[],
+  ttm?: Record<string, number> | null,
+  yearCount = 5,
+): YearMetricColumn[] {
   const byYear = segmentLookup(rows);
   const years = [...new Set(rows.map((row) => String(row.fiscalYear)))]
     .sort((a, b) => Number(b) - Number(a))
-    .slice(0, 5);
+    .slice(0, yearCount);
   return [
     ...(ttm ? [segmentColumnFromMap("TTM", "ttm-seg", ttm, names)] : []),
     ...years.map((year) => segmentColumnFromMap(fyLabel(year), year, byYear.get(year) ?? {}, names)),
   ];
 }
 
-export default async function FinancialsOverviewPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function FinancialsOverviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ years?: string }>;
+}) {
   const { symbol } = await params;
+  const { years: yearsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
+  const span = spanFrom(yearsParam);
+  const yearCount = statementLimit("annual", span);
+  const annualLimit = yearCount + 1;
+  const base = stockPath(ticker, "/financials");
   const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends] =
     await Promise.all([
-      getIncomeStatements(ticker, "annual", 6),
+      getIncomeStatements(ticker, "annual", annualLimit),
       getIncomeStatements(ticker, "quarter", 8),
       getIncomeTtm(ticker),
-      getBalanceSheets(ticker, "annual", 6),
+      getBalanceSheets(ticker, "annual", annualLimit),
       getBalanceSheets(ticker, "quarter", 1),
-      getCashFlows(ticker, "annual", 6),
+      getCashFlows(ticker, "annual", annualLimit),
       getCashFlows(ticker, "quarter", 8),
       getCashFlowTtm(ticker),
-      getRatios(ticker, "annual", 6),
+      getRatios(ticker, "annual", annualLimit),
       getRatiosTtm(ticker),
       getRevenueProductSegments(ticker, "annual"),
       getRevenueProductSegments(ticker, "quarter"),
       getRevenueGeographicSegments(ticker, "annual"),
       getRevenueGeographicSegments(ticker, "quarter"),
-      getDividends(ticker, 8),
+      getDividends(ticker, span === "5" ? 24 : 80),
     ]);
 
-  const incomeYears = annualIncome.slice(0, 5);
+  const incomeYears = annualIncome.slice(0, yearCount);
   const currency = reportingCurrency(annualIncome[0]?.reportedCurrency, ttmIncome?.reportedCurrency);
   const money = compactMoneyFn(currency);
   const ttmIncomeSynthetic: FmpIncomeStatement | null = ttmIncome
@@ -223,7 +239,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
     ...incomeYears.map((row, index) => incomeColumn(fyLabel(row.fiscalYear), row.date, row, incomeYears[index + 1] ?? null)),
   ];
 
-  const cashYears = annualCash.slice(0, 5);
+  const cashYears = annualCash.slice(0, yearCount);
   const cfRows = quarterlyCash as Array<Record<string, unknown>>;
   const priorTtmCash: FmpCashFlow | null =
     quarterlyCash.length >= 8
@@ -247,14 +263,14 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
     ...cashYears.map((row, index) => cashColumn(fyLabel(row.fiscalYear), row.date, row, cashYears[index + 1] ?? null)),
   ];
 
-  const balanceYears = annualBalance.slice(0, 5);
+  const balanceYears = annualBalance.slice(0, yearCount);
   const latestBalance = currentBalance[0] ?? balanceYears[0] ?? null;
   const cashDebtColumns = [
     ...(latestBalance ? [balanceColumn("Current", "current", latestBalance, balanceYears[0] ?? null)] : []),
     ...balanceYears.map((row, index) => balanceColumn(fyLabel(row.fiscalYear), row.date, row, balanceYears[index + 1] ?? null)),
   ];
 
-  const ratioYears = annualRatios.slice(0, 5);
+  const ratioYears = annualRatios.slice(0, yearCount);
   const ttmRatioMap = {
     grossMargin: "grossProfitMarginTTM",
     operatingMargin: "operatingProfitMarginTTM",
@@ -303,7 +319,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
         .slice(0, 8)
         .map(([name]) => name)
     : segmentNames(products);
-  const productColumns = segmentColumns(products, names, productTtm);
+  const productColumns = segmentColumns(products, names, productTtm, yearCount);
   const geoTtm = ttmSegmentMap(geoQuarters);
   const geoNames = geoTtm
     ? Object.entries(geoTtm)
@@ -311,7 +327,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
         .slice(0, 8)
         .map(([name]) => name)
     : segmentNames(geos);
-  const geoColumns = segmentColumns(geos, geoNames, geoTtm);
+  const geoColumns = segmentColumns(geos, geoNames, geoTtm, yearCount);
   const revenueBars = [...incomeYears]
     .reverse()
     .filter((row) => typeof row.revenue === "number")
@@ -323,7 +339,7 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
     const year = String(row.date).slice(0, 4);
     dividendByYear.set(year, (dividendByYear.get(year) ?? 0) + (row.dividend || 0));
   }
-  const dividendYears = [...dividendByYear.keys()].sort((a, b) => b.localeCompare(a)).slice(0, 5);
+  const dividendYears = [...dividendByYear.keys()].sort((a, b) => b.localeCompare(a)).slice(0, yearCount);
   const dividendColumns: YearMetricColumn[] = [
     {
       key: "current-div",
@@ -348,6 +364,14 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
       <PageHeader
         title={`${ticker} Financials Overview`}
         description={`Revenue, profits, segments, cash, and valuation in millions of ${currency} except ratios and per-share items.`}
+        actions={
+          <YearToggle
+            span={span}
+            fiveHref={statementHref(base, "annual", "standardized", "5")}
+            tenHref={statementHref(base, "annual", "standardized", "10")}
+            maxHref={statementHref(base, "annual", "standardized", "max")}
+          />
+        }
       />
       <FinancialsNav symbol={ticker} />
 

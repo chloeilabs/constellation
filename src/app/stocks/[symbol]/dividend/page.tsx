@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getDividends, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
-import { annualDividendPayments, nyDateString } from "@/lib/utils";
+import { indicatedAnnualDividend, nyDateString } from "@/lib/utils";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -17,9 +17,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
     getRatiosTtm(ticker),
   ]);
   const latest = dividends[0];
-  const payments = annualDividendPayments(latest?.frequency);
-  const annualized =
-    latest?.dividend && payments ? latest.dividend * payments : latest?.frequency?.toLowerCase().includes("quarter") ? (latest?.dividend ?? 0) * 4 : latest?.dividend;
+  const annualized = indicatedAnnualDividend(latest, profile?.lastDividend);
   const price = quote?.price ?? profile?.price;
   const indicatedYield = annualized && price ? annualized / price : null;
   const ttmYield = typeof (ratios as Record<string, unknown> | null)?.dividendYieldTTM === "number"
@@ -96,6 +94,10 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Last Dividend</div>
           <div className="mt-1 text-2xl font-semibold tabular">{px(latest?.dividend ?? profile?.lastDividend)}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">Annual Dividend</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{px(annualized)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Indicated Yield</div>

@@ -16,6 +16,7 @@ import {
   statementLimit,
   statementToolbarHrefs,
   toStatementColumns,
+  viewFrom,
   withTtmColumn,
 } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
@@ -25,14 +26,15 @@ export default async function BalanceSheetPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string; source?: string; years?: string }>;
+  searchParams: Promise<{ period?: string; source?: string; years?: string; view?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam, source: sourceParam, years: yearsParam } = await searchParams;
+  const { period: periodParam, source: sourceParam, years: yearsParam, view: viewParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const source = sourceFrom(sourceParam);
   const span = spanFrom(yearsParam);
+  const view = source === "reported" ? "dollars" : viewFrom(viewParam);
   const limit = statementLimit(period, span);
   const base = stockPath(ticker, "/financials/balance-sheet");
   const [rows, ttm, reported] = await Promise.all([
@@ -57,14 +59,17 @@ export default async function BalanceSheetPage({
         description={
           source === "reported"
             ? `As-reported XBRL line items from company filings. Figures in millions of ${currency}.`
-            : `Assets, liabilities, and shareholders' equity. Figures in millions of ${currency}.`
+            : view === "common-size"
+              ? "Each balance-sheet line is a percentage of total assets. Charts remain in dollars."
+              : `Assets, liabilities, and shareholders' equity. Figures in millions of ${currency}.`
         }
         actions={
           <StatementToolbar
             period={period}
             source={source}
             span={span}
-            {...statementToolbarHrefs(base, period, source, span)}
+            view={view}
+            {...statementToolbarHrefs(base, period, source, span, view)}
           />
         }
       />
@@ -93,7 +98,12 @@ export default async function BalanceSheetPage({
           columns={columns}
           scale="millions"
           currency={currency}
-          caption={`Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`}
+          commonSizeBase={view === "common-size" ? "totalAssets" : undefined}
+          caption={
+            view === "common-size"
+              ? "Percent of total assets. Green/red year-over-year change is hidden in this view."
+              : `Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`
+          }
         />
       )}
     </Container>

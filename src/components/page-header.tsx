@@ -103,10 +103,43 @@ export function YearToggle({
   );
 }
 
+export function ViewToggle({
+  view,
+  dollarsHref,
+  commonHref,
+}: {
+  view: "dollars" | "common-size";
+  dollarsHref: string;
+  commonHref: string;
+}) {
+  return (
+    <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Statement units">
+      {(
+        [
+          ["dollars", "Dollars", dollarsHref],
+          ["common-size", "Common Size", commonHref],
+        ] as const
+      ).map(([id, label, href]) => (
+        <Link
+          key={id}
+          href={href}
+          className={cn(
+            "rounded px-3 py-1.5 font-medium",
+            view === id ? "bg-header text-on-header" : "text-muted hover:text-header",
+          )}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export function StatementToolbar({
   period,
   source,
   span,
+  view = "dollars",
   annualHref,
   quarterHref,
   standardizedHref,
@@ -114,10 +147,13 @@ export function StatementToolbar({
   fiveHref,
   tenHref,
   maxHref,
+  dollarsHref,
+  commonHref,
 }: {
   period: "annual" | "quarter";
   source: "standardized" | "reported";
   span: "5" | "10" | "max";
+  view?: "dollars" | "common-size";
   annualHref: string;
   quarterHref: string;
   standardizedHref: string;
@@ -125,12 +161,17 @@ export function StatementToolbar({
   fiveHref: string;
   tenHref: string;
   maxHref: string;
+  dollarsHref?: string;
+  commonHref?: string;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <PeriodToggle period={period} annualHref={annualHref} quarterHref={quarterHref} />
       <SourceToggle source={source} standardizedHref={standardizedHref} reportedHref={reportedHref} />
       <YearToggle span={span} fiveHref={fiveHref} tenHref={tenHref} maxHref={maxHref} />
+      {source === "standardized" && dollarsHref && commonHref ? (
+        <ViewToggle view={view} dollarsHref={dollarsHref} commonHref={commonHref} />
+      ) : null}
     </div>
   );
 }
