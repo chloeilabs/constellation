@@ -55,6 +55,7 @@ export const NEWS_NAV: NavItem[] = [
   { href: "/news/press-releases", label: "Press Releases" },
   { href: "/news/general", label: "General" },
   { href: "/analysts", label: "Analysts" },
+  { href: "/news/transcripts", label: "Transcripts" },
 ];
 
 export const ETF_NAV: NavItem[] = [
@@ -62,6 +63,8 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
   { href: "/list/bond-etfs", label: "Bond ETFs" },
   { href: "/list/income-etfs", label: "Equity Income" },
+  { href: "/list/crypto-etfs", label: "Crypto ETFs" },
+  { href: "/list/leveraged-etfs", label: "Leveraged" },
   { href: "/funds", label: "Mutual Funds" },
 ];
 
@@ -73,19 +76,35 @@ export const CONGRESS_NAV: NavItem[] = [
   { href: "/institutional", label: "13F Filings" },
 ];
 
+export function etfQuoteNav(symbol: string): NavItem[] {
+  return [
+    { href: `/etf/${symbol}`, label: "Overview", match: "exact" },
+    { href: `/etf/${symbol}/holdings`, label: "Holdings" },
+    { href: `/etf/${symbol}/dividend`, label: "Dividend" },
+    { href: `/etf/${symbol}/chart`, label: "Chart" },
+    { href: `/etf/${symbol}/news`, label: "News" },
+  ];
+}
+
 export function quoteFundamentalsNav(symbol: string) {
   return [
     { href: `/stocks/${symbol}/market-cap`, label: "Market Cap" },
     { href: `/stocks/${symbol}/shares`, label: "Shares" },
     { href: `/stocks/${symbol}/revenue`, label: "Revenue" },
+    { href: `/stocks/${symbol}/gross-profit`, label: "Gross Profit" },
     { href: `/stocks/${symbol}/operating-income`, label: "Operating Income" },
     { href: `/stocks/${symbol}/ebitda`, label: "EBITDA" },
     { href: `/stocks/${symbol}/net-income`, label: "Net Income" },
     { href: `/stocks/${symbol}/earnings`, label: "EPS" },
     { href: `/stocks/${symbol}/free-cash-flow`, label: "FCF" },
     { href: `/stocks/${symbol}/cash`, label: "Cash" },
+    { href: `/stocks/${symbol}/assets`, label: "Assets" },
+    { href: `/stocks/${symbol}/liabilities`, label: "Liabilities" },
     { href: `/stocks/${symbol}/debt`, label: "Debt" },
+    { href: `/stocks/${symbol}/equity`, label: "Equity" },
     { href: `/stocks/${symbol}/pe-ratio`, label: "PE Ratio" },
+    { href: `/stocks/${symbol}/ps-ratio`, label: "PS Ratio" },
+    { href: `/stocks/${symbol}/pb-ratio`, label: "PB Ratio" },
     { href: `/stocks/${symbol}/enterprise-value`, label: "EV" },
     { href: `/stocks/${symbol}/owner-earnings`, label: "Owner Earnings" },
     { href: `/stocks/${symbol}/employees`, label: "Employees" },

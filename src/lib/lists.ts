@@ -18,6 +18,7 @@ type ScreenerList = {
   hrefBase?: "/stocks" | "/etf";
   yieldMax?: number;
   symbolPattern?: string;
+  capMax?: number;
 };
 
 type ConstituentList = {
@@ -220,6 +221,59 @@ export const STOCK_LISTS = {
     hrefBase: "/etf",
     yieldMax: 0.15,
   },
+  "crypto-etfs": {
+    title: "Crypto ETFs",
+    description: "U.S. bitcoin, ether, and other digital-asset ETFs ranked by market value.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Cryptocurrency" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+  },
+  "leveraged-etfs": {
+    title: "Leveraged ETFs",
+    description: "U.S. leveraged and inverse equity ETFs, ranked by market value.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Leveraged" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+    capMax: 40_000_000_000,
+  },
+  "penny-stocks": {
+    title: "Penny Stocks",
+    description: "U.S.-listed companies trading below $5, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", priceMoreThan: 0.5, priceLowerThan: 5, marketCapMoreThan: 50_000_000 },
+    limit: 200,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "high-beta-stocks": {
+    title: "High-Beta Stocks",
+    description: "U.S. stocks with a beta of 2 or higher, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", betaMoreThan: 2 },
+    limit: 200,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "low-pe-stocks": {
+    title: "Low PE Stocks",
+    description: "U.S. companies with a trailing PE below 15 and a market cap above $2B.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", peLowerThan: 15, marketCapMoreThan: 2_000_000_000, priceMoreThan: 5 },
+    limit: 200,
+    sort: "marketCap",
+    listing: "primary",
+  },
   "tsx-stocks": {
     title: "Toronto Stock Exchange",
     description: "The largest Canadian companies listed on the TSX.",
@@ -298,6 +352,9 @@ export const LIST_NAV = [
   { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
   { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
+  { href: "/list/penny-stocks", label: "Penny Stocks" },
+  { href: "/list/high-beta-stocks", label: "High Beta" },
+  { href: "/list/low-pe-stocks", label: "Low PE" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
 ];
 
@@ -359,8 +416,14 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     selected = selected.filter((row) => symbolPattern.test(row.symbol));
   }
   let rows = await toScreenerRows(selected);
-  if (listing === "raw") {
-    rows = rows.filter((row) => (row.marketCap ?? 0) > 0 && (row.marketCap ?? 0) < 20_000_000_000_000);
+  const capMax =
+    "capMax" in list && typeof list.capMax === "number"
+      ? list.capMax
+      : listing === "raw"
+        ? 20_000_000_000_000
+        : undefined;
+  if (capMax != null) {
+    rows = rows.filter((row) => (row.marketCap ?? 0) > 0 && (row.marketCap ?? 0) < capMax);
   }
   if (yieldMax != null) {
     rows = rows.filter((row) => (row.dividendYield ?? 0) > 0 && (row.dividendYield ?? 0) < yieldMax);

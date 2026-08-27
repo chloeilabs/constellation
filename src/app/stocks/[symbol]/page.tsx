@@ -17,12 +17,14 @@ import {
   getIncomeStatements,
   getIncomeTtm,
   getPeers,
+  getPriceChange,
   getPriceTarget,
   getProfile,
   getQuote,
   getRatiosTtm,
   getSymbolNews,
 } from "@/lib/fmp";
+import { ReturnsTable } from "@/components/returns-table";
 import { isForeignListingSymbol } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
@@ -39,7 +41,7 @@ export default async function StockOverviewPage({
   const ticker = symbol.toUpperCase();
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders, priceChange] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -56,6 +58,7 @@ export default async function StockOverviewPage({
       getCompanyEarnings(ticker, 1),
       getEstimates(ticker, "annual"),
       getEtfAssetExposure(ticker),
+      getPriceChange(ticker),
     ]);
   const latestYear = annual[0];
   const priorYear = annual[1];
@@ -85,9 +88,12 @@ export default async function StockOverviewPage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
-        <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>
-          <PriceChart points={points} range={range} symbol={ticker} />
-        </Suspense>
+        <div>
+          <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>
+            <PriceChart points={points} range={range} symbol={ticker} />
+          </Suspense>
+          <ReturnsTable changes={priceChange} />
+        </div>
         <QuoteStats
           symbol={ticker}
           quote={quote}

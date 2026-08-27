@@ -34,7 +34,8 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
         showYield={
           ("sort" in list && list.sort === "dividendYield") ||
           slug === "monthly-dividend-stocks" ||
-          slug === "bond-etfs"
+          slug === "bond-etfs" ||
+          slug === "dividend-etfs"
         }
         showFounded={slug === "oldest-companies"}
         showCountry={list.category === "international" || slug === "foreign-stocks"}

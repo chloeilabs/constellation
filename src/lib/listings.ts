@@ -27,6 +27,25 @@ export function parseFoundedYear(value: string | null | undefined) {
   return year;
 }
 
+export function quoteHref(
+  symbol: string,
+  hint?: { name?: string | null; exchange?: string | null; exchangeFullName?: string | null; isEtf?: boolean | null },
+) {
+  const ticker = symbol.toUpperCase();
+  if (hint?.isEtf) return `/etf/${ticker}`;
+  const hay = `${hint?.name ?? ""} ${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`.toUpperCase();
+  if (/\bETF\b|\bETN\b/.test(hay) || /ARCA/.test(hay)) return `/etf/${ticker}`;
+  return `/stocks/${ticker}`;
+}
+
+export function holdingQuoteHref(asset?: string | null, name?: string | null) {
+  const ticker = asset?.trim();
+  if (!ticker || ticker === "-") return null;
+  if (/^(CASH|USD|EUR|GBP|JPY|CHF)$/i.test(ticker)) return null;
+  if (name && /cash equivalent|money market|sweep/i.test(name)) return null;
+  return quoteHref(ticker, { name });
+}
+
 export function uniqueBySymbol<T extends { symbol: string }>(rows: T[]) {
   const seen = new Set<string>();
   const unique: T[] = [];

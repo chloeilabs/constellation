@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import type { FmpSearchResult } from "@/lib/types";
+import { quoteHref } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
 export function SearchBox({
@@ -42,10 +43,15 @@ export function SearchBox({
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function go(symbol: string) {
+  function goResult(item: FmpSearchResult) {
     setOpen(false);
     setQuery("");
-    router.push(`/stocks/${symbol.toUpperCase()}`);
+    router.push(quoteHref(item.symbol, item));
+  }
+
+  function goSearch(value: string) {
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(value)}`);
   }
 
   const visibleResults = trimmed.length < 1 ? [] : results;
@@ -55,8 +61,10 @@ export function SearchBox({
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          const top = visibleResults[0]?.symbol ?? trimmed;
-          if (top) go(top);
+          if (!trimmed) return;
+          const exact = visibleResults.find((item) => item.symbol.toUpperCase() === trimmed.toUpperCase());
+          if (exact) goResult(exact);
+          else goSearch(trimmed);
         }}
       >
         <Search
@@ -83,7 +91,7 @@ export function SearchBox({
             <li key={`${item.symbol}-${item.exchange}`}>
               <button
                 type="button"
-                onClick={() => go(item.symbol)}
+                onClick={() => goResult(item)}
                 className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted-bg"
               >
                 <span>
@@ -94,6 +102,15 @@ export function SearchBox({
               </button>
             </li>
           ))}
+          <li>
+            <button
+              type="button"
+              onClick={() => goSearch(trimmed)}
+              className="w-full px-3 py-2 text-left text-sm text-link hover:bg-muted-bg"
+            >
+              See all results for “{trimmed}”
+            </button>
+          </li>
         </ul>
       ) : null}
     </div>

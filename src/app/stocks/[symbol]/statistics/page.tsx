@@ -40,8 +40,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "DCF Fair Value", value: dcf?.dcf != null ? `$${formatPrice(dcf.dcf)}` : "—" },
               { label: "Enterprise Value", href: `/stocks/${ticker}/enterprise-value`, value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
               { label: "PE Ratio (ttm)", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(num(ratios?.priceToEarningsRatioTTM)) },
-              { label: "PB Ratio", value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
-              { label: "PS Ratio", value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
+              { label: "PB Ratio", href: `/stocks/${ticker}/pb-ratio`, value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
+              { label: "PS Ratio", href: `/stocks/${ticker}/ps-ratio`, value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
               { label: "P/FCF", href: `/stocks/${ticker}/free-cash-flow`, value: formatRatio(num(ratios?.priceToFreeCashFlowRatioTTM)) },
               { label: "EV / Sales", value: formatRatio(num(metrics?.evToSalesTTM)) },
               { label: "EV / EBITDA", value: formatRatio(num(metrics?.evToEBITDATTM)) },
@@ -52,7 +52,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Profitability</h2>
           <StatGrid
             items={[
-              { label: "Gross Margin", value: formatPercentPlain(num(ratios?.grossProfitMarginTTM)) },
+              { label: "Gross Margin", href: `/stocks/${ticker}/gross-profit`, value: formatPercentPlain(num(ratios?.grossProfitMarginTTM)) },
               { label: "Operating Margin", value: formatPercentPlain(num(ratios?.operatingProfitMarginTTM)) },
               { label: "Profit Margin", href: `/stocks/${ticker}/net-income`, value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
               { label: "EBITDA Margin", href: `/stocks/${ticker}/ebitda`, value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
@@ -86,7 +86,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Piotroski Score", value: scores?.piotroskiScore ?? "—" },
               { label: "FMP Rating", value: ratings?.rating ?? "—" },
               { label: "FCF Yield", value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
-              { label: "Dividend Yield", value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
+              { label: "Dividend Yield", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
               { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Average Volume", value: formatNumber(profile?.averageVolume, 0) },
               { label: "Shares Outstanding", href: `/stocks/${ticker}/shares`, value: formatNumber(shareFloat?.outstandingShares, 0) },

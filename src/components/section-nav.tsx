@@ -15,6 +15,7 @@ export {
   ETF_NAV,
   CONGRESS_NAV,
   quoteFundamentalsNav,
+  etfQuoteNav,
 } from "@/lib/nav";
 
 export function SectionNav({

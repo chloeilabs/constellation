@@ -16,6 +16,10 @@ export type FmpQuote = {
   open: number;
   previousClose: number;
   timestamp: number;
+  pe?: number;
+  eps?: number;
+  sharesOutstanding?: number;
+  avgVolume?: number;
 };
 
 export type FmpProfile = {

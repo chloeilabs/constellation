@@ -13,10 +13,12 @@ export function PriceChart({
   points,
   range,
   symbol,
+  chartHref,
 }: {
   points: ChartPoint[];
   range: ChartRange;
   symbol: string;
+  chartHref?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const pathname = usePathname();
@@ -146,7 +148,7 @@ export function PriceChart({
       )}
       <div className="mt-1 flex justify-between text-xs text-muted">
         <span>{formatPrice(min)}</span>
-        <Link href={`/stocks/${encodeURIComponent(symbol)}/chart`} className="text-link hover:underline">
+        <Link href={chartHref ?? `/stocks/${encodeURIComponent(symbol)}/chart`} className="text-link hover:underline">
           Full Chart
         </Link>
         <span>{formatPrice(max)}</span>

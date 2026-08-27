@@ -5,7 +5,7 @@ import { ReturnsTable } from "@/components/returns-table";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import { getPriceChange } from "@/lib/fmp";
 
-export default async function ChartPage({
+export default async function EtfChartPage({
   params,
   searchParams,
 }: {
@@ -20,8 +20,8 @@ export default async function ChartPage({
 
   return (
     <Container>
-      <PageHeader title={`${ticker} Chart`} description="Interactive historical price chart." />
-      <PriceChart points={points} range={range} symbol={ticker} />
+      <PageHeader title={`${ticker} Chart`} description="Price history and multi-period total returns." />
+      <PriceChart points={points} range={range} symbol={ticker} chartHref={`/etf/${ticker}/chart`} />
       <ReturnsTable changes={changes} />
     </Container>
   );
