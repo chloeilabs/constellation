@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { BarChart3, Building2, CalendarDays, Clock, GitCompareArrows, Landmark, Layers, Percent } from "lucide-react";
+import { BarChart3, Building2, CalendarDays, Clock, GitCompareArrows, Landmark, Layers, Percent, Search } from "lucide-react";
 
 const TOOLS = [
   {
     href: "/screener",
     title: "Stock Screener",
-    body: "Filter thousands of stocks by market cap, sector, industry, beta, volume, and yield.",
+    body: "Filter thousands of stocks by market cap, sector, industry, index membership, beta, volume, and yield.",
     icon: BarChart3,
   },
   {
@@ -43,6 +43,12 @@ const TOOLS = [
     title: "U.S. Treasury Yields",
     body: "The live Treasury curve, from 1-month bills through the 30-year bond.",
     icon: Landmark,
+  },
+  {
+    href: "/etf/lookup",
+    title: "Reverse ETF Lookup",
+    body: "Find U.S. ETFs that hold a stock, ranked by the market value of that position.",
+    icon: Search,
   },
   {
     href: "/compare",

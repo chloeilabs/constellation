@@ -18,8 +18,8 @@ export default async function EtfListPage() {
         title="Exchange Traded Funds"
         description="Largest U.S. ETFs by market value, with live quotes from Financial Modeling Prep."
         actions={
-          <Link href="/screener" className="text-sm text-link hover:underline">
-            Stock screener
+          <Link href="/etf/lookup" className="text-sm text-link hover:underline">
+            Reverse ETF lookup
           </Link>
         }
       />

@@ -1,3 +1,6 @@
+import { isIndexTicker } from "@/lib/indexes";
+import { stockPath } from "@/lib/listings";
+
 export type NavItem = { href: string; label: string; match?: "exact" | "prefix" };
 
 export function extendedHoursNav(base: "/markets/premarket" | "/markets/afterhours"): NavItem[] {
@@ -74,6 +77,7 @@ export const NEWS_NAV: NavItem[] = [
 
 export const ETF_NAV: NavItem[] = [
   { href: "/etf", label: "Largest ETFs" },
+  { href: "/etf/lookup", label: "Reverse Lookup" },
   { href: "/list/vanguard-etfs", label: "Vanguard" },
   { href: "/list/ishares-etfs", label: "iShares" },
   { href: "/list/spdr-etfs", label: "SPDR" },
@@ -98,11 +102,15 @@ export const CONGRESS_NAV: NavItem[] = [
 ];
 
 export function quoteNewsNav(symbol: string): NavItem[] {
+  const ticker = symbol.toUpperCase();
+  if (isIndexTicker(ticker)) {
+    return [{ href: stockPath(ticker, "/news"), label: "News", match: "exact" }];
+  }
   return [
-    { href: `/stocks/${symbol}/news`, label: "All News", match: "exact" },
-    { href: `/stocks/${symbol}/news/press-releases`, label: "Press Releases" },
-    { href: `/stocks/${symbol}/transcripts`, label: "Transcripts" },
-    { href: `/stocks/${symbol}/filings`, label: "SEC Filings" },
+    { href: stockPath(ticker, "/news"), label: "All News", match: "exact" },
+    { href: stockPath(ticker, "/news/press-releases"), label: "Press Releases" },
+    { href: stockPath(ticker, "/transcripts"), label: "Transcripts" },
+    { href: stockPath(ticker, "/filings"), label: "SEC Filings" },
   ];
 }
 
@@ -117,33 +125,34 @@ export function etfQuoteNav(symbol: string): NavItem[] {
 }
 
 export function quoteFundamentalsNav(symbol: string) {
+  const base = stockPath(symbol);
   return [
-    { href: `/stocks/${symbol}/market-cap`, label: "Market Cap" },
-    { href: `/stocks/${symbol}/shares`, label: "Shares" },
-    { href: `/stocks/${symbol}/revenue`, label: "Revenue" },
-    { href: `/stocks/${symbol}/gross-profit`, label: "Gross Profit" },
-    { href: `/stocks/${symbol}/operating-income`, label: "Operating Income" },
-    { href: `/stocks/${symbol}/ebitda`, label: "EBITDA" },
-    { href: `/stocks/${symbol}/net-income`, label: "Net Income" },
-    { href: `/stocks/${symbol}/earnings`, label: "EPS" },
-    { href: `/stocks/${symbol}/free-cash-flow`, label: "FCF" },
-    { href: `/stocks/${symbol}/capex`, label: "Capex" },
-    { href: `/stocks/${symbol}/cash`, label: "Cash" },
-    { href: `/stocks/${symbol}/assets`, label: "Assets" },
-    { href: `/stocks/${symbol}/liabilities`, label: "Liabilities" },
-    { href: `/stocks/${symbol}/debt`, label: "Debt" },
-    { href: `/stocks/${symbol}/equity`, label: "Equity" },
-    { href: `/stocks/${symbol}/pe-ratio`, label: "PE Ratio" },
-    { href: `/stocks/${symbol}/peg-ratio`, label: "PEG Ratio" },
-    { href: `/stocks/${symbol}/ps-ratio`, label: "PS Ratio" },
-    { href: `/stocks/${symbol}/pb-ratio`, label: "PB Ratio" },
-    { href: `/stocks/${symbol}/current-ratio`, label: "Current Ratio" },
-    { href: `/stocks/${symbol}/roe`, label: "ROE" },
-    { href: `/stocks/${symbol}/roa`, label: "ROA" },
-    { href: `/stocks/${symbol}/roic`, label: "ROIC" },
-    { href: `/stocks/${symbol}/enterprise-value`, label: "EV" },
-    { href: `/stocks/${symbol}/owner-earnings`, label: "Owner Earnings" },
-    { href: `/stocks/${symbol}/employees`, label: "Employees" },
-    { href: `/stocks/${symbol}/ownership`, label: "Ownership" },
+    { href: `${base}/market-cap`, label: "Market Cap" },
+    { href: `${base}/shares`, label: "Shares" },
+    { href: `${base}/revenue`, label: "Revenue" },
+    { href: `${base}/gross-profit`, label: "Gross Profit" },
+    { href: `${base}/operating-income`, label: "Operating Income" },
+    { href: `${base}/ebitda`, label: "EBITDA" },
+    { href: `${base}/net-income`, label: "Net Income" },
+    { href: `${base}/earnings`, label: "EPS" },
+    { href: `${base}/free-cash-flow`, label: "FCF" },
+    { href: `${base}/capex`, label: "Capex" },
+    { href: `${base}/cash`, label: "Cash" },
+    { href: `${base}/assets`, label: "Assets" },
+    { href: `${base}/liabilities`, label: "Liabilities" },
+    { href: `${base}/debt`, label: "Debt" },
+    { href: `${base}/equity`, label: "Equity" },
+    { href: `${base}/pe-ratio`, label: "PE Ratio" },
+    { href: `${base}/peg-ratio`, label: "PEG Ratio" },
+    { href: `${base}/ps-ratio`, label: "PS Ratio" },
+    { href: `${base}/pb-ratio`, label: "PB Ratio" },
+    { href: `${base}/current-ratio`, label: "Current Ratio" },
+    { href: `${base}/roe`, label: "ROE" },
+    { href: `${base}/roa`, label: "ROA" },
+    { href: `${base}/roic`, label: "ROIC" },
+    { href: `${base}/enterprise-value`, label: "EV" },
+    { href: `${base}/owner-earnings`, label: "Owner Earnings" },
+    { href: `${base}/employees`, label: "Employees" },
+    { href: `${base}/ownership`, label: "Ownership" },
   ];
 }

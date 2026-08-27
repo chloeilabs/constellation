@@ -41,6 +41,7 @@ const MARKET_LINKS = [
   ["/list/ai-stocks", "AI"],
   ["/list/ev-stocks", "EVs"],
   ["/list/glp1-stocks", "GLP-1"],
+  ["/list/apparel-stocks", "Apparel"],
   ["/list/bdc-stocks", "BDCs"],
   ["/list/top-rated", "Top Rated"],
   ["/list/highest-revenue", "Revenue"],

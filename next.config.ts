@@ -45,6 +45,12 @@ const nextConfig: NextConfig = {
       { source: "/list/glp-1", destination: "/list/glp1-stocks", permanent: false },
       { source: "/list/glp1", destination: "/list/glp1-stocks", permanent: false },
       { source: "/list/top-rated-stocks", destination: "/list/top-rated", permanent: false },
+      { source: "/list/waste", destination: "/list/waste-management-stocks", permanent: false },
+      { source: "/list/chemicals", destination: "/list/chemical-stocks", permanent: false },
+      { source: "/list/apparel", destination: "/list/apparel-stocks", permanent: false },
+      { source: "/list/luxury", destination: "/list/apparel-stocks", permanent: false },
+      { source: "/etf/reverse-lookup", destination: "/etf/lookup", permanent: false },
+      { source: "/tools/etf-lookup", destination: "/etf/lookup", permanent: false },
     ];
   },
   images: {

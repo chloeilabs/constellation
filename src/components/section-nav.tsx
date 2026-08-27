@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { pathPrefix, samePath } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
 export {
@@ -30,9 +31,7 @@ export function SectionNav({
     <div className="mb-5 flex flex-wrap gap-2">
       {items.map((item) => {
         const active =
-          item.match === "prefix"
-            ? pathname.startsWith(item.href)
-            : pathname === item.href;
+          item.match === "prefix" ? pathPrefix(pathname, item.href) : samePath(pathname, item.href);
         return (
           <Link
             key={item.href}

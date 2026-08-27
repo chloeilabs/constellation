@@ -154,6 +154,30 @@ export function decodeTicker(symbol: string) {
   }
 }
 
+function safeDecodePath(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export function stockPath(symbol: string, suffix = "") {
+  return `/stocks/${encodeURIComponent(decodeTicker(symbol))}${suffix}`;
+}
+
+export function samePath(pathname: string, href: string) {
+  const left = safeDecodePath(pathname).replace(/\/$/, "") || "/";
+  const right = safeDecodePath(href).replace(/\/$/, "") || "/";
+  return left === right;
+}
+
+export function pathPrefix(pathname: string, href: string) {
+  const left = safeDecodePath(pathname);
+  const right = safeDecodePath(href);
+  return left === right || left.startsWith(`${right}/`);
+}
+
 export function quoteHref(
   symbol: string,
   hint?: {
@@ -164,12 +188,12 @@ export function quoteHref(
     isFund?: boolean | null;
   },
 ) {
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   if (hint?.isEtf || WELL_KNOWN_ETFS.has(ticker)) return `/etf/${ticker}`;
   const hay = `${hint?.name ?? ""} ${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`;
   if (ETF_NAME.test(hay) || /ARCA/.test(hay.toUpperCase())) return `/etf/${ticker}`;
   if (hint?.isFund || WELL_KNOWN_FUNDS.has(ticker) || looksLikeFund(hint?.name)) return `/funds/${ticker}`;
-  return `/stocks/${ticker}`;
+  return stockPath(ticker);
 }
 
 export function quoteKind(
@@ -219,4 +243,15 @@ export function preferPrimaryListings<T extends { symbol: string; marketCap?: nu
     return true;
   });
   return uniqueBySymbol(primary.length ? primary : rows).sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+}
+
+export function usEtfHolders<T extends { symbol: string; sharesNumber: number; marketValue: number; weightPercentage: number }>(
+  rows: T[],
+) {
+  return rows.filter((row) => {
+    if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
+    if (!(row.sharesNumber > 0) || !(row.marketValue > 0)) return false;
+    if (!(row.weightPercentage > 0) || row.weightPercentage > 250) return false;
+    return true;
+  });
 }

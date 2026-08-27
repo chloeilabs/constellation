@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/page-header";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
-import { getPriceChange, getQuote } from "@/lib/fmp";
+import { getPriceChange, getQuoteSafe } from "@/lib/fmp";
+import { indexDisplayName } from "@/lib/indexes";
+import { decodeTicker } from "@/lib/listings";
 
 export default async function ChartPage({
   params,
@@ -14,17 +16,20 @@ export default async function ChartPage({
 }) {
   const { symbol } = await params;
   const { range: rangeParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
   const [points, changes, quote] = await Promise.all([
     getChartData(ticker, range),
     getPriceChange(ticker),
-    getQuote(ticker),
+    getQuoteSafe(ticker),
   ]);
 
   return (
     <Container>
-      <PageHeader title={`${ticker} Chart`} description="Interactive historical price chart." />
+      <PageHeader
+        title={`${indexDisplayName(ticker, quote?.name)} Chart`}
+        description="Interactive historical price chart."
+      />
       <PriceChart
         points={points}
         range={range}

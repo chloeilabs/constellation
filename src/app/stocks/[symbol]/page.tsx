@@ -27,11 +27,13 @@ import {
   withQuoteChanges,
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
-import { decodeTicker, isForeignListingSymbol, quoteHref } from "@/lib/listings";
+import { decodeTicker, quoteHref, usEtfHolders } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { ChangePercent } from "@/components/change";
 import { QuoteFaq } from "@/components/quote-faq";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
+import { isIndexTicker } from "@/lib/indexes";
+import { IndexQuote } from "@/components/index-quote";
 
 export default async function StockOverviewPage({
   params,
@@ -44,6 +46,9 @@ export default async function StockOverviewPage({
   const { range: rangeParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const range = CHART_RANGES.includes(rangeParam as ChartRange) ? (rangeParam as ChartRange) : "1Y";
+  if (isIndexTicker(ticker)) {
+    return <IndexQuote ticker={ticker} range={range} />;
+  }
 
   const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, points, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf] =
     await Promise.all([
@@ -70,12 +75,7 @@ export default async function StockOverviewPage({
   const growth = growthRows[0] ?? null;
   const currency = reportingCurrency(profile?.currency, latestYear?.reportedCurrency, ttm?.reportedCurrency);
   const money = compactMoneyFn(currency);
-  const usEtfs = etfHolders.filter((row) => {
-    if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
-    if (!(row.sharesNumber > 0) || !(row.marketValue > 0)) return false;
-    if (!(row.weightPercentage > 0) || row.weightPercentage > 250) return false;
-    return true;
-  });
+  const usEtfs = usEtfHolders(etfHolders);
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
@@ -299,7 +299,10 @@ export default async function StockOverviewPage({
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">Held by ETFs</h2>
           <p className="mb-3 text-sm text-muted">
-            ETFs that report {ticker} as a holding, ranked by the market value of that position.
+            ETFs that report {ticker} as a holding, ranked by the market value of that position.{" "}
+            <Link href={`/etf/lookup?symbol=${encodeURIComponent(ticker)}`} className="text-link hover:underline">
+              Reverse ETF lookup
+            </Link>
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">

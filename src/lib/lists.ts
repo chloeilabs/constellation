@@ -3,6 +3,7 @@ import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, unique
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
 import type { FmpScreenerRow } from "@/lib/types";
+import type { FmpIndexKey } from "@/lib/indexes";
 
 type ListCategory = "popular" | "index" | "exchange" | "market-cap" | "etf" | "international";
 
@@ -787,6 +788,32 @@ export const STOCK_LISTS = {
     source: "symbols",
     symbols: ["LLY", "NVO", "AMGN", "VKTX", "GPCR", "TERN", "ALT"],
   },
+  "waste-management-stocks": {
+    title: "Waste Management Stocks",
+    description: "U.S. waste management companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Waste Management" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "chemical-stocks": {
+    title: "Chemical Stocks",
+    description: "U.S. chemical companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Basic Materials",
+    industryPattern: "Chemicals",
+  },
+  "apparel-stocks": {
+    title: "Apparel & Luxury Stocks",
+    description: "U.S. apparel, footwear, and luxury-goods companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Consumer Cyclical",
+    industryPattern: "Apparel|Luxury",
+  },
   "sector-etfs": {
     title: "Sector ETFs",
     description: "The 11 SPDR sector ETFs, with live FMP quotes.",
@@ -1020,6 +1047,9 @@ export const LIST_NAV = [
   { href: "/list/cloud-stocks", label: "Cloud" },
   { href: "/list/healthcare-stocks", label: "Healthcare" },
   { href: "/list/glp1-stocks", label: "GLP-1" },
+  { href: "/list/apparel-stocks", label: "Apparel" },
+  { href: "/list/chemical-stocks", label: "Chemicals" },
+  { href: "/list/waste-management-stocks", label: "Waste" },
   { href: "/list/bdc-stocks", label: "BDCs" },
   { href: "/list/cef-funds", label: "CEFs" },
   { href: "/list/preferred-stocks", label: "Preferred" },
@@ -1039,27 +1069,65 @@ export function isStockListSlug(value: string): value is StockListSlug {
   return value in STOCK_LISTS;
 }
 
+export type IndexMemberFilters = {
+  sector?: string;
+  industry?: string;
+  exchange?: string;
+  minCap?: number;
+  maxCap?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  minVolume?: number;
+};
+
+export async function loadIndexMembers(
+  index: FmpIndexKey,
+  filters: IndexMemberFilters = {},
+): Promise<{ rows: SymbolTableRow[]; sectors: string[]; industries: string[] }> {
+  const constituents = await getIndexConstituents(index);
+  const quotes = await getQuotes(constituents.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const sectors = [...new Set(constituents.map((row) => row.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const industries = [...new Set(constituents.map((row) => row.subSector).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const exchangeNeedle = filters.exchange?.toUpperCase();
+  const rows: SymbolTableRow[] = [];
+  for (const row of constituents) {
+    if (filters.sector && row.sector !== filters.sector) continue;
+    if (filters.industry && row.subSector !== filters.industry) continue;
+    const quote = bySymbol.get(row.symbol);
+    const price = quote?.price ?? null;
+    const marketCap = quote?.marketCap ?? null;
+    const volume = quote?.volume ?? null;
+    const exchange = quote?.exchange ?? null;
+    if (filters.minCap != null && (marketCap ?? 0) < filters.minCap) continue;
+    if (filters.maxCap != null && (marketCap ?? 0) > filters.maxCap) continue;
+    if (filters.minPrice != null && (price ?? 0) < filters.minPrice) continue;
+    if (filters.maxPrice != null && (price == null || price > filters.maxPrice)) continue;
+    if (filters.minVolume != null && (volume ?? 0) < filters.minVolume) continue;
+    if (exchangeNeedle && !(exchange ?? "").toUpperCase().includes(exchangeNeedle)) continue;
+    rows.push({
+      symbol: row.symbol,
+      name: row.name,
+      industry: row.subSector || row.sector,
+      marketCap,
+      price,
+      changePercentage: quote?.changePercentage ?? null,
+      volume,
+      exchange,
+    });
+  }
+  rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  return { rows, sectors, industries };
+}
+
 export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow[]> {
   const list = STOCK_LISTS[slug];
 
   if (list.source === "constituents") {
-    const constituents = await getIndexConstituents(list.index);
-    const quotes = await getQuotes(constituents.map((row) => row.symbol));
-    const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
-    return constituents
-      .map((row) => {
-        const quote = bySymbol.get(row.symbol);
-        return {
-          symbol: row.symbol,
-          name: row.name,
-          industry: row.subSector || row.sector,
-          marketCap: quote?.marketCap ?? null,
-          price: quote?.price ?? null,
-          changePercentage: quote?.changePercentage ?? null,
-          volume: quote?.volume ?? null,
-        };
-      })
-      .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+    const { rows } = await loadIndexMembers(list.index);
+    return rows;
   }
 
   if (list.source === "monthly-dividends") {

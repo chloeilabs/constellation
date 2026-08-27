@@ -201,6 +201,15 @@ export function getQuote(symbol: string) {
   return fmpFirst<FmpQuote>("/quote", { symbol: decodeTicker(symbol) }, { revalidate: 30 });
 }
 
+export async function getQuoteSafe(symbol: string) {
+  const ticker = decodeTicker(symbol);
+  if (ticker.startsWith("^")) {
+    const rows = await getQuotes([ticker]);
+    return rows[0] ?? null;
+  }
+  return getQuote(ticker);
+}
+
 export async function getQuotes(symbols: string[]) {
   const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))];
   if (unique.length === 0) return [] as FmpQuote[];

@@ -63,6 +63,11 @@ export function StockHeader({
                     Fund
                   </Link>
                 ) : null}
+                {isIndex ? (
+                  <span className="ml-2 align-middle rounded bg-chip px-1.5 py-0.5 text-xs font-semibold text-header">
+                    Index
+                  </span>
+                ) : null}
               </h1>
               <p className="mt-1 text-sm text-muted">
                 {profile?.exchangeFullName ?? quote?.exchange ?? "—"}
@@ -100,12 +105,14 @@ export function StockHeader({
           </div>
           <div className="flex gap-2">
             <WatchlistButton symbol={symbol} />
-            <Link
-              href={`/compare?symbols=${symbol}`}
-              className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
-            >
-              Compare
-            </Link>
+            {isIndex ? null : (
+              <Link
+                href={`/compare?symbols=${encodeURIComponent(symbol)}`}
+                className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+              >
+                Compare
+              </Link>
+            )}
           </div>
         </div>
         <StockSubnav symbol={symbol} />

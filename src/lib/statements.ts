@@ -175,6 +175,7 @@ export const INDEX_LABELS: Record<string, string> = {
   "^GSPC": "S&P 500",
   "^DJI": "Dow Jones",
   "^IXIC": "Nasdaq",
+  "^NDX": "Nasdaq 100",
   "^RUT": "Russell 2000",
   "^VIX": "VIX",
   "^N225": "Nikkei 225",
