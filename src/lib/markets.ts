@@ -83,8 +83,18 @@ export function sortExchangeHours(rows: FmpMarketHours[]) {
   });
 }
 
+export function holidaySchedule<T extends { date: string }>(rows: T[], from = nyDateString()) {
+  const upcoming = [...rows]
+    .filter((row) => (row.date || "") >= from)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const recent = [...rows]
+    .filter((row) => (row.date || "") < from)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return { upcoming, recent };
+}
+
 export function upcomingHolidays<T extends { date: string }>(rows: T[], from = nyDateString()) {
-  return [...rows].filter((row) => (row.date || "") >= from).sort((a, b) => a.date.localeCompare(b.date));
+  return holidaySchedule(rows, from).upcoming;
 }
 
 export function joinIndexQuotes(list: FmpIndexListItem[], quotes: FmpCommodityQuote[]) {

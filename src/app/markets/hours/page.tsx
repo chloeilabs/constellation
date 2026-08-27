@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { formatDate, formatInteger } from "@/lib/format";
 import { getAllExchangeHours, getAvailableExchanges, getExchangeHolidays } from "@/lib/fmp";
-import { sortExchangeHours, upcomingHolidays } from "@/lib/markets";
+import { holidaySchedule, sortExchangeHours } from "@/lib/markets";
 import { MARKET_NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -23,12 +23,14 @@ export default async function MarketHoursPage() {
   const byExchange = new Map(exchanges.map((row) => [row.exchange.toUpperCase(), row]));
   const rows = sortExchangeHours(hours);
   const openCount = rows.filter((row) => row.isMarketOpen).length;
-  const holidays = upcomingHolidays(
+  const { upcoming, recent } = holidaySchedule(
     [...nasdaqHolidays, ...nyseHolidays].filter((row, index, list) => {
       const key = `${row.exchange}|${row.date}|${row.name}`;
       return list.findIndex((item) => `${item.exchange}|${item.date}|${item.name}` === key) === index;
     }),
-  ).slice(0, 16);
+  );
+  const holidays = (upcoming.length ? upcoming : recent).slice(0, 16);
+  const holidayHeading = upcoming.length ? "Upcoming U.S. Holidays" : "Recent U.S. Holidays";
 
   return (
     <Container>
@@ -92,7 +94,13 @@ export default async function MarketHoursPage() {
         </div>
       </section>
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Upcoming U.S. Holidays</h2>
+        <h2 className="mb-3 text-lg font-semibold text-header">{holidayHeading}</h2>
+        {upcoming.length === 0 ? (
+          <p className="mb-3 text-sm text-muted">
+            FMP&apos;s holiday calendar does not yet include dates after today. Showing the latest NASDAQ and NYSE
+            holidays on file.
+          </p>
+        ) : null}
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
             <thead>
@@ -107,7 +115,7 @@ export default async function MarketHoursPage() {
               {holidays.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="text-muted">
-                    No upcoming NASDAQ or NYSE holidays in the FMP calendar.
+                    No NASDAQ or NYSE holidays in the FMP calendar.
                   </td>
                 </tr>
               ) : (
