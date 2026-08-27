@@ -36,7 +36,7 @@ export default async function LatestFilingsPage() {
     (b.acceptedDate || b.filingDate || "").localeCompare(a.acceptedDate || a.filingDate || ""),
   );
   const current = rows.filter((row) => row.formType === "8-K" || row.formType === "8-K/A");
-  const statements = rows.filter((row) => /10-[KQ]|20-F|6-K/i.test(row.formType));
+  const statements = rows.filter((row) => /^10-[KQ]/i.test(row.formType));
 
   return (
     <Container>

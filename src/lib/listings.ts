@@ -134,7 +134,11 @@ export function isPrimaryUsSymbol(symbol?: string | null) {
   if (!ticker || ticker === "NONE" || ticker === "NULL") return false;
   if (isForeignListingSymbol(ticker)) return false;
   if (ticker.includes("-")) return false;
-  if (/^[A-Z]{5}F$/.test(ticker)) return false;
+  const dot = ticker.lastIndexOf(".");
+  if (dot > 0 && ticker.slice(dot + 1) === "V") return false;
+  // Five-character OTC foreign shares (xxxF / xxxY) and unit/right/warrant suffixes.
+  if (/^[A-Z]{4}[FY]$/.test(ticker)) return false;
+  if (/^[A-Z]{4,}[UWR]$/.test(ticker)) return false;
   return true;
 }
 
