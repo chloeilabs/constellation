@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/financials", label: "Income" },
+  { href: "/financials", label: "Overview", match: "exact" as const },
+  { href: "/financials/income-statement", label: "Income" },
   { href: "/financials/balance-sheet", label: "Balance Sheet" },
   { href: "/financials/cash-flow-statement", label: "Cash Flow" },
   { href: "/financials/ratios", label: "Ratios" },
@@ -19,10 +20,7 @@ export function FinancialsNav({ symbol }: { symbol: string }) {
     <div className="mb-4 flex flex-wrap gap-2">
       {LINKS.map((link) => {
         const href = `/stocks/${symbol}${link.href}`;
-        const active =
-          link.href === "/financials"
-            ? pathname === href
-            : pathname.startsWith(href);
+        const active = link.match === "exact" ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}

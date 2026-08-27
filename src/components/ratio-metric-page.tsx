@@ -4,8 +4,8 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
-import { formatRatio } from "@/lib/format";
-import { getRatios, getRatiosTtm } from "@/lib/fmp";
+import { formatPercentPlain, formatRatio } from "@/lib/format";
+import { getKeyMetrics, getKeyMetricsTtm, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { periodFrom } from "@/components/statement-metric-page";
 import type { StatementPeriod } from "@/lib/types";
 
@@ -23,6 +23,8 @@ export async function RatioMetricPage({
   ttmField,
   valueLabel,
   formula,
+  format = "ratio",
+  source = "ratios",
 }: {
   symbol: string;
   period: StatementPeriod;
@@ -33,29 +35,32 @@ export async function RatioMetricPage({
   ttmField: string;
   valueLabel: string;
   formula?: string;
+  format?: "ratio" | "percent";
+  source?: "ratios" | "metrics";
 }) {
   const ticker = symbol.toUpperCase();
   const path = `/stocks/${ticker}/${slug}`;
-  const [annual, quarterly, ttm] = await Promise.all([
-    getRatios(ticker, "annual", 20),
-    getRatios(ticker, "quarter", 12),
-    getRatiosTtm(ticker),
-  ]);
+  const [annual, quarterly, ttm] = await Promise.all(
+    source === "metrics"
+      ? [getKeyMetrics(ticker, "annual", 20), getKeyMetrics(ticker, "quarter", 12), getKeyMetricsTtm(ticker)]
+      : [getRatios(ticker, "annual", 20), getRatios(ticker, "quarter", 12), getRatiosTtm(ticker)],
+  );
   const history = period === "quarter" ? quarterly : annual;
   const latestTtm = num((ttm as Record<string, unknown> | null)?.[ttmField]);
+  const formatValue = format === "percent" ? (value: number | null | undefined) => formatPercentPlain(value) : formatRatio;
 
   return (
     <Container>
       <PageHeader title={title} description={description} />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
-      <MetricCards items={[{ label: `${valueLabel} (ttm)`, value: formatRatio(latestTtm) }]} />
+      <MetricCards items={[{ label: `${valueLabel} (ttm)`, value: formatValue(latestTtm) }]} />
       <MetricHistory
         period={period}
         annualHref={path}
         quarterHref={`${path}?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} ${valueLabel}`}
         valueLabel={valueLabel}
-        formatValue={formatRatio}
+        formatValue={formatValue}
         empty={`No ${valueLabel.toLowerCase()} history available.`}
         rows={history.map((row) => ({
           key: `${row.date}-${row.period}`,
