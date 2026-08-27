@@ -103,6 +103,44 @@ export function YearToggle({
   );
 }
 
+export function RangeToggle({
+  range,
+  oneHref,
+  fiveHref,
+  tenHref,
+  maxHref,
+}: {
+  range: "1" | "5" | "10" | "max";
+  oneHref: string;
+  fiveHref: string;
+  tenHref: string;
+  maxHref: string;
+}) {
+  return (
+    <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="History range">
+      {(
+        [
+          ["1", "1Y", oneHref],
+          ["5", "5Y", fiveHref],
+          ["10", "10Y", tenHref],
+          ["max", "Max", maxHref],
+        ] as const
+      ).map(([id, label, href]) => (
+        <Link
+          key={id}
+          href={href}
+          className={cn(
+            "rounded px-3 py-1.5 font-medium",
+            range === id ? "bg-header text-on-header" : "text-muted hover:text-header",
+          )}
+        >
+          {label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export function ViewToggle({
   view,
   dollarsHref,

@@ -5,7 +5,7 @@ import { Toolkit } from "@/components/toolkit";
 
 export const metadata = {
   title: "Tools",
-  description: "Stock and ETF screeners, comparison tools, CAGR and dividend calculators, and symbol lookup.",
+  description: "Stock and ETF screeners, comparison tools, CAGR and return calculators, and symbol lookup.",
 };
 
 const GROUPS = [
@@ -29,6 +29,7 @@ const GROUPS = [
     title: "Calculators",
     links: [
       ["/tools/cagr", "CAGR Calculator", "Compound annual growth from live FMP daily closes."],
+      ["/tools/return-calculator", "Return Calculator", "Price and total return for a live ticker, including cash dividends."],
       ["/tools/dividend-calculator", "Dividend Calculator", "Estimate income from the latest indicated dividend."],
     ],
   },
@@ -49,7 +50,7 @@ export default function ToolsPage() {
     <Container>
       <PageHeader
         title="Tools"
-        description="Screen stocks, compare ETFs, calculate CAGR from live prices, and look up ETF holders."
+        description="Screen stocks, compare ETFs, calculate returns from live prices, and look up ETF holders."
       />
       <div className="space-y-10">
         {GROUPS.map((group) => (

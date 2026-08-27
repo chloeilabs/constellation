@@ -43,7 +43,7 @@ export default async function CagrCalculatorPage({
         title="CAGR Calculator"
         description="Uses live daily closes from Financial Modeling Prep. CAGR is (ending ÷ starting)^(1 ÷ years) − 1."
       />
-      <form className="mb-8 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-4">
+      <form method="get" className="mb-8 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-4">
         <label className="text-sm">
           <span className="mb-1 block text-muted">Symbol</span>
           <input name="symbol" defaultValue={ticker} className="h-9 w-full rounded-md border border-border bg-background px-2" />
@@ -68,6 +68,10 @@ export default async function CagrCalculatorPage({
           {name} ({ticker})
         </Link>
         {quote?.price != null ? ` · last ${formatPrice(quote.price)}` : null}
+        {" · "}
+        <Link href={`/tools/return-calculator?symbol=${encodeURIComponent(ticker)}&start=${start}&end=${end}`} className="text-link hover:underline">
+          Return calculator
+        </Link>
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Bitcoin, Building2, Calculator, CalendarDays, Clock, Coins, GitCompareArrows, Landmark, Layers, Percent, Search } from "lucide-react";
+import { BarChart3, Bitcoin, Building2, Calculator, CalendarDays, Clock, Coins, GitCompareArrows, Landmark, Layers, Percent, Search, TrendingUp } from "lucide-react";
 
 const TOOLS = [
   {
@@ -73,6 +73,12 @@ const TOOLS = [
     title: "CAGR Calculator",
     body: "Compound annual growth from live FMP daily closes for any stock, ETF, or fund.",
     icon: Calculator,
+  },
+  {
+    href: "/tools/return-calculator",
+    title: "Return Calculator",
+    body: "Price and total return between two dates from live closes, including cash dividends.",
+    icon: TrendingUp,
   },
   {
     href: "/compare",

@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/format";
 import { getTranscript, getTranscriptDates } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
+import { parseTranscript } from "@/lib/transcripts";
 
 export default async function StockTranscriptsPage({
   params,
@@ -23,12 +24,13 @@ export default async function StockTranscriptsPage({
   const quarter = Number(query.quarter) || latest?.quarter;
   const transcript = year && quarter ? await getTranscript(ticker, year, quarter) : null;
   const content = transcript?.content?.trim() ?? "";
+  const turns = parseTranscript(content);
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Earnings Transcripts`}
-        description="Full earnings call transcripts from Financial Modeling Prep."
+        description="Full earnings call transcripts from Financial Modeling Prep, split by speaker."
       />
       <SectionNav items={quoteNewsNav(ticker)} />
       {dates.length === 0 ? (
@@ -36,7 +38,7 @@ export default async function StockTranscriptsPage({
       ) : (
         <>
           <div className="mb-5 flex flex-wrap gap-2">
-            {dates.slice(0, 12).map((row) => {
+            {dates.slice(0, 24).map((row) => {
               const href = `${stockPath(ticker, "/transcripts")}?year=${row.fiscalYear}&quarter=${row.quarter}`;
               const active = row.fiscalYear === year && row.quarter === quarter;
               return (
@@ -60,9 +62,20 @@ export default async function StockTranscriptsPage({
                 {ticker} {transcript.period} {transcript.year}
               </h2>
               <p className="mt-1 text-sm text-muted">{formatDate(transcript.date)}</p>
-              <div className="mt-4 max-w-4xl space-y-3 text-sm leading-7 whitespace-pre-wrap">
-                {content || "Transcript text is unavailable for this period."}
-              </div>
+              {turns.length ? (
+                <div className="mt-4 max-w-4xl space-y-5">
+                  {turns.map((turn, index) => (
+                    <section key={`${turn.speaker}-${index}`}>
+                      {turn.speaker ? (
+                        <h3 className="text-sm font-semibold text-header">{turn.speaker}</h3>
+                      ) : null}
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-7 text-header/90">{turn.text}</p>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-muted">Transcript text is unavailable for this period.</p>
+              )}
             </article>
           ) : (
             <p className="text-sm text-muted">Select a quarter to load the transcript.</p>

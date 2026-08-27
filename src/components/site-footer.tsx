@@ -140,6 +140,7 @@ const columns = [
       ["/screener?type=etf", "ETF Screener"],
       ["/etf/lookup", "Reverse ETF Lookup"],
       ["/tools/cagr", "CAGR Calculator"],
+      ["/tools/return-calculator", "Return Calculator"],
       ["/tools/dividend-calculator", "Dividend Calculator"],
       ["/search", "Search"],
     ],
