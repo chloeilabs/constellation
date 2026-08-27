@@ -1,3 +1,6 @@
+import { yearOverYear } from "@/lib/format";
+import type { FmpRevenueSegment } from "@/lib/types";
+
 export type StatementRow = {
   key: string;
   label: string;
@@ -195,6 +198,47 @@ export const INDEX_LABELS: Record<string, string> = {
   "^STI": "STI",
   "^JKSE": "Jakarta Composite",
 };
+
+export function trailingSum(rows: Array<Record<string, unknown>>, field: string, start = 0, count = 4) {
+  const slice = rows.slice(start, start + count);
+  if (slice.length < count) return null;
+  let total = 0;
+  for (const row of slice) {
+    const value = row[field];
+    if (typeof value !== "number" || !Number.isFinite(value)) return null;
+    total += value;
+  }
+  return total;
+}
+
+/** Last four quarters versus the prior four, as a decimal change. */
+export function ttmChange(rows: Array<Record<string, unknown>> | undefined, field: string) {
+  if (!rows?.length) return null;
+  return yearOverYear(trailingSum(rows, field, 0), trailingSum(rows, field, 4));
+}
+
+export function canonicalSegmentName(name: string) {
+  const cleaned = name.replace(/\s+segment$/i, "").trim();
+  if (/^services?$/i.test(cleaned)) return "Services";
+  return cleaned;
+}
+
+export function sumSegmentMaps(rows: Array<{ data?: Record<string, number> | null }>) {
+  const out: Record<string, number> = {};
+  for (const row of rows) {
+    for (const [name, value] of Object.entries(row.data ?? {})) {
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      const key = canonicalSegmentName(name);
+      out[key] = (out[key] ?? 0) + value;
+    }
+  }
+  return out;
+}
+
+export function ttmSegmentMap(rows: FmpRevenueSegment[]) {
+  if (rows.length < 4) return null;
+  return sumSegmentMaps(rows.slice(0, 4));
+}
 
 export function toStatementColumns(
   rows: Array<{ fiscalYear: string; period: string; date: string }>,

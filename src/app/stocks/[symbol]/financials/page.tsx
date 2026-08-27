@@ -17,22 +17,12 @@ import {
   getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
+import { canonicalSegmentName, trailingSum, ttmSegmentMap } from "@/lib/statements";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function trailingSum(rows: Array<Record<string, unknown>>, field: string, start: number) {
-  const slice = rows.slice(start, start + 4);
-  if (slice.length < 4) return null;
-  let total = 0;
-  for (const row of slice) {
-    const value = row[field];
-    if (typeof value !== "number" || !Number.isFinite(value)) return null;
-    total += value;
-  }
-  return total;
 }
 
 function fyLabel(year: string | number | undefined) {
@@ -101,7 +91,7 @@ function ratioColumn(
 }
 
 function cleanSegmentName(name: string) {
-  return name.replace(/\s+segment$/i, "").trim();
+  return canonicalSegmentName(name);
 }
 
 function segmentNames(rows: FmpRevenueSegment[], limit = 8) {
@@ -111,36 +101,48 @@ function segmentNames(rows: FmpRevenueSegment[], limit = 8) {
     .filter(([, value]) => typeof value === "number" && value > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
-    .map(([name]) => name);
+    .map(([name]) => canonicalSegmentName(name));
 }
 
 function segmentLookup(rows: FmpRevenueSegment[]) {
   const byYear = new Map<string, Record<string, number>>();
   for (const row of rows) {
-    byYear.set(String(row.fiscalYear), row.data ?? {});
+    const data: Record<string, number> = {};
+    for (const [name, value] of Object.entries(row.data ?? {})) {
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      const key = canonicalSegmentName(name);
+      data[key] = (data[key] ?? 0) + value;
+    }
+    byYear.set(String(row.fiscalYear), data);
   }
   return byYear;
 }
 
-function segmentColumns(rows: FmpRevenueSegment[], names: string[]): YearMetricColumn[] {
+function segmentColumnFromMap(label: string, key: string, data: Record<string, number> | null, names: string[]): YearMetricColumn {
+  const values: Record<string, number | null> = {};
+  for (const name of names) values[name] = n(data?.[name]);
+  const namedTotal = names.reduce((sum, name) => sum + (values[name] ?? 0), 0);
+  values.total =
+    namedTotal ||
+    n(Object.values(data ?? {}).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0));
+  return { key, label, values };
+}
+
+function segmentColumns(rows: FmpRevenueSegment[], names: string[], ttm?: Record<string, number> | null): YearMetricColumn[] {
   const byYear = segmentLookup(rows);
   const years = [...new Set(rows.map((row) => String(row.fiscalYear)))]
     .sort((a, b) => Number(b) - Number(a))
     .slice(0, 5);
-  return years.map((year) => {
-    const data = byYear.get(year) ?? {};
-    const values: Record<string, number | null> = {};
-    for (const name of names) values[name] = n(data[name]);
-    const namedTotal = names.reduce((sum, name) => sum + (values[name] ?? 0), 0);
-    values.total = namedTotal || n(Object.values(data).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0));
-    return { key: year, label: fyLabel(year), values };
-  });
+  return [
+    ...(ttm ? [segmentColumnFromMap("TTM", "ttm-seg", ttm, names)] : []),
+    ...years.map((year) => segmentColumnFromMap(fyLabel(year), year, byYear.get(year) ?? {}, names)),
+  ];
 }
 
 export default async function FinancialsOverviewPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
-  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, ttmCash, annualRatios, ttmRatios, products, geos, dividends] =
+  const ticker = decodeTicker(symbol);
+  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", 6),
       getIncomeStatements(ticker, "quarter", 8),
@@ -148,11 +150,14 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
       getBalanceSheets(ticker, "annual", 6),
       getBalanceSheets(ticker, "quarter", 1),
       getCashFlows(ticker, "annual", 6),
+      getCashFlows(ticker, "quarter", 8),
       getCashFlowTtm(ticker),
       getRatios(ticker, "annual", 6),
       getRatiosTtm(ticker),
       getRevenueProductSegments(ticker, "annual"),
+      getRevenueProductSegments(ticker, "quarter"),
       getRevenueGeographicSegments(ticker, "annual"),
+      getRevenueGeographicSegments(ticker, "quarter"),
       getDividends(ticker, 8),
     ]);
 
@@ -190,8 +195,26 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
   ];
 
   const cashYears = annualCash.slice(0, 5);
+  const cfRows = quarterlyCash as Array<Record<string, unknown>>;
+  const priorTtmCash: FmpCashFlow | null =
+    quarterlyCash.length >= 8
+      ? ({
+          operatingCashFlow: trailingSum(cfRows, "operatingCashFlow", 4) ?? 0,
+          capitalExpenditure: trailingSum(cfRows, "capitalExpenditure", 4) ?? 0,
+          freeCashFlow: trailingSum(cfRows, "freeCashFlow", 4) ?? 0,
+        } as FmpCashFlow)
+      : cashYears[0] ?? null;
+  const ttmCashRow =
+    ttmCash ??
+    (quarterlyCash.length >= 4
+      ? ({
+          operatingCashFlow: trailingSum(cfRows, "operatingCashFlow", 0) ?? 0,
+          capitalExpenditure: trailingSum(cfRows, "capitalExpenditure", 0) ?? 0,
+          freeCashFlow: trailingSum(cfRows, "freeCashFlow", 0) ?? 0,
+        } as FmpCashFlow)
+      : null);
   const cashColumns = [
-    ...(ttmCash ? [cashColumn("TTM", "ttm-cf", ttmCash, cashYears[0] ?? null)] : []),
+    ...(ttmCashRow ? [cashColumn("TTM", "ttm-cf", ttmCashRow, priorTtmCash)] : []),
     ...cashYears.map((row, index) => cashColumn(fyLabel(row.fiscalYear), row.date, row, cashYears[index + 1] ?? null)),
   ];
 
@@ -230,10 +253,22 @@ export default async function FinancialsOverviewPage({ params }: { params: Promi
     ...ratioYears.map((row) => ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap)),
   ];
 
-  const names = segmentNames(products);
-  const productColumns = segmentColumns(products, names);
-  const geoNames = segmentNames(geos);
-  const geoColumns = segmentColumns(geos, geoNames);
+  const productTtm = ttmSegmentMap(productQuarters);
+  const names = productTtm
+    ? Object.entries(productTtm)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name]) => name)
+    : segmentNames(products);
+  const productColumns = segmentColumns(products, names, productTtm);
+  const geoTtm = ttmSegmentMap(geoQuarters);
+  const geoNames = geoTtm
+    ? Object.entries(geoTtm)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name]) => name)
+    : segmentNames(geos);
+  const geoColumns = segmentColumns(geos, geoNames, geoTtm);
   const revenueBars = [...incomeYears]
     .reverse()
     .filter((row) => typeof row.revenue === "number")

@@ -3,7 +3,7 @@ import { WatchlistButton } from "@/components/watchlist-button";
 import { EtfSubnav } from "@/components/etf-subnav";
 import { ChangeValue } from "@/components/change";
 import { formatMoney, formatPrice } from "@/lib/format";
-import { nyExtendedCopy } from "@/lib/utils";
+import { nyExtendedCopy, isExtendedSession } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpEtfInfo, FmpQuote } from "@/lib/types";
 
 export function EtfHeader({
@@ -47,7 +47,7 @@ export function EtfHeader({
               <div className="text-4xl font-semibold tabular">{price != null ? formatMoney(price, "USD") : "—"}</div>
               <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
             </div>
-            {afterPrice ? (
+            {isExtendedSession() && afterPrice ? (
               <p className="mt-1 text-sm text-muted">
                 {extendedLabel} {formatPrice(afterPrice)}{" "}
                 <ChangeValue change={afterChange} percent={afterPct} />

@@ -7,6 +7,8 @@ import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatMoney, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
+import { ttmChange } from "@/lib/statements";
 
 export default async function EarningsPage({
   params,
@@ -17,7 +19,7 @@ export default async function EarningsPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, reported] = await Promise.all([
     getIncomeStatements(ticker, "annual", 20),
@@ -27,7 +29,8 @@ export default async function EarningsPage({
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const eps = ttm?.epsDiluted ?? ttm?.eps;
-  const growth = yearOverYear(annual[0]?.epsDiluted ?? annual[0]?.eps, annual[1]?.epsDiluted ?? annual[1]?.eps);
+  const fyGrowth = yearOverYear(annual[0]?.epsDiluted ?? annual[0]?.eps, annual[1]?.epsDiluted ?? annual[1]?.eps);
+  const ttmGrowth = ttmChange(quarterly as Array<Record<string, unknown>>, "epsDiluted") ?? ttmChange(quarterly as Array<Record<string, unknown>>, "eps");
   const latestReport = reported.find((row) => row.epsActual != null) ?? reported[0];
   const surprise =
     latestReport?.epsActual != null && latestReport.epsEstimated
@@ -48,8 +51,12 @@ export default async function EarningsPage({
         items={[
           { label: "EPS (ttm)", value: eps == null ? "—" : px(eps) },
           {
+            label: "TTM Growth",
+            value: ttmGrowth == null ? "—" : <ChangePercent value={ttmGrowth} alreadyPercent={false} className="text-2xl" />,
+          },
+          {
             label: "FY Growth",
-            value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
+            value: fyGrowth == null ? "—" : <ChangePercent value={fyGrowth} alreadyPercent={false} className="text-2xl" />,
           },
           {
             label: "Latest EPS",

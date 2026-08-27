@@ -7,6 +7,8 @@ import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
+import { ttmChange } from "@/lib/statements";
 
 export default async function FreeCashFlowPage({
   params,
@@ -17,7 +19,7 @@ export default async function FreeCashFlowPage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, ratios, quote] = await Promise.all([
     getCashFlows(ticker, "annual", 20),
@@ -27,7 +29,8 @@ export default async function FreeCashFlowPage({
     getQuote(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;
-  const growth = yearOverYear(annual[0]?.freeCashFlow, annual[1]?.freeCashFlow);
+  const fyGrowth = yearOverYear(annual[0]?.freeCashFlow, annual[1]?.freeCashFlow);
+  const ttmGrowth = ttmChange(quarterly as Array<Record<string, unknown>>, "freeCashFlow");
   const fcfYield =
     ttm?.freeCashFlow && quote?.marketCap ? ttm.freeCashFlow / quote.marketCap : null;
   const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency));
@@ -42,11 +45,15 @@ export default async function FreeCashFlowPage({
       <MetricCards
         items={[
           { label: "FCF (ttm)", value: money(ttm?.freeCashFlow) },
+          {
+            label: "TTM Growth",
+            value: ttmGrowth == null ? "—" : <ChangePercent value={ttmGrowth} alreadyPercent={false} className="text-2xl" />,
+          },
           { label: "Operating CF (ttm)", value: money(ttm?.operatingCashFlow) },
           { label: "Capex (ttm)", value: money(ttm?.capitalExpenditure) },
           {
             label: "FY Growth",
-            value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
+            value: fyGrowth == null ? "—" : <ChangePercent value={fyGrowth} alreadyPercent={false} className="text-2xl" />,
           },
           {
             label: "FCF Yield",

@@ -5,7 +5,7 @@ import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
-import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice, formatRatio, reportingCurrency } from "@/lib/format";
+import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice, formatRatio, reportingCurrency, yearOverYear } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
 import {
   getCompanyEarnings,
@@ -15,7 +15,6 @@ import {
   getEtfAssetExposure,
   listedUsEtfHolders,
   getGradesConsensus,
-  getIncomeGrowth,
   getIncomeStatements,
   getIncomeTtm,
   getPeers,
@@ -37,6 +36,7 @@ import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
 import { relativeChange } from "@/lib/utils";
+import { ttmChange } from "@/lib/statements";
 
 export default async function StockOverviewPage({
   params,
@@ -52,7 +52,7 @@ export default async function StockOverviewPage({
     return <IndexQuote ticker={ticker} range={rangeParam} />;
   }
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, growthRows, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -65,7 +65,7 @@ export default async function StockOverviewPage({
       getPeers(ticker),
       loadQuoteChart(ticker, rangeParam),
       getIncomeStatements(ticker, "annual", 2),
-      getIncomeGrowth(ticker, "annual", 1),
+      getIncomeStatements(ticker, "quarter", 8),
       getCompanyEarnings(ticker, 1),
       getEstimates(ticker, "annual"),
       getEtfAssetExposure(ticker),
@@ -76,14 +76,21 @@ export default async function StockOverviewPage({
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
-  const growth = growthRows[0] ?? null;
+  const fyRevenueGrowth = yearOverYear(latestYear?.revenue, priorYear?.revenue);
+  const fyIncomeGrowth = yearOverYear(latestYear?.netIncome, priorYear?.netIncome);
   const currency = reportingCurrency(profile?.currency, latestYear?.reportedCurrency, ttm?.reportedCurrency);
   const money = compactMoneyFn(currency);
   const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
   const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
-  const sharesYoy =
-    (typeof growth?.growthWeightedAverageShsOutDil === "number" ? growth.growthWeightedAverageShsOutDil : null) ??
-    relativeChange(latestYear?.weightedAverageShsOutDil, priorYear?.weightedAverageShsOutDil);
+  const sharesYoy = relativeChange(latestYear?.weightedAverageShsOutDil, priorYear?.weightedAverageShsOutDil);
+  const quarterlyRows = quarterly as Array<Record<string, unknown>>;
+  const ttmYoy = {
+    revenue: ttmChange(quarterlyRows, "revenue"),
+    grossProfit: ttmChange(quarterlyRows, "grossProfit"),
+    operatingIncome: ttmChange(quarterlyRows, "operatingIncome"),
+    netIncome: ttmChange(quarterlyRows, "netIncome"),
+    eps: ttmChange(quarterlyRows, "epsDiluted") ?? ttmChange(quarterlyRows, "eps"),
+  };
   const usEtfs = await listedUsEtfHolders(etfHolders);
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
@@ -147,12 +154,12 @@ export default async function StockOverviewPage({
           target={target}
           grades={grades}
           dividend={dividends[0] ?? null}
-          growth={growth}
           earningsDate={earnings[0]?.date}
           forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
           dcf={dcf?.dcf}
           marketCapYoy={marketCapYoy}
           sharesYoy={sharesYoy}
+          ttmYoy={ttmYoy}
         />
       </div>
 
@@ -215,12 +222,12 @@ export default async function StockOverviewPage({
           <p className="max-w-4xl text-sm leading-7 text-header/90">
             In fiscal year {latestYear.fiscalYear}, {profile?.companyName ?? ticker} reported revenue of{" "}
             {money(latestYear.revenue)}
-            {typeof growth?.growthRevenue === "number" && priorYear
-              ? `, ${growth.growthRevenue >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthRevenue))} compared to the previous year's ${money(priorYear.revenue)}`
+            {typeof fyRevenueGrowth === "number" && priorYear
+              ? `, ${fyRevenueGrowth >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(fyRevenueGrowth))} compared to the previous year's ${money(priorYear.revenue)}`
               : ""}
             . Earnings were {money(latestYear.netIncome)}
-            {typeof growth?.growthNetIncome === "number" && priorYear
-              ? `, ${growth.growthNetIncome >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(growth.growthNetIncome))}`
+            {typeof fyIncomeGrowth === "number" && priorYear
+              ? `, ${fyIncomeGrowth >= 0 ? "an increase" : "a decrease"} of ${formatPercentPlain(Math.abs(fyIncomeGrowth))}`
               : ""}
             .
           </p>

@@ -4,7 +4,7 @@ import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
 import { formatMoney, formatPrice } from "@/lib/format";
 import { industrySlug, sectorHref } from "@/lib/industries";
-import { nyExtendedCopy } from "@/lib/utils";
+import { nyExtendedCopy, isExtendedSession } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
 
 export function StockHeader({
@@ -95,7 +95,7 @@ export function StockHeader({
                 </div>
                 <ChangeValue change={quote?.change} percent={quote?.changePercentage} className="text-lg" />
               </div>
-              {afterPrice ? (
+              {isExtendedSession() && afterPrice ? (
                 <p className="mt-1 text-sm text-muted">
                   {extendedLabel} {px(afterPrice)}{" "}
                   <ChangeValue change={afterChange} percent={afterPct} />

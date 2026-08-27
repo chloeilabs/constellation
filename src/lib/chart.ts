@@ -124,6 +124,18 @@ export function sessionChartPoints(points: ChartPoint[], session: NySession = ny
   return day.length >= 10 ? day : points.slice(-390);
 }
 
+function lastSessionPoints(points: ChartPoint[], sessionCount: number, rthOnly = true) {
+  if (points.length === 0) return points;
+  const dates = [...new Set(points.map((point) => point.time.slice(0, 10)))].sort();
+  const keep = new Set(dates.slice(-sessionCount));
+  let out = points.filter((point) => keep.has(point.time.slice(0, 10)));
+  if (rthOnly) {
+    const rth = out.filter((point) => inWindow(point.time, RTH_START, RTH_END));
+    if (rth.length >= 20) out = rth;
+  }
+  return out;
+}
+
 export async function getChartData(symbol: string, range: ChartRange): Promise<ChartPoint[]> {
   if (range === "1D") {
     const oneMin = sessionChartPoints(toIntradayPoints(await getIntradayChart(symbol, "1min")));
@@ -132,7 +144,9 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
     return fiveMin.length >= 2 ? fiveMin : oneMin;
   }
   if (range === "5D") {
-    return toIntradayPoints(await getIntradayChart(symbol, "15min")).slice(-200);
+    const fiveMin = lastSessionPoints(toIntradayPoints(await getIntradayChart(symbol, "5min")), 5);
+    if (fiveMin.length >= 20) return fiveMin;
+    return lastSessionPoints(toIntradayPoints(await getIntradayChart(symbol, "15min")), 5);
   }
   if (range === "MAX") {
     return toDailyPoints(await getDailyChart(symbol));

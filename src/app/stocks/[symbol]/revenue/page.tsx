@@ -14,11 +14,18 @@ import {
   getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
+import { canonicalSegmentName, ttmChange, ttmSegmentMap } from "@/lib/statements";
 
 function segmentItems(data: Record<string, number> | undefined) {
   if (!data) return [];
-  return Object.entries(data)
-    .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+  const grouped = new Map<string, number>();
+  for (const [label, value] of Object.entries(data)) {
+    if (typeof value !== "number" || !Number.isFinite(value)) continue;
+    const key = canonicalSegmentName(label);
+    grouped.set(key, (grouped.get(key) ?? 0) + value);
+  }
+  return [...grouped.entries()]
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value);
 }
@@ -32,28 +39,35 @@ export default async function RevenuePage({
 }) {
   const { symbol } = await params;
   const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [annual, quarterly, ttm, ratios, employees, products, geos] = await Promise.all([
+  const [annual, quarterly, ttm, ratios, employees, products, productQuarters, geos, geoQuarters] = await Promise.all([
     getIncomeStatements(ticker, "annual", 20),
     getIncomeStatements(ticker, "quarter", 8),
     getIncomeTtm(ticker),
     getRatiosTtm(ticker),
     getHistoricalEmployeeCount(ticker, 5),
     getRevenueProductSegments(ticker, "annual"),
+    getRevenueProductSegments(ticker, "quarter"),
     getRevenueGeographicSegments(ticker, "annual"),
+    getRevenueGeographicSegments(ticker, "quarter"),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const latestAnnual = annual[0];
   const priorAnnual = annual[1];
-  const growth = yearOverYear(latestAnnual?.revenue, priorAnnual?.revenue);
+  const fyGrowth = yearOverYear(latestAnnual?.revenue, priorAnnual?.revenue);
+  const ttmGrowth = ttmChange(quarterly as Array<Record<string, unknown>>, "revenue");
   const currency = reportingCurrency(ttm?.reportedCurrency, latestAnnual?.reportedCurrency);
   const money = compactMoneyFn(currency);
   const headcount = employees[0]?.employeeCount;
   const revenuePerEmployee =
     ttm?.revenue && headcount ? ttm.revenue / headcount : latestAnnual?.revenue && headcount ? latestAnnual.revenue / headcount : null;
+  const productTtm = ttmSegmentMap(productQuarters);
+  const geoTtm = ttmSegmentMap(geoQuarters);
   const productLatest = products[0];
   const geoLatest = geos[0];
+  const productItems = segmentItems(productTtm ?? productLatest?.data);
+  const geoItems = segmentItems(geoTtm ?? geoLatest?.data);
   const chartItems = [...history].reverse().map((row) => ({
     label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
     value: row.revenue,
@@ -76,10 +90,14 @@ export default async function RevenuePage({
       <MetricCards
         items={[
           { label: "Revenue (ttm)", value: money(ttm?.revenue) },
+          {
+            label: "TTM Growth",
+            value: ttmGrowth == null ? "—" : <ChangePercent value={ttmGrowth} alreadyPercent={false} className="text-2xl" />,
+          },
           { label: "Net Income (ttm)", value: money(ttm?.netIncome) },
           {
             label: "FY Growth",
-            value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
+            value: fyGrowth == null ? "—" : <ChangePercent value={fyGrowth} alreadyPercent={false} className="text-2xl" />,
           },
           {
             label: "P/S Ratio",
@@ -138,20 +156,20 @@ export default async function RevenuePage({
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 text-lg font-semibold text-header">
-            Product Revenue{productLatest ? ` · FY${productLatest.fiscalYear}` : ""}
+            Product Revenue{productTtm ? " · TTM" : productLatest ? ` · FY${productLatest.fiscalYear}` : ""}
           </h2>
-          {segmentItems(productLatest?.data).length ? (
-            <SegmentBars items={segmentItems(productLatest?.data)} />
+          {productItems.length ? (
+            <SegmentBars items={productItems} />
           ) : (
             <p className="text-sm text-muted">Product segmentation is not available for this company.</p>
           )}
         </section>
         <section>
           <h2 className="mb-3 text-lg font-semibold text-header">
-            Geographic Revenue{geoLatest ? ` · FY${geoLatest.fiscalYear}` : ""}
+            Geographic Revenue{geoTtm ? " · TTM" : geoLatest ? ` · FY${geoLatest.fiscalYear}` : ""}
           </h2>
-          {segmentItems(geoLatest?.data).length ? (
-            <SegmentBars items={segmentItems(geoLatest?.data)} />
+          {geoItems.length ? (
+            <SegmentBars items={geoItems} />
           ) : (
             <p className="text-sm text-muted">Geographic segmentation is not available for this company.</p>
           )}

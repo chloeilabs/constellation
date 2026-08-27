@@ -118,6 +118,11 @@ export function nySession(now = new Date()): NySession {
   return "closed";
 }
 
+export function isExtendedSession(now = new Date()) {
+  const session = nySession(now);
+  return session === "premarket" || session === "afterhours";
+}
+
 export function nyExtendedKind(now = new Date()): "premarket" | "afterhours" {
   return nySession(now) === "premarket" ? "premarket" : "afterhours";
 }

@@ -7,6 +7,8 @@ import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
+import { ttmChange } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 export async function StatementMetricPage({
@@ -28,7 +30,7 @@ export async function StatementMetricPage({
   kind: "income" | "balance";
   ttmField?: string;
 }) {
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const path = `/stocks/${ticker}/${slug}`;
   const [annual, quarterly, ttm] = await Promise.all([
     kind === "income" ? getIncomeStatements(ticker, "annual", 20) : getBalanceSheets(ticker, "annual", 20),
@@ -44,7 +46,9 @@ export async function StatementMetricPage({
     ttm && ttmField && typeof (ttm as Record<string, unknown>)[ttmField] === "number"
       ? ((ttm as Record<string, unknown>)[ttmField] as number)
       : latestValue;
-  const growth = yearOverYear(latestValue, priorValue);
+  const fyGrowth = yearOverYear(latestValue, priorValue);
+  const growth =
+    kind === "income" && ttmField ? ttmChange(quarterly as Array<Record<string, unknown>>, ttmField) ?? fyGrowth : fyGrowth;
   const currency = reportingCurrency(typeof latest?.reportedCurrency === "string" ? latest.reportedCurrency : null);
   const money = compactMoneyFn(currency);
 
@@ -56,7 +60,7 @@ export async function StatementMetricPage({
         items={[
           { label: ttmField ? "Trailing 12 Months" : "Latest", value: money(ttmValue) },
           {
-            label: "Change",
+            label: ttmField ? "TTM Growth" : "Change",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
           },
         ]}
