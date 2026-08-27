@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { first } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -54,6 +55,7 @@ export async function fmpGet<T>(
   params: Record<string, QueryValue> = {},
   { revalidate = 60 }: { revalidate?: number } = {},
 ): Promise<T> {
+  await connection();
   const key = process.env.FMP_API_KEY?.trim();
   if (!key) {
     throw new FmpError(
@@ -117,6 +119,14 @@ export async function fmpList<T>(
     const data = await fmpGet<T[] | T>(path, params, options);
     return Array.isArray(data) ? data : data ? [data] : [];
   } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "digest" in error &&
+      (error as { digest?: string }).digest === "DYNAMIC_SERVER_USAGE"
+    ) {
+      throw error;
+    }
     if (error instanceof FmpError && error.status === 401) return [];
     console.error(`FMP ${path} failed`, error);
     return [];

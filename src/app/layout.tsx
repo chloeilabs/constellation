@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { connection } from "next/server";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ApiBanner } from "@/components/api-banner";
@@ -25,7 +26,8 @@ export const metadata: Metadata = {
     "All-in-one stock analysis platform with prices, financials, news, forecasts, charts, and a stock screener. Powered by Financial Modeling Prep.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  await connection();
   const configured = hasFmpKey();
   return (
     <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased`}>
