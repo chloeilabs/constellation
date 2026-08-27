@@ -99,7 +99,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   ]);
 
   const sheet = balance[0] ?? null;
-  const cashAndInvestments = num(sheet?.cashAndShortTermInvestments);
+  const shortCash = num(sheet?.cashAndShortTermInvestments);
+  const longInvestments = num(sheet?.longTermInvestments);
+  const cashAndInvestments =
+    shortCash != null || longInvestments != null ? (shortCash ?? 0) + (longInvestments ?? 0) : null;
   const totalDebt = num(sheet?.totalDebt);
   const netCash = cashAndInvestments != null && totalDebt != null ? cashAndInvestments - totalDebt : null;
   const shares = num(shareFloat?.outstandingShares) ?? num(ttm?.weightedAverageShsOutDil);
@@ -136,6 +139,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const analystCount = grades
     ? grades.strongBuy + grades.buy + grades.hold + grades.sell + grades.strongSell
     : null;
+  const interestCoverage = num(ratios?.interestCoverageRatioTTM);
   const tangibleBook = num(ratios?.tangibleBookValuePerShareTTM);
   const priceToTangible =
     quote?.price != null && tangibleBook != null && tangibleBook > 0 ? quote.price / tangibleBook : null;
@@ -239,8 +243,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
                   totalDebt != null && num(ttm?.ebitda) != null && ttm!.ebitda !== 0 ? totalDebt / ttm!.ebitda : null,
                 ),
               },
-              { label: "Interest Coverage", value: formatRatio(num(ratios?.interestCoverageRatioTTM)) },
-              { label: "Cash & Investments", href: `/stocks/${ticker}/cash`, value: money(cashAndInvestments) },
+              { label: "Interest Coverage", value: formatRatio(interestCoverage != null && interestCoverage > 0 ? interestCoverage : null) },
+              { label: "Cash & Marketable Securities", href: `/stocks/${ticker}/cash`, value: money(cashAndInvestments) },
               { label: "Total Debt", href: `/stocks/${ticker}/debt`, value: money(totalDebt) },
               { label: "Net Cash", value: money(netCash) },
               {
