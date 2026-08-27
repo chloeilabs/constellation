@@ -91,6 +91,7 @@ export default async function BalanceSheetPage({
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. Line labels follow the company's as-reported US-GAAP tags.`}
+          downloadName={`${ticker}-balance-as-reported-${period}-${span}`}
         />
       ) : (
         <StatementTable
@@ -104,6 +105,7 @@ export default async function BalanceSheetPage({
               ? "Percent of total assets. Green/red year-over-year change is hidden in this view."
               : `Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`
           }
+          downloadName={`${ticker}-balance-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
         />
       )}
     </Container>

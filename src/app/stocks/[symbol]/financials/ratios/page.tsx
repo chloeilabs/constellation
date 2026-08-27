@@ -48,6 +48,7 @@ export default async function RatiosPage({
         rows={RATIO_ROWS}
         columns={withTtmColumn(stripTtmSuffix(ttm as Record<string, unknown> | null), toStatementColumns(rows, period))}
         caption="The TTM column uses trailing-twelve-month ratios. Green/red percentages are year-over-year change for dollar and share rows."
+        downloadName={`${ticker}-ratios-${period}-${span}`}
       />
     </Container>
   );

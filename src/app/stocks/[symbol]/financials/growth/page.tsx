@@ -48,6 +48,7 @@ export default async function GrowthPage({
         rows={GROWTH_ROWS}
         columns={toStatementColumns(rows, period)}
         caption="Period-over-period rates except 3/5/10-year per-share rows, which are cumulative."
+        downloadName={`${ticker}-growth-${period}-${span}`}
       />
     </Container>
   );

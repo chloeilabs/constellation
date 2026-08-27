@@ -101,6 +101,7 @@ export default async function IncomeStatementPage({
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. Line labels follow the company's as-reported US-GAAP tags, not FMP's standardized statement.`}
+          downloadName={`${ticker}-income-as-reported-${period}-${span}`}
         />
       ) : (
         <StatementTable
@@ -114,6 +115,7 @@ export default async function IncomeStatementPage({
               ? "Percent of revenue. EPS and share counts stay in original units. Green/red year-over-year change is hidden in this view."
               : `Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`
           }
+          downloadName={`${ticker}-income-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
         />
       )}
     </Container>

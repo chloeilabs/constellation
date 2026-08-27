@@ -28,7 +28,9 @@ export const INCOME_ROWS: StatementRow[] = [
   { key: "incomeBeforeTax", label: "Pretax Income", emphasize: true, format: "money" },
   { key: "incomeTaxExpense", label: "Income Tax", format: "money" },
   { key: "netIncome", label: "Net Income", emphasize: true, format: "money" },
+  { key: "eps", label: "EPS (Basic)", format: "eps" },
   { key: "epsDiluted", label: "EPS (Diluted)", format: "eps" },
+  { key: "weightedAverageShsOut", label: "Shares Outstanding (Basic)", format: "share" },
   { key: "weightedAverageShsOutDil", label: "Shares Outstanding (Diluted)", format: "share" },
   { key: "ebitda", label: "EBITDA", format: "money" },
 ];
@@ -238,6 +240,70 @@ export function sumSegmentMaps(rows: Array<{ data?: Record<string, number> | nul
 export function ttmSegmentMap(rows: FmpRevenueSegment[]) {
   if (rows.length < 4) return null;
   return sumSegmentMaps(rows.slice(0, 4));
+}
+
+export function topSegmentNames(
+  rows: FmpRevenueSegment[],
+  ttm?: Record<string, number> | null,
+  limit = 8,
+) {
+  const source = ttm ?? sumSegmentMaps(rows.slice(0, 1));
+  return Object.entries(source)
+    .filter(([, value]) => typeof value === "number" && value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name]) => name);
+}
+
+export function segmentStatementRows(names: string[], totalLabel = "Revenue (Total)"): StatementRow[] {
+  return [
+    ...names.map((name) => ({ key: name, label: name, format: "money" as const })),
+    { key: "total", label: totalLabel, emphasize: true, format: "money" as const },
+  ];
+}
+
+export function segmentStatementColumns(
+  rows: FmpRevenueSegment[],
+  names: string[],
+  period: "annual" | "quarter",
+  ttm?: Record<string, number> | null,
+  limit = 5,
+) {
+  const byKey = new Map<string, { label: string; date: string; data: Record<string, number> }>();
+  for (const row of rows) {
+    const year = String(row.fiscalYear);
+    const key = period === "quarter" ? `${row.period}-${year}` : year;
+    const label = period === "quarter" ? `${row.period} ${year}` : year;
+    const existing = byKey.get(key)?.data ?? {};
+    const data = { ...existing };
+    for (const [name, value] of Object.entries(row.data ?? {})) {
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      const canonical = canonicalSegmentName(name);
+      data[canonical] = (data[canonical] ?? 0) + value;
+    }
+    byKey.set(key, { label, date: row.date, data });
+  }
+  const ordered = [...byKey.entries()]
+    .sort((a, b) => (b[1].date || "").localeCompare(a[1].date || ""))
+    .slice(0, limit);
+
+  function values(data: Record<string, number>, extra?: Record<string, unknown>) {
+    const out: Record<string, unknown> = { ...extra };
+    for (const name of names) out[name] = data[name] ?? null;
+    const named = names.reduce((sum, name) => sum + (typeof out[name] === "number" ? (out[name] as number) : 0), 0);
+    const all = Object.values(data).reduce((sum, value) => sum + (typeof value === "number" ? value : 0), 0);
+    out.total = named || all || null;
+    return out;
+  }
+
+  return [
+    ...(ttm ? [{ key: "ttm", label: "TTM", values: values(ttm) }] : []),
+    ...ordered.map(([key, row]) => ({
+      key,
+      label: row.label,
+      values: values(row.data, { date: row.date, fiscalYear: key, period: period === "annual" ? "FY" : key }),
+    })),
+  ];
 }
 
 export function toStatementColumns(
@@ -553,7 +619,7 @@ export function asReportedColumns(
   return rows.map((row) => ({
     key: `${row.fiscalYear}-${row.period}-${row.date}`,
     label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
-    values: (row.data ?? {}) as Record<string, unknown>,
+    values: { ...(row.data ?? {}), date: row.date } as Record<string, unknown>,
   }));
 }
 

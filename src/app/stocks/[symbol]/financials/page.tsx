@@ -384,6 +384,7 @@ export default async function FinancialsOverviewPage({
         </div>
         <YearMetricTable
           columns={profitColumns}
+          downloadName={`${ticker}-financials-overview-profits-${span}`}
           rows={[
             { key: "revenue", label: "Revenue", format: "money", href: `/stocks/${ticker}/revenue`, emphasize: true },
             { key: "revenueGrowth", label: "Revenue Growth", format: "percent" },

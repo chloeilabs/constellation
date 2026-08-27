@@ -105,6 +105,7 @@ export default async function CashFlowPage({
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}. Line labels follow the company's as-reported US-GAAP tags.`}
+          downloadName={`${ticker}-cash-flow-as-reported-${period}-${span}`}
         />
       ) : (
         <StatementTable
@@ -118,6 +119,7 @@ export default async function CashFlowPage({
               ? "Percent of revenue from the matching income statement. Green/red year-over-year change is hidden in this view."
               : `Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`
           }
+          downloadName={`${ticker}-cash-flow-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
         />
       )}
     </Container>
