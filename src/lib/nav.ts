@@ -78,6 +78,8 @@ export const NEWS_NAV: NavItem[] = [
 export const ETF_NAV: NavItem[] = [
   { href: "/etf", label: "Largest ETFs" },
   { href: "/etf/lookup", label: "Reverse Lookup" },
+  { href: "/etf/compare", label: "Compare ETFs" },
+  { href: "/screener?type=etf", label: "ETF Screener" },
   { href: "/list/vanguard-etfs", label: "Vanguard" },
   { href: "/list/ishares-etfs", label: "iShares" },
   { href: "/list/spdr-etfs", label: "SPDR" },
@@ -123,6 +125,17 @@ export function etfQuoteNav(symbol: string): NavItem[] {
     { href: `/etf/${symbol}/dividend`, label: "Dividend" },
     { href: `/etf/${symbol}/chart`, label: "Chart" },
     { href: `/etf/${symbol}/news`, label: "News" },
+  ];
+}
+
+export function fundQuoteNav(symbol: string): NavItem[] {
+  const ticker = symbol.toUpperCase();
+  return [
+    { href: `/funds/${ticker}`, label: "Overview", match: "exact" },
+    { href: `/funds/${ticker}/holdings`, label: "Holdings" },
+    { href: `/funds/${ticker}/dividend`, label: "Dividend" },
+    { href: `/funds/${ticker}/chart`, label: "Chart" },
+    { href: `/funds/${ticker}/news`, label: "News" },
   ];
 }
 

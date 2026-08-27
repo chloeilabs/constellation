@@ -26,7 +26,8 @@ export default async function ComparePage({
         title="Compare Stocks"
         description="Side-by-side quotes, valuation, and trailing financials."
         actions={
-          <form className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <form className="flex gap-2">
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
@@ -36,7 +37,11 @@ export default async function ComparePage({
             <button className="h-9 rounded-md bg-header px-3 text-sm font-medium text-white" type="submit">
               Compare
             </button>
-          </form>
+            </form>
+            <Link href="/etf/compare" className="text-sm text-link hover:underline">
+              Compare ETFs
+            </Link>
+          </div>
         }
       />
       <div className="overflow-x-auto rounded-lg border border-border">

@@ -153,8 +153,12 @@ export default async function ScreenerPage({
   return (
     <Container>
       <PageHeader
-        title="Stock Screener"
-        description="Filter stocks, ETFs, and funds by country, sector, market cap, price, beta, volume, dividend yield, or U.S. index membership using live FMP data."
+        title={type === "etf" ? "ETF Screener" : type === "fund" ? "Mutual Fund Screener" : "Stock Screener"}
+        description={
+          indexLabel
+            ? `Filter ${indexLabel} constituents by sector, industry, exchange, market cap, price, and volume.`
+            : "Filter stocks, ETFs, and funds by country, sector, market cap, price, beta, volume, dividend yield, or U.S. index membership using live FMP data."
+        }
       />
       <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <label className="text-sm">

@@ -1,20 +1,75 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { Toolkit } from "@/components/toolkit";
 
 export const metadata = {
   title: "Tools",
-  description: "Stock screener, reverse ETF lookup, compare, watchlist, and other market tools.",
+  description: "Stock and ETF screeners, comparison tools, CAGR and dividend calculators, and symbol lookup.",
 };
+
+const GROUPS = [
+  {
+    title: "Screeners",
+    links: [
+      ["/screener", "Stock Screener", "Filter stocks by market cap, sector, industry, index membership, beta, volume, and yield."],
+      ["/screener?type=etf", "ETF Screener", "Explore U.S. ETFs ranked by assets with the same live FMP screener."],
+      ["/screener?type=fund", "Mutual Fund Screener", "Search mutual funds by assets, industry, and indicated yield."],
+      ["/ipos", "IPO Screener", "Recent and upcoming IPOs from the FMP IPO calendar."],
+    ],
+  },
+  {
+    title: "Comparison Tools",
+    links: [
+      ["/compare", "Stock Comparison", "Side-by-side quotes, valuation, and trailing financials."],
+      ["/etf/compare", "ETF Comparison", "Compare expense ratios, returns, and overlapping holdings."],
+    ],
+  },
+  {
+    title: "Calculators",
+    links: [
+      ["/tools/cagr", "CAGR Calculator", "Compound annual growth from live FMP daily closes."],
+      ["/tools/dividend-calculator", "Dividend Calculator", "Estimate income from the latest indicated dividend."],
+    ],
+  },
+  {
+    title: "Lookup Tools",
+    links: [
+      ["/search", "Symbol Lookup", "Search tickers, company names, ETFs, funds, crypto, and forex."],
+      ["/etf/lookup", "ETF Reverse Lookup", "Find U.S. ETFs that hold a stock, ranked by position value."],
+    ],
+  },
+] as const;
 
 export default function ToolsPage() {
   return (
     <Container>
       <PageHeader
         title="Tools"
-        description="Screen stocks, look up ETF holders, compare issuers, and jump into live market data."
+        description="Screen stocks, compare ETFs, calculate CAGR from live prices, and look up ETF holders."
       />
-      <Toolkit />
+      <div className="space-y-10">
+        {GROUPS.map((group) => (
+          <section key={group.title}>
+            <h2 className="mb-4 text-xl font-semibold text-header">{group.title}</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {group.links.map(([href, title, body]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                >
+                  <h3 className="font-semibold text-header">{title}</h3>
+                  <p className="mt-2 text-sm text-muted">{body}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      <div className="mt-12">
+        <Toolkit />
+      </div>
     </Container>
   );
 }

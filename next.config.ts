@@ -58,6 +58,12 @@ const nextConfig: NextConfig = {
       { source: "/list/top-rated-dividends", destination: "/list/top-rated-dividend-stocks", permanent: false },
       { source: "/list/top-rated-dividend", destination: "/list/top-rated-dividend-stocks", permanent: false },
       { source: "/toolkit", destination: "/tools", permanent: false },
+      { source: "/tools/cagr-calculator", destination: "/tools/cagr", permanent: false },
+      { source: "/tools/dividend", destination: "/tools/dividend-calculator", permanent: false },
+      { source: "/etf/comparison", destination: "/etf/compare", permanent: false },
+      { source: "/funds/compare", destination: "/etf/compare", permanent: false },
+      { source: "/tools/etf-screener", destination: "/screener?type=etf", permanent: false },
+      { source: "/tools/stock-screener", destination: "/screener", permanent: false },
     ];
   },
   images: {

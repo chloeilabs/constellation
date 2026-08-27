@@ -1,6 +1,6 @@
-import { VehicleOverview } from "@/components/vehicle-overview";
+import { VehicleChart } from "@/components/vehicle-chart";
 
-export default async function EtfPage({
+export default async function FundChartPage({
   params,
   searchParams,
 }: {
@@ -9,5 +9,5 @@ export default async function EtfPage({
 }) {
   const { symbol } = await params;
   const { range } = await searchParams;
-  return <VehicleOverview symbol={symbol} range={range} kind="etf" />;
+  return <VehicleChart symbol={symbol} range={range} kind="fund" />;
 }

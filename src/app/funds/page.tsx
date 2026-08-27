@@ -17,9 +17,14 @@ export default async function FundsPage() {
         title="Mutual Funds"
         description="Largest U.S. mutual funds by assets, with live prices from Financial Modeling Prep."
         actions={
-          <Link href="/etf" className="text-sm text-link hover:underline">
-            Largest ETFs
-          </Link>
+          <div className="flex gap-4 text-sm">
+            <Link href="/etf/compare?symbols=VTSAX,VFIAX" className="text-link hover:underline">
+              Compare funds
+            </Link>
+            <Link href="/etf" className="text-link hover:underline">
+              Largest ETFs
+            </Link>
+          </div>
         }
       />
       <SectionNav items={ETF_NAV} />
