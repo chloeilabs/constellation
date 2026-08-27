@@ -3,6 +3,36 @@ const US_EXCHANGE = /NASDAQ|NYSE|AMEX|NYSEARCA|BATS/;
 const US_VENUE = /NASDAQ|NYSE|AMEX|NYSEARCA|BATS|CBOE|OTC|PNK|OTCQX|OTCQB|NMS|NGM|NCM/;
 const FOREIGN_EXCHANGE = /FRANKFURT|XETRA|LONDON|TSX|NEO|MEXICO|BUENOS|HONG|TOKYO|EURONEXT|BERLIN|MILAN|SAO PAULO|SANTIAGO/;
 const ETF_NAME = /\bETF\b|\bETN\b|\bUCITS\b|TRUST,\s*SERIES|\bSPDR\b|\bISHARES\b/i;
+export const FUND_NAME =
+  /\bMutual Fund\b|\bIndex Fund\b|\bBond Fund\b|\bEquity Fund\b|\bIncome Fund\b|\bTarget[- ]Date\b/i;
+const WELL_KNOWN_FUNDS = new Set([
+  "FXAIX",
+  "VFIAX",
+  "VTSAX",
+  "VTIAX",
+  "VBTLX",
+  "VIMAX",
+  "VSMAX",
+  "VWENX",
+  "VWELX",
+  "SWPPX",
+  "SWTSX",
+  "FSKAX",
+  "FZROX",
+  "FNILX",
+  "FZILX",
+  "FXNAX",
+  "SPAXX",
+  "FDRXX",
+  "AGTHX",
+  "DODGX",
+  "TRBCX",
+  "PRGFX",
+  "VGSLX",
+  "VGTSX",
+  "VTSMX",
+  "VFINX",
+]);
 const WELL_KNOWN_ETFS = new Set([
   "SPY",
   "QQQ",
@@ -112,15 +142,42 @@ export function parseFoundedYear(value: string | null | undefined) {
   return year;
 }
 
+export function looksLikeFund(name?: string | null) {
+  return FUND_NAME.test(name ?? "");
+}
+
 export function quoteHref(
   symbol: string,
-  hint?: { name?: string | null; exchange?: string | null; exchangeFullName?: string | null; isEtf?: boolean | null },
+  hint?: {
+    name?: string | null;
+    exchange?: string | null;
+    exchangeFullName?: string | null;
+    isEtf?: boolean | null;
+    isFund?: boolean | null;
+  },
 ) {
   const ticker = symbol.toUpperCase();
   if (hint?.isEtf || WELL_KNOWN_ETFS.has(ticker)) return `/etf/${ticker}`;
   const hay = `${hint?.name ?? ""} ${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`;
   if (ETF_NAME.test(hay) || /ARCA/.test(hay.toUpperCase())) return `/etf/${ticker}`;
+  if (hint?.isFund || WELL_KNOWN_FUNDS.has(ticker) || looksLikeFund(hint?.name)) return `/funds/${ticker}`;
   return `/stocks/${ticker}`;
+}
+
+export function quoteKind(
+  symbol: string,
+  hint?: {
+    name?: string | null;
+    exchange?: string | null;
+    exchangeFullName?: string | null;
+    isEtf?: boolean | null;
+    isFund?: boolean | null;
+  },
+) {
+  const href = quoteHref(symbol, hint);
+  if (href.startsWith("/etf/")) return "ETF";
+  if (href.startsWith("/funds/")) return "Fund";
+  return "Stock";
 }
 
 export function holdingQuoteHref(asset?: string | null, name?: string | null) {

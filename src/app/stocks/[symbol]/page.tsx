@@ -5,7 +5,7 @@ import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
-import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
+import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import {
   getCompanyEarnings,
@@ -29,6 +29,7 @@ import { ReturnsTable } from "@/components/returns-table";
 import { isForeignListingSymbol, quoteHref } from "@/lib/listings";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { ChangePercent } from "@/components/change";
+import { QuoteFaq } from "@/components/quote-faq";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 
 export default async function StockOverviewPage({
@@ -90,6 +91,15 @@ export default async function StockOverviewPage({
           {ticker} is an ETF.{" "}
           <Link href={`/etf/${ticker}`} className="text-link hover:underline">
             View holdings, sectors, and country weights
+          </Link>
+          .
+        </p>
+      ) : null}
+      {profile?.isFund && !profile?.isEtf ? (
+        <p className="mb-4 rounded-md border border-border bg-muted-bg px-3 py-2 text-sm">
+          {ticker} is a mutual fund.{" "}
+          <Link href={`/funds/${ticker}`} className="text-link hover:underline">
+            View the fund quote
           </Link>
           .
         </p>
@@ -232,6 +242,7 @@ export default async function StockOverviewPage({
                   <th>Company</th>
                   <th className="num">Price</th>
                   <th className="num">Change</th>
+                  <th className="num">PE</th>
                   <th className="num">Market Cap</th>
                 </tr>
               </thead>
@@ -248,6 +259,7 @@ export default async function StockOverviewPage({
                     <td className="num">
                       <ChangePercent value={peer.changePercentage} alreadyPercent />
                     </td>
+                    <td className="num">{formatRatio(peer.pe)}</td>
                     <td className="num">{formatCompactUsd(peer.mktCap)}</td>
                   </tr>
                 ))}
@@ -256,6 +268,16 @@ export default async function StockOverviewPage({
           </div>
         </section>
       ) : null}
+
+      <QuoteFaq
+        symbol={ticker}
+        quote={quote}
+        profile={profile}
+        ttm={ttm}
+        ratios={ratios}
+        target={target}
+        grades={grades}
+      />
 
       {heldByEtfs.length > 0 ? (
         <section className="mt-10">

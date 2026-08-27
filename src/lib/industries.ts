@@ -10,7 +10,7 @@ import {
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpScreenerRow } from "@/lib/types";
 
-const SECTOR_FALLBACK = [
+export const MARKET_SECTORS = [
   "Technology",
   "Healthcare",
   "Financial Services",
@@ -22,7 +22,32 @@ const SECTOR_FALLBACK = [
   "Basic Materials",
   "Real Estate",
   "Utilities",
-];
+] as const;
+
+const SECTOR_FALLBACK = [...MARKET_SECTORS];
+
+export function uniqueByPreferUsExchange<T extends { exchange?: string }>(
+  rows: readonly T[],
+  key: (row: T) => string,
+): T[] {
+  const rank = (exchange?: string) => {
+    const value = (exchange ?? "").toUpperCase();
+    if (value.includes("NASDAQ")) return 3;
+    if (value.includes("NYSE")) return 2;
+    if (value === "US") return 1;
+    return 0;
+  };
+  const map = new Map<string, T>();
+  for (const row of rows) {
+    const name = key(row);
+    if (!name) continue;
+    const existing = map.get(name);
+    if (!existing || rank(row.exchange) > rank(existing.exchange)) {
+      map.set(name, row);
+    }
+  }
+  return [...map.values()];
+}
 
 export function industrySlug(name: string) {
   return name

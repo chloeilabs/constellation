@@ -66,7 +66,11 @@ export function SymbolTable({
               <tr key={row.symbol}>
                 <td className="symbol">
                   <Link
-                    href={quoteHref(row.symbol, { name: row.name, isEtf: hrefBase === "/etf" })}
+                    href={quoteHref(row.symbol, {
+                      name: row.name,
+                      isEtf: hrefBase === "/etf",
+                      isFund: hrefBase === "/funds",
+                    })}
                     className="text-link hover:underline"
                   >
                     {row.symbol}

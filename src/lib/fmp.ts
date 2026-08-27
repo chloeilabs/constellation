@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { looksLikeFund } from "@/lib/listings";
 import { addDays, chunk, first, isoDate, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -245,6 +246,7 @@ export async function searchAll(query: string, limit = 8) {
     merged.push({
       ...item,
       isEtf: item.isEtf || etfSymbols.has(item.symbol.toUpperCase()),
+      isFund: item.isFund || looksLikeFund(item.name),
     });
   }
   const needle = trimmed.toUpperCase();
@@ -662,6 +664,14 @@ export function getSectorPerformance(date: string) {
     "/sector-performance-snapshot",
     { date },
     { revalidate: 300 },
+  );
+}
+
+export function getHistoricalSectorPerformance(sector: string, from: string, to: string) {
+  return fmpList<FmpSectorPerformance>(
+    "/historical-sector-performance",
+    { sector, from, to },
+    { revalidate: 3600 },
   );
 }
 
@@ -1120,7 +1130,7 @@ export function getExecutiveCompensation(symbol: string) {
 }
 
 export async function withQuoteChanges<T extends { symbol: string; price?: number }>(rows: T[]) {
-  if (rows.length === 0) return [] as Array<T & { changePercentage?: number; change?: number }>;
+  if (rows.length === 0) return [] as Array<T & { changePercentage?: number; change?: number; pe?: number }>;
   const quotes = await getQuotes(rows.map((row) => row.symbol));
   const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
   return rows.map((row) => {
@@ -1130,6 +1140,7 @@ export async function withQuoteChanges<T extends { symbol: string; price?: numbe
       price: quote?.price ?? row.price,
       changePercentage: quote?.changePercentage,
       change: quote?.change,
+      pe: quote?.pe,
     };
   });
 }

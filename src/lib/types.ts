@@ -68,6 +68,7 @@ export type FmpSearchResult = {
   exchangeFullName: string;
   exchange: string;
   isEtf?: boolean;
+  isFund?: boolean;
 };
 
 export type FmpMover = {

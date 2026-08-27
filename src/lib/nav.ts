@@ -10,6 +10,7 @@ export const MARKET_NAV: NavItem[] = [
   { href: "/markets/losers", label: "Losers" },
   { href: "/markets/active", label: "Most Active" },
   { href: "/markets/sectors", label: "Sectors" },
+  { href: "/markets/industries", label: "Industries" },
   { href: "/markets/treasury", label: "Treasury" },
   { href: "/markets/commodities", label: "Commodities" },
   { href: "/markets/crypto", label: "Crypto" },
@@ -73,6 +74,7 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/income-etfs", label: "Equity Income" },
   { href: "/list/crypto-etfs", label: "Crypto ETFs" },
   { href: "/list/leveraged-etfs", label: "Leveraged" },
+  { href: "/list/sector-etfs", label: "Sector ETFs" },
   { href: "/funds", label: "Mutual Funds" },
 ];
 

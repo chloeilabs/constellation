@@ -29,9 +29,12 @@ const MARKET_LINKS = [
   ["/markets/afterhours", "After Hours"],
   ["/markets/heatmap", "Heatmap"],
   ["/markets/sectors", "Sectors"],
+  ["/markets/industries", "Industries"],
   ["/markets/treasury", "Treasury"],
   ["/list/magnificent-seven", "Mag 7"],
+  ["/list/faang", "FAANG"],
   ["/list/dividend-aristocrats", "Aristocrats"],
+  ["/list/reit-stocks", "REITs"],
   ["/list/52-week-high", "52-Week High"],
 ] as const;
 

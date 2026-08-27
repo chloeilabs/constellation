@@ -3,14 +3,14 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SearchBox } from "@/components/search-box";
 import { searchAll } from "@/lib/fmp";
-import { quoteHref } from "@/lib/listings";
+import { quoteHref, quoteKind } from "@/lib/listings";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const query = (q ?? "").trim();
   return {
     title: query ? `Search: ${query}` : "Search",
-    description: "Search stocks, ETFs, and companies with live Financial Modeling Prep listings.",
+    description: "Search stocks, ETFs, funds, and companies with live Financial Modeling Prep listings.",
   };
 }
 
@@ -25,7 +25,7 @@ export default async function SearchPage({
 
   return (
     <Container>
-      <PageHeader title={query ? `Search: ${query}` : "Search"} description="Find stocks, ETFs, and companies." />
+      <PageHeader title={query ? `Search: ${query}` : "Search"} description="Find stocks, ETFs, funds, and companies." />
       <div className="mb-6 max-w-xl">
         <SearchBox large autoFocus={!query} />
       </div>
@@ -52,7 +52,7 @@ export default async function SearchPage({
                       </Link>
                     </td>
                     <td>{row.name}</td>
-                    <td className="text-muted">{row.isEtf ? "ETF" : "Stock"}</td>
+                    <td className="text-muted">{quoteKind(row.symbol, row)}</td>
                     <td className="text-muted">{row.exchangeFullName || row.exchange}</td>
                   </tr>
                 ))}

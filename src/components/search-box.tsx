@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import type { FmpSearchResult } from "@/lib/types";
-import { quoteHref } from "@/lib/listings";
+import { quoteHref, quoteKind } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
 export function SearchBox({
   large = false,
   autoFocus = false,
-  placeholder = "Search stocks, ETFs, and companies",
+  placeholder = "Search stocks, ETFs, funds, and companies",
 }: {
   large?: boolean;
   autoFocus?: boolean;
@@ -98,7 +98,9 @@ export function SearchBox({
                   <span className="font-semibold">{item.symbol}</span>
                   <span className="ml-2 text-sm text-muted">{item.name}</span>
                 </span>
-                <span className="text-xs text-muted">{item.isEtf ? "ETF" : item.exchange}</span>
+                <span className="text-xs text-muted">
+                  {quoteKind(item.symbol, item)} · {item.exchange}
+                </span>
               </button>
             </li>
           ))}

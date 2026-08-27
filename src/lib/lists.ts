@@ -1,4 +1,4 @@
-import { getDividendCalendar, getIndexConstituents, getQuotes, getScreener } from "@/lib/fmp";
+import { getDividendCalendar, getIndexConstituents, getProfile, getQuotes, getScreener } from "@/lib/fmp";
 import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
@@ -15,7 +15,7 @@ type ScreenerList = {
   limit: number;
   sort?: "marketCap" | "dividendYield" | "volume";
   listing?: "primary" | "raw";
-  hrefBase?: "/stocks" | "/etf";
+  hrefBase?: "/stocks" | "/etf" | "/funds";
   yieldMax?: number;
   symbolPattern?: string;
   capMax?: number;
@@ -63,6 +63,7 @@ type SymbolsList = {
   category: ListCategory;
   source: "symbols";
   symbols: readonly string[];
+  hrefBase?: "/stocks" | "/etf" | "/funds";
 };
 
 type EtfIssuerList = {
@@ -82,6 +83,16 @@ type WeekRangeList = {
   direction: "high" | "low";
 };
 
+type IndustryMatchList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "industry-match";
+  sector?: string;
+  industryPattern: string;
+  hrefBase?: "/stocks" | "/etf" | "/funds";
+};
+
 type StockList =
   | ScreenerList
   | ConstituentList
@@ -91,7 +102,8 @@ type StockList =
   | ForeignList
   | SymbolsList
   | EtfIssuerList
-  | WeekRangeList;
+  | WeekRangeList
+  | IndustryMatchList;
 
 export const STOCK_LISTS = {
   "sp-500-stocks": {
@@ -220,6 +232,26 @@ export const STOCK_LISTS = {
     limit: 100,
     sort: "marketCap",
   },
+  "micro-cap-stocks": {
+    title: "Micro-Cap Stocks",
+    description: "U.S. companies with a market cap between $50 million and $300 million.",
+    category: "market-cap",
+    source: "screener",
+    filters: { country: "US", marketCapMoreThan: 50_000_000, marketCapLowerThan: 300_000_000, priceMoreThan: 1 },
+    limit: 200,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "nano-cap-stocks": {
+    title: "Nano-Cap Stocks",
+    description: "U.S. companies with a market cap between $15 million and $50 million.",
+    category: "market-cap",
+    source: "screener",
+    filters: { country: "US", marketCapMoreThan: 15_000_000, marketCapLowerThan: 50_000_000, priceMoreThan: 1 },
+    limit: 200,
+    sort: "marketCap",
+    listing: "primary",
+  },
   "dividend-etfs": {
     title: "Dividend ETFs",
     description: "U.S. ETFs ranked by indicated dividend yield from FMP screener data.",
@@ -314,6 +346,117 @@ export const STOCK_LISTS = {
     category: "popular",
     source: "symbols",
     symbols: ["NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA"],
+  },
+  faang: {
+    title: "FAANG Stocks",
+    description: "Meta, Apple, Amazon, Netflix, and Alphabet, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["META", "AAPL", "AMZN", "NFLX", "GOOGL"],
+  },
+  "reit-stocks": {
+    title: "REIT Stocks",
+    description: "The largest U.S. real estate investment trusts, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Real Estate",
+    industryPattern: "^REIT",
+  },
+  "bank-stocks": {
+    title: "Bank Stocks",
+    description: "The largest U.S. diversified and regional banks, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Financial Services",
+    industryPattern: "^Banks",
+  },
+  "auto-stocks": {
+    title: "Car Companies",
+    description: "U.S.-listed auto manufacturers, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Auto - Manufacturers" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "pharma-stocks": {
+    title: "Pharmaceutical Stocks",
+    description: "U.S. drug manufacturers, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Healthcare",
+    industryPattern: "Drug Manufacturers|Medical - Pharmaceuticals",
+  },
+  "semiconductor-stocks": {
+    title: "Semiconductor Stocks",
+    description: "U.S. semiconductor companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Semiconductors" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "software-stocks": {
+    title: "Software Stocks",
+    description: "U.S. software companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Technology",
+    industryPattern: "^Software",
+  },
+  "biotech-stocks": {
+    title: "Biotech Stocks",
+    description: "U.S. biotechnology companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Biotechnology" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "aerospace-defense-stocks": {
+    title: "Aerospace & Defense Stocks",
+    description: "U.S. aerospace and defense companies, ranked by market capitalization.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Aerospace & Defense" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+  },
+  "oil-gas-stocks": {
+    title: "Oil & Gas Stocks",
+    description: "The largest U.S. oil and gas companies, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Energy",
+    industryPattern: "Oil & Gas",
+  },
+  "utilities-stocks": {
+    title: "Utility Stocks",
+    description: "U.S. electric, gas, and diversified utilities, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Utilities",
+    industryPattern: "Utilities",
+  },
+  "insurance-stocks": {
+    title: "Insurance Stocks",
+    description: "U.S. insurers, ranked by market capitalization.",
+    category: "popular",
+    source: "industry-match",
+    sector: "Financial Services",
+    industryPattern: "^Insurance",
+  },
+  "sector-etfs": {
+    title: "Sector ETFs",
+    description: "The 11 SPDR sector ETFs, with live FMP quotes.",
+    category: "etf",
+    source: "symbols",
+    hrefBase: "/etf",
+    symbols: ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"],
   },
   "52-week-high": {
     title: "52-Week Highs",
@@ -451,6 +594,50 @@ export const STOCK_LISTS = {
     listing: "raw",
     symbolPattern: "^[A-Z0-9]+\\.DE$",
   },
+  "japan-stocks": {
+    title: "Tokyo Stock Exchange",
+    description: "The largest Japanese companies listed on the Tokyo Stock Exchange.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "JPX", country: "JP" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.T$",
+  },
+  "india-stocks": {
+    title: "National Stock Exchange of India",
+    description: "The largest Indian companies listed on the NSE.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "NSE", country: "IN" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.NS$",
+  },
+  "france-stocks": {
+    title: "Euronext Paris",
+    description: "The largest French companies listed on Euronext Paris.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "PAR", country: "FR" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.PA$",
+  },
+  "brazil-stocks": {
+    title: "B3 (Brazil)",
+    description: "The largest Brazilian companies listed on B3 in São Paulo.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "SAO", country: "BR" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.SA$",
+  },
 } as const satisfies Record<string, StockList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
@@ -479,7 +666,10 @@ export const LIST_NAV = [
   { href: "/list/penny-stocks", label: "Penny Stocks" },
   { href: "/list/high-beta-stocks", label: "High Beta" },
   { href: "/list/magnificent-seven", label: "Mag 7" },
+  { href: "/list/faang", label: "FAANG" },
   { href: "/list/52-week-high", label: "52-Week High" },
+  { href: "/list/reit-stocks", label: "REITs" },
+  { href: "/list/semiconductor-stocks", label: "Chips" },
   { href: "/list/highest-volume", label: "Volume" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
 ];
@@ -526,6 +716,10 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
 
   if (list.source === "week-range") {
     return loadWeekRangeList(list.direction);
+  }
+
+  if (list.source === "industry-match") {
+    return loadIndustryMatchList(list.sector, list.industryPattern);
   }
 
   if (list.source === "etf-issuer") {
@@ -606,22 +800,28 @@ async function loadSymbolsList(symbols: readonly string[]): Promise<SymbolTableR
   ]);
   const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
   const meta = new Map(screener.map((row) => [row.symbol, row]));
+  const missing = symbols.filter((symbol) => !meta.has(symbol)).slice(0, 15);
+  const profiles = await Promise.all(missing.map((symbol) => getProfile(symbol)));
+  const profileBySymbol = new Map(
+    profiles.filter((row): row is NonNullable<typeof row> => Boolean(row?.symbol)).map((row) => [row.symbol, row]),
+  );
   return symbols
     .map((symbol) => {
       const quote = bySymbol.get(symbol);
       const row = meta.get(symbol);
-      const price = quote?.price ?? row?.price ?? null;
-      const dividend = row?.lastAnnualDividend;
+      const profile = profileBySymbol.get(symbol);
+      const price = quote?.price ?? row?.price ?? profile?.price ?? null;
+      const dividend = row?.lastAnnualDividend ?? profile?.lastDividend;
       return {
         symbol,
-        name: quote?.name || row?.companyName || symbol,
-        industry: row?.industry,
-        marketCap: quote?.marketCap ?? row?.marketCap ?? null,
+        name: quote?.name || row?.companyName || profile?.companyName || symbol,
+        industry: row?.industry || profile?.industry,
+        marketCap: quote?.marketCap ?? row?.marketCap ?? profile?.marketCap ?? null,
         price,
-        changePercentage: quote?.changePercentage ?? null,
-        volume: quote?.volume ?? row?.volume ?? null,
+        changePercentage: quote?.changePercentage ?? profile?.changePercentage ?? null,
+        volume: quote?.volume ?? row?.volume ?? profile?.volume ?? null,
         dividendYield: price && dividend ? dividend / price : null,
-        country: row?.country,
+        country: row?.country || profile?.country,
       };
     })
     .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
@@ -671,6 +871,17 @@ async function loadWeekRangeList(direction: "high" | "low"): Promise<SymbolTable
   });
   scored.sort((a, b) => (direction === "high" ? b.proximity - a.proximity : a.proximity - b.proximity));
   return scored.slice(0, 100).map((item) => item.row);
+}
+
+async function loadIndustryMatchList(sector: string | undefined, industryPattern: string): Promise<SymbolTableRow[]> {
+  const matcher = new RegExp(industryPattern, "i");
+  const raw = await getScreener({ country: "US", ...(sector ? { sector } : {}) }, { limit: 200 });
+  const selected = preferPrimaryListings(raw).filter((row) => matcher.test(row.industry || ""));
+  const rows = await toScreenerRows(selected);
+  return rows
+    .filter((row) => (row.marketCap ?? 0) > 0)
+    .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
+    .slice(0, 100);
 }
 
 async function loadEtfIssuerList(namePattern: string): Promise<SymbolTableRow[]> {

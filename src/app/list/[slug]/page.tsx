@@ -20,25 +20,28 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
   const rows = await loadStockList(slug);
   const hrefBase = listHrefBase(slug);
   const isEtfList = hrefBase === "/etf";
+  const noun = isEtfList ? "ETFs" : "stocks";
+  const showYield =
+    ("sort" in list && list.sort === "dividendYield") ||
+    slug === "monthly-dividend-stocks" ||
+    slug === "bond-etfs" ||
+    slug === "dividend-etfs" ||
+    slug === "dividend-aristocrats" ||
+    slug === "dividend-kings" ||
+    slug === "reit-stocks" ||
+    slug === "highest-dividend";
 
   return (
     <Container>
       <PageHeader title={list.title} description={list.description} />
       <SectionNav items={isEtfList ? ETF_NAV : LIST_NAV} />
       <p className="mb-3 text-sm text-muted">
-        {rows.length} {isEtfList ? "ETFs" : "stocks"}
+        {rows.length} {noun}
       </p>
       <SymbolTable
         rows={rows}
         hrefBase={hrefBase}
-        showYield={
-          ("sort" in list && list.sort === "dividendYield") ||
-          slug === "monthly-dividend-stocks" ||
-          slug === "bond-etfs" ||
-          slug === "dividend-etfs" ||
-          slug === "dividend-aristocrats" ||
-          slug === "dividend-kings"
-        }
+        showYield={showYield}
         showFounded={slug === "oldest-companies"}
         showCountry={list.category === "international" || slug === "foreign-stocks"}
       />

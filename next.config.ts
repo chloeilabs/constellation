@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
       { source: "/etf/spdr", destination: "/list/spdr-etfs", permanent: false },
       { source: "/etf/invesco", destination: "/list/invesco-etfs", permanent: false },
       { source: "/etf/schwab", destination: "/list/schwab-etfs", permanent: false },
+      { source: "/list/semiconductors", destination: "/list/semiconductor-stocks", permanent: false },
+      { source: "/list/reits", destination: "/list/reit-stocks", permanent: false },
+      { source: "/list/banks", destination: "/list/bank-stocks", permanent: false },
+      { source: "/list/faang-stocks", destination: "/list/faang", permanent: false },
     ];
   },
   images: {

@@ -52,7 +52,7 @@ export function StockHeader({
                 ) : null}
                 {profile?.isFund && !profile?.isEtf ? (
                   <Link
-                    href="/funds"
+                    href={`/funds/${symbol}`}
                     className="ml-2 align-middle rounded bg-chip px-1.5 py-0.5 text-xs font-semibold text-header"
                   >
                     Fund

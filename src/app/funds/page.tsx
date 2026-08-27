@@ -24,7 +24,7 @@ export default async function FundsPage() {
       />
       <SectionNav items={ETF_NAV} />
       <SymbolTable
-        hrefBase="/stocks"
+        hrefBase="/funds"
         showIndustry={false}
         empty="No mutual fund data available."
         rows={rows.map((row) => ({
