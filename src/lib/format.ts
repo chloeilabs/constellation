@@ -185,6 +185,12 @@ export function formatRatio(value: number | null | undefined, digits = 2) {
   return numberFormatter.format(Number(value.toFixed(digits)));
 }
 
+/** Hide nonsensical TTM P/E values that FMP returns for funds and some ETFs. */
+export function formatPlausiblePe(value: number | null | undefined, digits = 2) {
+  if (value == null || !Number.isFinite(value) || value <= 0 || value > 250) return "—";
+  return formatRatio(value, digits);
+}
+
 export function formatAnalystConsensus(grades?: {
   consensus?: string | null;
   strongBuy?: number | null;

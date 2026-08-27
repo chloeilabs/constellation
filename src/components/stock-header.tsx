@@ -3,7 +3,7 @@ import { WatchlistButton } from "@/components/watchlist-button";
 import { StockSubnav } from "@/components/stock-subnav";
 import { ChangeValue } from "@/components/change";
 import { formatMoney, formatPrice } from "@/lib/format";
-import { industrySlug } from "@/lib/industries";
+import { industrySlug, sectorHref } from "@/lib/industries";
 import { nyExtendedCopy } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
 
@@ -75,7 +75,7 @@ export function StockHeader({
                 {profile?.sector ? (
                   <>
                     {" · "}
-                    <Link href={`/stocks/industry#${industrySlug(profile.sector)}`} className="hover:text-link hover:underline">
+                    <Link href={sectorHref(profile.sector)} className="hover:text-link hover:underline">
                       {profile.sector}
                     </Link>
                   </>

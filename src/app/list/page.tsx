@@ -30,6 +30,15 @@ export default function ListsIndexPage() {
                 {category.id === "popular" ? (
                   <>
                     <Link
+                      href="/stocks/sector"
+                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    >
+                      <h3 className="font-semibold text-header">Sectors</h3>
+                      <p className="mt-2 text-sm text-muted">
+                        Technology, healthcare, financials, and the rest of the market, with PE and daily change.
+                      </p>
+                    </Link>
+                    <Link
                       href="/stocks/industry"
                       className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
                     >

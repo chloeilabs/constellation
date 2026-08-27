@@ -6,7 +6,7 @@ import { SectionNav } from "@/components/section-nav";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatPercent, formatRatio } from "@/lib/format";
 import { getHistoricalSectorPerformance, getSectorPeSnapshot, getSectorPerformance } from "@/lib/fmp";
-import { industrySlug, MARKET_SECTORS, uniqueByPreferUsExchange } from "@/lib/industries";
+import { MARKET_SECTORS, sectorHref, uniqueByPreferUsExchange } from "@/lib/industries";
 import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
 import Link from "next/link";
 
@@ -67,7 +67,7 @@ export default async function SectorsPage({
             {rows.map((row) => (
               <tr key={row.sector}>
                 <td>
-                  <Link href={`/stocks/industry#${industrySlug(row.sector)}`} className="text-link hover:underline">
+                  <Link href={sectorHref(row.sector)} className="text-link hover:underline">
                     {row.sector}
                   </Link>
                 </td>

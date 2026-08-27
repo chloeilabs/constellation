@@ -25,6 +25,7 @@ const columns = [
     title: "Stocks",
     links: [
       ["/stocks", "Stock List"],
+      ["/stocks/sector", "Sectors"],
       ["/stocks/industry", "Sectors & Industries"],
       ["/list/sp-500-stocks", "S&P 500"],
       ["/list/nasdaq-100-stocks", "Nasdaq 100"],
@@ -116,6 +117,7 @@ const columns = [
       ["/insider-trading", "Insider Trading"],
       ["/congress", "Congressional Trades"],
       ["/institutional", "13F Filings"],
+      ["/institutional/0001067983", "Berkshire 13F"],
     ],
   },
   {
@@ -124,6 +126,7 @@ const columns = [
       ["/tools", "All Tools"],
       ["/watchlist", "Watchlist"],
       ["/compare", "Compare Stocks"],
+      ["/compare/aapl-vs-msft", "AAPL vs MSFT"],
       ["/etf/compare", "Compare ETFs"],
       ["/screener", "Screener"],
       ["/screener?type=etf", "ETF Screener"],

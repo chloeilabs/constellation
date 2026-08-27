@@ -29,7 +29,9 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
   if (!first) redirect("/");
 
   if (!second) {
-    const ticker = decodeURIComponent(first).toUpperCase();
+    const token = decodeURIComponent(first);
+    if (token.toLowerCase() === "compare") redirect("/compare");
+    const ticker = token.toUpperCase();
     const market = marketAssetHref(ticker);
     if (market) redirect(market);
     const profile = await getProfile(ticker);
@@ -45,6 +47,9 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
   }
 
   const exchange = decodeURIComponent(first);
+  if (exchange.toLowerCase() === "compare") {
+    redirect(`/compare?symbols=${decodeURIComponent(second).toUpperCase()}`);
+  }
   const ticker = decodeURIComponent(second).toUpperCase();
   const suffix = EXCHANGE_SUFFIX[exchange.toLowerCase()];
   const candidates = ticker.includes(".")

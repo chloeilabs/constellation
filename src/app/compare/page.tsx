@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { getProfilesAndQuotes } from "@/lib/compare";
-import { industrySlug } from "@/lib/industries";
+import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
+import { getProfilesAndQuotes, POPULAR_STOCK_COMPARISONS } from "@/lib/compare";
+import { industrySlug, sectorHref } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
 
 export default async function ComparePage({
@@ -129,10 +129,34 @@ export default async function ComparePage({
               ))}
             </tr>
             <tr>
+              <td>YTD</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  <ChangePercent value={row.changes?.ytd} />
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>1 Year</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  <ChangePercent value={row.changes?.["1Y"]} />
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>5 Year</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  <ChangePercent value={row.changes?.["5Y"]} />
+                </td>
+              ))}
+            </tr>
+            <tr>
               <td>PE Ratio</td>
               {rows.map((row) => (
                 <td key={row.symbol} className="num">
-                  {formatRatio(row.ratios?.priceToEarningsRatioTTM)}
+                  {formatPlausiblePe(row.ratios?.priceToEarningsRatioTTM ?? row.quote?.pe)}
                 </td>
               ))}
             </tr>
@@ -183,10 +207,32 @@ export default async function ComparePage({
               ))}
             </tr>
             <tr>
+              <td>Employees</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatInteger(row.profile?.fullTimeEmployees ? Number(row.profile.fullTimeEmployees) : null)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>Country</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {row.profile?.country ?? "—"}
+                </td>
+              ))}
+            </tr>
+            <tr>
               <td>Sector</td>
               {rows.map((row) => (
                 <td key={row.symbol} className="num">
-                  {row.profile?.sector ?? "—"}
+                  {row.profile?.sector ? (
+                    <Link href={sectorHref(row.profile.sector)} className="text-link hover:underline">
+                      {row.profile.sector}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </td>
               ))}
             </tr>
@@ -223,6 +269,21 @@ export default async function ComparePage({
           </tbody>
         </table>
       </div>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-xl font-semibold text-header">Popular Comparisons</h2>
+        <div className="flex flex-wrap gap-2">
+          {POPULAR_STOCK_COMPARISONS.map(([left, right]) => (
+            <Link
+              key={`${left}-${right}`}
+              href={`/compare/${left.toLowerCase()}-vs-${right.toLowerCase()}`}
+              className="rounded-full bg-chip px-3 py-1 text-sm font-medium text-header hover:bg-border"
+            >
+              {left} vs {right}
+            </Link>
+          ))}
+        </div>
+      </section>
     </Container>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
@@ -6,6 +7,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain } from "@/lib/format";
 import { getLatestInstitutionalOwnership } from "@/lib/fmp";
+import { institutionalHref } from "@/lib/institutional";
 
 export default async function OwnershipPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -88,7 +90,13 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
                 ranked.map((row) => (
                   <tr key={`${row.cik}-${row.investorName}`}>
                     <td className="max-w-[280px] truncate font-medium">
-                      {row.investorName}
+                      {row.cik ? (
+                        <Link href={institutionalHref(row.cik)} className="text-link hover:underline">
+                          {row.investorName}
+                        </Link>
+                      ) : (
+                        row.investorName
+                      )}
                       {row.isNew ? <span className="ml-2 text-xs font-normal text-gain">New</span> : null}
                     </td>
                     <td className="num">{formatInteger(row.sharesNumber)}</td>

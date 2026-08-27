@@ -64,6 +64,14 @@ const nextConfig: NextConfig = {
       { source: "/funds/compare", destination: "/etf/compare", permanent: false },
       { source: "/tools/etf-screener", destination: "/screener?type=etf", permanent: false },
       { source: "/tools/stock-screener", destination: "/screener", permanent: false },
+      { source: "/stocks/sectors", destination: "/stocks/sector", permanent: false },
+      { source: "/stocks/sectors/:slug", destination: "/stocks/sector/:slug", permanent: false },
+      { source: "/crypto/:symbol", destination: "/markets/crypto/:symbol", permanent: false },
+      { source: "/forex/:symbol", destination: "/markets/forex/:symbol", permanent: false },
+      { source: "/commodities/:symbol", destination: "/markets/commodities/:symbol", permanent: false },
+      { source: "/mutual-fund/:symbol", destination: "/funds/:symbol", permanent: false },
+      { source: "/mutual-funds/:symbol", destination: "/funds/:symbol", permanent: false },
+      { source: "/quote/compare", destination: "/compare", permanent: false },
     ];
   },
   images: {

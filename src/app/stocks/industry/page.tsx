@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import { STOCKS_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatInteger, formatRatio } from "@/lib/format";
-import { loadIndustryDirectory } from "@/lib/industries";
+import { loadIndustryDirectory, sectorHref } from "@/lib/industries";
 
 export const metadata = {
   title: "Stock Market Sectors and Industries",
@@ -38,7 +38,11 @@ export default async function IndustriesPage() {
         {sectors.map((sector) => (
           <section key={sector.slug} id={sector.slug} className="scroll-mt-24">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-              <h2 className="text-xl font-semibold text-header">{sector.name}</h2>
+              <h2 className="text-xl font-semibold text-header">
+                <Link href={sectorHref(sector.name)} className="hover:text-link hover:underline">
+                  {sector.name}
+                </Link>
+              </h2>
               <p className="text-sm text-muted">
                 {formatInteger(sector.stocks)} stocks · {formatCompactUsd(sector.marketCap)} combined cap
               </p>

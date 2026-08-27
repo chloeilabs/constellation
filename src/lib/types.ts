@@ -1005,6 +1005,43 @@ export type FmpInstitutionalFiling = {
   finalLink: string;
 };
 
+export type FmpInstitutionalDate = {
+  date: string;
+  year: number;
+  quarter: number;
+};
+
+export type FmpInstitutionalExtract = {
+  date: string;
+  filingDate: string;
+  acceptedDate: string;
+  cik: string;
+  securityCusip: string;
+  symbol: string;
+  nameOfIssuer: string;
+  shares: number;
+  titleOfClass: string;
+  sharesType: string;
+  putCallShare: string;
+  value: number;
+  link: string;
+  finalLink: string;
+};
+
+export type FmpExchangeVariant = {
+  symbol: string;
+  companyName: string;
+  currency?: string;
+  exchange?: string;
+  exchangeShortName?: string;
+  country?: string;
+  price?: number;
+  mktCap?: number;
+  marketCap?: number;
+  isEtf?: boolean;
+  isFund?: boolean;
+};
+
 export type FmpExecutiveCompensation = {
   cik: string;
   symbol: string;

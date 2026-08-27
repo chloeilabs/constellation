@@ -4,7 +4,7 @@ import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { StatGrid } from "@/components/quote-stats";
-import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
+import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
 import { CHART_RANGES, getChartData, type ChartRange } from "@/lib/chart";
 import {
   getDividends,
@@ -90,7 +90,7 @@ export async function VehicleOverview({
               label: "Expense Ratio",
               value: info?.expenseRatio != null ? formatPercentPlain(info.expenseRatio, { alreadyPercent: true }) : "—",
             },
-            { label: "PE Ratio", value: formatRatio(pe) },
+            { label: "PE Ratio", value: formatPlausiblePe(pe) },
             { label: "Shares Out", value: formatCompactUsd(shares).replace("$", "") },
             { label: "Dividend (ttm)", href: dividendHref, value: ttmDividend ? `$${formatPrice(ttmDividend)}` : "—" },
             {

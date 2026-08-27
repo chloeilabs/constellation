@@ -4,6 +4,8 @@ import {
   getIndustryPeSnapshot,
   getIndustryPerformance,
   getScreenerPages,
+  getSectorPeSnapshot,
+  getSectorPerformance,
   getSectors,
   withQuoteChanges,
 } from "@/lib/fmp";
@@ -165,6 +167,70 @@ export async function loadIndustryStocks(industry: string) {
 export async function resolveIndustrySlug(slug: string) {
   const names = await getIndustryNames();
   return findIndustryName(slug, names);
+}
+
+export function sectorHref(name: string) {
+  return `/stocks/sector/${industrySlug(name)}`;
+}
+
+export async function resolveSectorSlug(slug: string) {
+  const live = await getSectors();
+  const names = live.length ? live : SECTOR_FALLBACK;
+  const needle = slug.toLowerCase();
+  return names.find((name) => industrySlug(name) === needle) ?? null;
+}
+
+export async function loadSectorDetail(sectorName: string) {
+  const today = nyDateString();
+  const yesterday = isoDate(addDays(new Date(`${today}T00:00:00Z`), -1));
+  const [raw, peToday, peYesterday, perfToday, perfYesterday] = await Promise.all([
+    getScreenerPages({ sector: sectorName }, { pages: 2, limit: 1000, revalidate: 900 }),
+    getSectorPeSnapshot(today),
+    getSectorPeSnapshot(yesterday),
+    getSectorPerformance(today),
+    getSectorPerformance(yesterday),
+  ]);
+  const listed = preferPrimaryListings(uniqueBySymbol(raw));
+  const ranked = [...listed].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+  const top = await withQuoteChanges(ranked.slice(0, 100));
+
+  const peRows = uniqueByPreferUsExchange(peToday.length ? peToday : peYesterday, (row) => row.sector);
+  const perfRows = uniqueByPreferUsExchange(perfToday.length ? perfToday : perfYesterday, (row) => row.sector);
+  const pe = peRows.find((row) => row.sector === sectorName)?.pe ?? null;
+  const averageChange = perfRows.find((row) => row.sector === sectorName)?.averageChange ?? null;
+
+  const byIndustry = new Map<string, { stocks: number; marketCap: number }>();
+  for (const row of listed) {
+    const name = row.industry || "Other";
+    const current = byIndustry.get(name) ?? { stocks: 0, marketCap: 0 };
+    current.stocks += 1;
+    current.marketCap += row.marketCap || 0;
+    byIndustry.set(name, current);
+  }
+  const industries = [...byIndustry.entries()]
+    .map(([name, stats]) => ({
+      name,
+      slug: industrySlug(name),
+      stocks: stats.stocks,
+      marketCap: stats.marketCap,
+    }))
+    .sort((a, b) => b.marketCap - a.marketCap || b.stocks - a.stocks);
+
+  const yields = listed
+    .map((row) => (row.price > 0 && row.lastAnnualDividend > 0 ? (row.lastAnnualDividend / row.price) * 100 : null))
+    .filter((value): value is number => value != null && Number.isFinite(value) && value < 20);
+  const averageYield =
+    yields.length === 0 ? null : yields.reduce((sum, value) => sum + value, 0) / yields.length;
+
+  return {
+    stocks: listed.length,
+    marketCap: listed.reduce((sum, row) => sum + (row.marketCap || 0), 0),
+    pe,
+    averageChange,
+    averageYield,
+    industries,
+    rows: top,
+  };
 }
 
 export function industryMetrics(rows: Array<FmpScreenerRow & { changePercentage?: number }>) {

@@ -52,6 +52,7 @@ export const IPO_NAV: NavItem[] = [
 
 export const STOCKS_NAV: NavItem[] = [
   { href: "/stocks", label: "All Stocks" },
+  { href: "/stocks/sector", label: "Sectors", match: "prefix" },
   { href: "/stocks/industry", label: "Industries", match: "prefix" },
   { href: "/list/sp-500-stocks", label: "S&P 500" },
   { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },

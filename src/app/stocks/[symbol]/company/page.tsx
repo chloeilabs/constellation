@@ -1,28 +1,31 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
-import { formatCompactUsd, formatDate, formatInteger, formatNumber } from "@/lib/format";
+import { formatCompactUsd, formatDate, formatInteger, formatNumber, formatPrice } from "@/lib/format";
 import {
   getCompanyNotes,
   getEsgDisclosures,
   getEsgRatings,
+  getExchangeVariants,
   getExecutiveCompensation,
   getKeyExecutives,
   getProfile,
 } from "@/lib/fmp";
-import { industrySlug } from "@/lib/industries";
+import { industrySlug, sectorHref } from "@/lib/industries";
+import { quoteHref } from "@/lib/listings";
 import Link from "next/link";
 
 export default async function CompanyPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = symbol.toUpperCase();
-  const [profile, executives, notes, esgRatings, esgDisclosures, compensation] = await Promise.all([
+  const [profile, executives, notes, esgRatings, esgDisclosures, compensation, variants] = await Promise.all([
     getProfile(ticker),
     getKeyExecutives(ticker),
     getCompanyNotes(ticker),
     getEsgRatings(ticker),
     getEsgDisclosures(ticker),
     getExecutiveCompensation(ticker),
+    getExchangeVariants(ticker),
   ]);
   const people = executives.filter((person) => person.active !== false);
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
@@ -47,6 +50,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
     ["CUSIP", profile?.cusip],
     ["Exchange", profile?.exchangeFullName],
   ] as const;
+
+  const listings = variants
+    .filter((row) => row.symbol && row.symbol.toUpperCase() !== ticker)
+    .filter((row, index, rows) => rows.findIndex((item) => item.symbol === row.symbol) === index)
+    .slice(0, 12);
 
   return (
     <Container>
@@ -81,7 +89,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
                   {value}
                 </Link>
               ) : label === "Sector" && profile?.sector ? (
-                <Link href={`/stocks/industry#${industrySlug(profile.sector)}`} className="text-link hover:underline">
+                <Link href={sectorHref(profile.sector)} className="text-link hover:underline">
                   {value}
                 </Link>
               ) : (
@@ -91,6 +99,48 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
           </div>
         ))}
       </dl>
+
+      {listings.length > 0 ? (
+          <section className="mt-10">
+            <h2 className="mb-3 text-xl font-semibold text-header">Also Listed As</h2>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Exchange</th>
+                    <th>Country</th>
+                    <th className="num">Price</th>
+                    <th>Currency</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listings.map((row) => (
+                    <tr key={row.symbol}>
+                      <td className="symbol">
+                        <Link
+                          href={quoteHref(row.symbol, {
+                            name: row.companyName,
+                            exchange: row.exchangeShortName ?? row.exchange,
+                            isEtf: row.isEtf,
+                            isFund: row.isFund,
+                          })}
+                          className="text-link hover:underline"
+                        >
+                          {row.symbol}
+                        </Link>
+                      </td>
+                      <td>{row.exchange || row.exchangeShortName || "—"}</td>
+                      <td>{row.country || "—"}</td>
+                      <td className="num">{formatPrice(row.price)}</td>
+                      <td>{row.currency || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+      ) : null}
 
       {esgRating || esg ? (
         <section className="mt-10">

@@ -56,6 +56,9 @@ import type {
   FmpTranscriptDate,
   FmpInstitutionalSummary,
   FmpInstitutionalHolder,
+  FmpInstitutionalDate,
+  FmpInstitutionalExtract,
+  FmpExchangeVariant,
   FmpEmployeeCount,
   FmpDcf,
   FmpRevenueSegment,
@@ -1167,6 +1170,30 @@ export function getLatestInstitutionalFilings(limit = 80) {
     "/institutional-ownership/latest",
     { page: 0, limit },
     { revalidate: 300 },
+  );
+}
+
+export function getInstitutionalDates(cik: string) {
+  return fmpList<FmpInstitutionalDate>(
+    "/institutional-ownership/dates",
+    { cik },
+    { revalidate: 3600 },
+  );
+}
+
+export function getInstitutionalExtract(cik: string, year: number, quarter: number) {
+  return fmpList<FmpInstitutionalExtract>(
+    "/institutional-ownership/extract",
+    { cik, year, quarter },
+    { revalidate: 3600 },
+  );
+}
+
+export function getExchangeVariants(symbol: string) {
+  return fmpList<FmpExchangeVariant>(
+    "/search-exchange-variants",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 86400 },
   );
 }
 
