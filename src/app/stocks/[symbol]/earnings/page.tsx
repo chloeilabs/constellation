@@ -9,6 +9,7 @@ import { compactMoneyFn, formatDate, formatMoney, reportingCurrency, yearOverYea
 import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
+import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 
 export default async function EarningsPage({
   params,
@@ -31,11 +32,9 @@ export default async function EarningsPage({
   const eps = ttm?.epsDiluted ?? ttm?.eps;
   const fyGrowth = yearOverYear(annual[0]?.epsDiluted ?? annual[0]?.eps, annual[1]?.epsDiluted ?? annual[1]?.eps);
   const ttmGrowth = ttmChange(quarterly as Array<Record<string, unknown>>, "epsDiluted") ?? ttmChange(quarterly as Array<Record<string, unknown>>, "eps");
-  const latestReport = reported.find((row) => row.epsActual != null) ?? reported[0];
-  const surprise =
-    latestReport?.epsActual != null && latestReport.epsEstimated
-      ? (latestReport.epsActual - latestReport.epsEstimated) / Math.abs(latestReport.epsEstimated)
-      : null;
+  const { lastReported, next } = splitCompanyEarnings(reported);
+  const latestReport = lastReported ?? reported[0];
+  const surprise = earningsSurprise(latestReport);
   const currency = reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency);
   const money = compactMoneyFn(currency);
   const px = (value: number | null | undefined) => formatMoney(value, currency);
@@ -66,6 +65,11 @@ export default async function EarningsPage({
           {
             label: "Surprise",
             value: surprise == null ? "—" : <ChangePercent value={surprise} alreadyPercent={false} className="text-2xl" />,
+          },
+          {
+            label: "Next Earnings",
+            value: next && next.date !== latestReport?.date ? formatDate(next.date) : "—",
+            hint: next?.epsEstimated != null ? `Est. ${px(next.epsEstimated)}` : undefined,
           },
         ]}
       />
@@ -107,10 +111,7 @@ export default async function EarningsPage({
                 </tr>
               ) : (
                 reported.map((row) => {
-                  const epsSurprise =
-                    row.epsActual != null && row.epsEstimated
-                      ? (row.epsActual - row.epsEstimated) / Math.abs(row.epsEstimated)
-                      : null;
+                  const epsSurprise = earningsSurprise(row);
                   return (
                     <tr key={row.date}>
                       <td>{formatDate(row.date)}</td>

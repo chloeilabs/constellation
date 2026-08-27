@@ -11,6 +11,7 @@ import {
   formatRatio,
   rangeLabel,
 } from "@/lib/format";
+import { stockPath } from "@/lib/listings";
 import type {
   FmpDividend,
   FmpGradesConsensus,
@@ -70,6 +71,8 @@ export function QuoteStats({
   dividend,
   growth,
   earningsDate,
+  nextEarningsDate,
+  earningsSurprise,
   forwardPe,
   dcf,
   marketCapYoy,
@@ -86,6 +89,8 @@ export function QuoteStats({
   dividend: FmpDividend | null;
   growth?: FmpIncomeGrowth | null;
   earningsDate?: string | null;
+  nextEarningsDate?: string | null;
+  earningsSurprise?: number | null;
   forwardPe?: number | null;
   dcf?: number | null;
   marketCapYoy?: number | null;
@@ -111,7 +116,7 @@ export function QuoteStats({
       ? ((target.targetConsensus - quote.price) / quote.price) * 100
       : null;
   const dcfUpside = dcf != null && quote?.price ? ((dcf - quote.price) / quote.price) * 100 : null;
-  const base = `/stocks/${symbol}`;
+  const base = stockPath(symbol);
 
   return (
     <StatGrid
@@ -162,7 +167,14 @@ export function QuoteStats({
               ? `${px(dcf)}${dcfUpside != null ? ` (${dcfUpside > 0 ? "+" : ""}${dcfUpside.toFixed(1)}%)` : ""}`
               : "—",
         },
-        { label: "Earnings Date", value: formatDate(earningsDate) },
+        {
+          label: "Earnings Date",
+          href: `${base}/earnings`,
+          value: withYoy(formatDate(earningsDate), earningsSurprise),
+        },
+        ...(nextEarningsDate
+          ? [{ label: "Next Earnings", href: `${base}/earnings`, value: formatDate(nextEarningsDate) }]
+          : []),
       ]}
     />
   );

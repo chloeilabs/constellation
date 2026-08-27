@@ -6,11 +6,12 @@ import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatInteger, reportingCurrency, yearOverYear } from "@/lib/format";
+import { decodeTicker } from "@/lib/listings";
 import { getHistoricalEmployeeCount, getIncomeTtm } from "@/lib/fmp";
 
 export default async function EmployeesPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const [history, ttm] = await Promise.all([getHistoricalEmployeeCount(ticker, 40), getIncomeTtm(ticker)]);
   const ordered = [...history].sort((a, b) => b.periodOfReport.localeCompare(a.periodOfReport));
   const latest = ordered[0];

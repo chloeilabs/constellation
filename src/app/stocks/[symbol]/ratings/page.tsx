@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { stockPath } from "@/lib/listings";
 
 export default async function RatingsRedirect({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  redirect(`/stocks/${symbol.toUpperCase()}/forecast`);
+  redirect(stockPath(symbol, "/forecast"));
 }

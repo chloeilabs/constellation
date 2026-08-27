@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { formatDate } from "@/lib/format";
 import { getTranscript, getTranscriptDates } from "@/lib/fmp";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
 
 export default async function StockTranscriptsPage({
@@ -15,7 +16,7 @@ export default async function StockTranscriptsPage({
 }) {
   const { symbol } = await params;
   const query = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const dates = await getTranscriptDates(ticker);
   const latest = dates[0];
   const year = Number(query.year) || latest?.fiscalYear;
@@ -36,7 +37,7 @@ export default async function StockTranscriptsPage({
         <>
           <div className="mb-5 flex flex-wrap gap-2">
             {dates.slice(0, 12).map((row) => {
-              const href = `/stocks/${ticker}/transcripts?year=${row.fiscalYear}&quarter=${row.quarter}`;
+              const href = `${stockPath(ticker, "/transcripts")}?year=${row.fiscalYear}&quarter=${row.quarter}`;
               const active = row.fiscalYear === year && row.quarter === quarter;
               return (
                 <Link

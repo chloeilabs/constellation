@@ -17,6 +17,7 @@ import {
   getRatingsHistorical,
 } from "@/lib/fmp";
 import type { FmpHistoricalGrade } from "@/lib/types";
+import { decodeTicker } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
 function GradeMix({ row }: { row: FmpHistoricalGrade }) {
@@ -46,7 +47,7 @@ function GradeMix({ row }: { row: FmpHistoricalGrade }) {
 
 export default async function ForecastPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const [quote, profile, target, grades, history, estimates, earnings, dcf, levered, gradeTrend, ratingTrend, targetSummary] =
     await Promise.all([
       getQuote(ticker),

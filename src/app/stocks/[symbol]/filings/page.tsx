@@ -3,22 +3,18 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { formatDate } from "@/lib/format";
 import { getSecFilings } from "@/lib/fmp";
+import { sortSecFilings } from "@/lib/filings";
+import { decodeTicker } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
-const PRIMARY = new Set(["10-K", "10-Q", "8-K", "10-K/A", "10-Q/A", "8-K/A", "S-1", "S-3", "DEF 14A", "20-F"]);
-
 export default async function StockFilingsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
+  const ticker = decodeTicker(symbol);
   const to = nyDateString();
   const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -540));
   const rows = await getSecFilings(ticker, from, to, 80);
-  const ordered = [...rows].sort((a, b) => {
-    const primary = Number(PRIMARY.has(b.formType)) - Number(PRIMARY.has(a.formType));
-    if (primary !== 0) return primary;
-    return b.filingDate.localeCompare(a.filingDate);
-  });
+  const ordered = sortSecFilings(rows);
 
   return (
     <Container>

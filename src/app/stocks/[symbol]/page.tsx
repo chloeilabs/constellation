@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Container } from "@/components/container";
-import { NewsList } from "@/components/news-list";
 import { PriceChart } from "@/components/price-chart";
+import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
 import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice, formatRatio, reportingCurrency, yearOverYear } from "@/lib/format";
@@ -18,12 +18,15 @@ import {
   getIncomeStatements,
   getIncomeTtm,
   getPeers,
+  getPressReleases,
   getPriceChange,
   getPriceTarget,
   getProfile,
   getQuote,
   getRatiosTtm,
+  getSecFilings,
   getSymbolNews,
+  getTranscriptDates,
   getYearAgoMarketCap,
   withQuoteChanges,
 } from "@/lib/fmp";
@@ -35,7 +38,9 @@ import { QuoteFaq } from "@/components/quote-faq";
 import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
-import { relativeChange } from "@/lib/utils";
+import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
+import { overviewSecFilings } from "@/lib/filings";
+import { addDays, isoDate, nyDateString, relativeChange } from "@/lib/utils";
 import { ttmChange } from "@/lib/statements";
 
 export default async function StockOverviewPage({
@@ -52,7 +57,9 @@ export default async function StockOverviewPage({
     return <IndexQuote ticker={ticker} range={rangeParam} />;
   }
 
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap] =
+  const filingTo = nyDateString();
+  const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -66,12 +73,15 @@ export default async function StockOverviewPage({
       loadQuoteChart(ticker, rangeParam),
       getIncomeStatements(ticker, "annual", 2),
       getIncomeStatements(ticker, "quarter", 8),
-      getCompanyEarnings(ticker, 1),
+      getCompanyEarnings(ticker, 12),
       getEstimates(ticker, "annual"),
       getEtfAssetExposure(ticker),
       getPriceChange(ticker),
       getDcf(ticker),
       getYearAgoMarketCap(ticker),
+      getPressReleases(ticker, 12),
+      getTranscriptDates(ticker),
+      getSecFilings(ticker, filingFrom, filingTo, 40),
     ]);
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
@@ -91,6 +101,9 @@ export default async function StockOverviewPage({
     netIncome: ttmChange(quarterlyRows, "netIncome"),
     eps: ttmChange(quarterlyRows, "epsDiluted") ?? ttmChange(quarterlyRows, "eps"),
   };
+  const { lastReported, next } = splitCompanyEarnings(earnings);
+  const earningsDate = lastReported?.date ?? next?.date ?? null;
+  const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
   const usEtfs = await listedUsEtfHolders(etfHolders);
   const heldByEtfs = [...usEtfs]
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
@@ -154,7 +167,9 @@ export default async function StockOverviewPage({
           target={target}
           grades={grades}
           dividend={dividends[0] ?? null}
-          earningsDate={earnings[0]?.date}
+          earningsDate={earningsDate}
+          nextEarningsDate={nextEarningsDate}
+          earningsSurprise={earningsSurprise(lastReported)}
           forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
           dcf={dcf?.dcf}
           marketCapYoy={marketCapYoy}
@@ -353,15 +368,13 @@ export default async function StockOverviewPage({
         </section>
       ) : null}
 
-      <section className="mt-10">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="text-xl font-semibold text-header">News</h2>
-          <Link href={`/stocks/${ticker}/news`} className="text-sm text-link hover:underline">
-            All news
-          </Link>
-        </div>
-        <NewsList items={news} showSymbol={false} />
-      </section>
+      <QuoteNewsTabs
+        symbol={ticker}
+        news={news}
+        press={press}
+        transcripts={transcriptDates.slice(0, 8)}
+        filings={overviewSecFilings(filings)}
+      />
     </Container>
   );
 }

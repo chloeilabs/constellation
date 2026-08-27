@@ -43,6 +43,7 @@ import {
 import { decodeTicker } from "@/lib/listings";
 import { padCik } from "@/lib/institutional";
 import { relativeChange } from "@/lib/utils";
+import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { ChangePercent } from "@/components/change";
 import Link from "next/link";
 
@@ -93,7 +94,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getIncomeTtm(ticker),
     getCashFlowTtm(ticker),
     getBalanceSheets(ticker, "quarter", 1),
-    getCompanyEarnings(ticker, 1),
+    getCompanyEarnings(ticker, 12),
     getDividends(ticker, 1),
     getSplits(ticker, 5),
     getEmployeeCount(ticker, 1),
@@ -173,6 +174,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     (num(sheet?.totalCurrentAssets) != null && num(sheet?.totalCurrentLiabilities) != null
       ? sheet!.totalCurrentAssets - sheet!.totalCurrentLiabilities
       : null);
+  const { lastReported, next } = splitCompanyEarnings(earnings);
+  const earningsDate = lastReported?.date ?? next?.date ?? null;
+  const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
+  const lastSurprise = earningsSurprise(lastReported);
 
   return (
     <Container>
@@ -200,7 +205,19 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Important Dates</h2>
           <StatGrid
             items={[
-              { label: "Earnings Date", value: formatDate(earnings[0]?.date) },
+              {
+                label: "Earnings Date",
+                href: `/stocks/${ticker}/earnings`,
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {formatDate(earningsDate)}
+                    {lastSurprise != null ? <ChangePercent value={lastSurprise} alreadyPercent={false} className="text-xs" /> : null}
+                  </span>
+                ),
+              },
+              ...(nextEarningsDate
+                ? [{ label: "Next Earnings", href: `/stocks/${ticker}/earnings`, value: formatDate(nextEarningsDate) }]
+                : []),
               { label: "Ex-Dividend Date", href: `/stocks/${ticker}/dividend`, value: formatDate(dividends[0]?.date) },
             ]}
           />
