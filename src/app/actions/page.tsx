@@ -10,7 +10,14 @@ export default async function ActionsPage() {
   const today = nyDateString();
   const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -21));
   const to = isoDate(addDays(new Date(`${today}T00:00:00Z`), 21));
-  const [mergers, splits] = await Promise.all([getLatestMergers(60), getSplitsCalendar(from, to)]);
+  const [mergersRaw, splits] = await Promise.all([getLatestMergers(60), getSplitsCalendar(from, to)]);
+  const seen = new Set<string>();
+  const mergers = mergersRaw.filter((row) => {
+    const key = `${row.symbol}|${row.targetedSymbol}|${row.transactionDate}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   const usSplits = splits.filter((row) => !isForeignListingSymbol(row.symbol)).slice(0, 80);
 
   return (

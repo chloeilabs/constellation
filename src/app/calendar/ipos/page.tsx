@@ -129,6 +129,7 @@ export default async function IpoCalendarPage() {
         </div>
       </section>
 
+      {registrations.length > 0 ? (
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Registration Statements</h2>
         <p className="mb-3 text-sm text-muted">S-1 and F-1 filings from the last three weeks.</p>
@@ -144,14 +145,7 @@ export default async function IpoCalendarPage() {
               </tr>
             </thead>
             <tbody>
-              {registrations.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-muted">
-                    No S-1 or F-1 filings in this window.
-                  </td>
-                </tr>
-              ) : (
-                registrations.map((row) => (
+              {registrations.map((row) => (
                   <tr key={`${row.symbol}-${row.filingDate}-${row.form}-${row.cik}`}>
                     <td>{formatDate(row.filingDate)}</td>
                     <td className="symbol">
@@ -175,12 +169,12 @@ export default async function IpoCalendarPage() {
                       )}
                     </td>
                   </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
       </section>
+      ) : null}
     </Container>
   );
 }
