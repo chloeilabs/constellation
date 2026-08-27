@@ -49,9 +49,9 @@ export async function getChartMovingAverages(symbol: string, range: ChartRange) 
     return { ma50: [] as ChartPoint[], ma200: [] as ChartPoint[] };
   }
   const chartFrom = fromDateForRange(range);
-  const smaFrom = chartFrom
-    ? isoDate(addDays(new Date(`${chartFrom}T00:00:00Z`), -280))
-    : isoDate(addDays(new Date(), -400));
+  const today = new Date(`${nyDateString()}T00:00:00Z`);
+  // SMA(200) needs ~200 trading sessions of history before the first visible bar.
+  const smaFrom = isoDate(addDays(chartFrom ? new Date(`${chartFrom}T00:00:00Z`) : today, -420));
   const [sma50, sma200] = await Promise.all([
     getTechnicalSeries(symbol, "sma", 50, smaFrom),
     getTechnicalSeries(symbol, "sma", 200, smaFrom),

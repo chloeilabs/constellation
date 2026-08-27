@@ -9,6 +9,8 @@ export function defaultChartRange(): ChartRange {
 }
 
 export function resolveChartRange(param?: string | null): ChartRange {
-  if (param && CHART_RANGES.includes(param as ChartRange)) return param as ChartRange;
+  const normalized = param?.trim().toUpperCase();
+  if (normalized === "YTD") return "YTD";
+  if (normalized && CHART_RANGES.includes(normalized as ChartRange)) return normalized as ChartRange;
   return defaultChartRange();
 }
