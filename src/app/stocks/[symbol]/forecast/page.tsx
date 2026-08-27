@@ -209,6 +209,65 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
       ) : null}
 
       <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Annual Estimates</h2>
+        <EstimateTable rows={[...estimates].sort((a, b) => a.date.localeCompare(b.date))} money={money} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Quarterly Estimates</h2>
+        <EstimateTable
+          rows={[...quarterlyEstimates].sort((a, b) => a.date.localeCompare(b.date))}
+          money={money}
+        />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Price Target News</h2>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Firm</th>
+                <th>Analyst</th>
+                <th className="num">Target</th>
+                <th className="num">Price Then</th>
+                <th>Headline</th>
+              </tr>
+            </thead>
+            <tbody>
+              {targetNews.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-muted">
+                    No price-target articles available.
+                  </td>
+                </tr>
+              ) : (
+                targetNews.map((row, index) => (
+                  <tr key={`${row.publishedDate}-${row.analystCompany}-${index}`}>
+                    <td>{formatDate(row.publishedDate)}</td>
+                    <td>{row.analystCompany || row.newsPublisher || "—"}</td>
+                    <td>{row.analystName || "—"}</td>
+                    <td className="num">{px(row.adjPriceTarget ?? row.priceTarget)}</td>
+                    <td className="num">{px(row.priceWhenPosted)}</td>
+                    <td>
+                      {row.newsURL ? (
+                        <a href={row.newsURL} className="text-link hover:underline" target="_blank" rel="noreferrer">
+                          {row.newsTitle}
+                        </a>
+                      ) : (
+                        row.newsTitle
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Discounted Cash Flow</h2>
         <MetricCards
           items={[
@@ -256,7 +315,7 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
                   </td>
                 </tr>
               ) : (
-                history.map((row, index) => (
+                history.slice(0, 16).map((row, index) => (
                   <tr key={`${row.date}-${row.gradingCompany}-${index}`}>
                     <td>{formatDate(row.date)}</td>
                     <td>{row.gradingCompany}</td>
@@ -349,65 +408,6 @@ export default async function ForecastPage({ params }: { params: Promise<{ symbo
                     <td className="num">{row.debtToEquityScore}</td>
                     <td className="num">{row.priceToEarningsScore}</td>
                     <td className="num">{row.priceToBookScore}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Annual Estimates</h2>
-        <EstimateTable rows={[...estimates].sort((a, b) => a.date.localeCompare(b.date))} money={money} />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Quarterly Estimates</h2>
-        <EstimateTable
-          rows={[...quarterlyEstimates].sort((a, b) => a.date.localeCompare(b.date))}
-          money={money}
-        />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Price Target News</h2>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="sa-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Firm</th>
-                <th>Analyst</th>
-                <th className="num">Target</th>
-                <th className="num">Price Then</th>
-                <th>Headline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {targetNews.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-muted">
-                    No price-target articles available.
-                  </td>
-                </tr>
-              ) : (
-                targetNews.map((row, index) => (
-                  <tr key={`${row.publishedDate}-${row.analystCompany}-${index}`}>
-                    <td>{formatDate(row.publishedDate)}</td>
-                    <td>{row.analystCompany || row.newsPublisher || "—"}</td>
-                    <td>{row.analystName || "—"}</td>
-                    <td className="num">{px(row.adjPriceTarget ?? row.priceTarget)}</td>
-                    <td className="num">{px(row.priceWhenPosted)}</td>
-                    <td>
-                      {row.newsURL ? (
-                        <a href={row.newsURL} className="text-link hover:underline" target="_blank" rel="noreferrer">
-                          {row.newsTitle}
-                        </a>
-                      ) : (
-                        row.newsTitle
-                      )}
-                    </td>
                   </tr>
                 ))
               )}
