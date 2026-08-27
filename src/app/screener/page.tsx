@@ -27,14 +27,20 @@ export default async function ScreenerPage({
     industry?: string;
     country?: string;
     exchange?: string;
+    type?: string;
     minCap?: string;
     minPrice?: string;
+    minBeta?: string;
+    minVolume?: string;
+    minYield?: string;
     page?: string;
   }>;
 }) {
   const params = await searchParams;
   const page = Number(params.page ?? 0) || 0;
   const country = params.country || "US";
+  const type = params.type || "stock";
+  const minYield = params.minYield ? Number(params.minYield) / 100 : null;
   const filters = {
     country,
     sector: params.sector,
@@ -42,6 +48,9 @@ export default async function ScreenerPage({
     exchange: params.exchange,
     marketCapMoreThan: params.minCap ? Number(params.minCap) * 1e9 : undefined,
     priceMoreThan: params.minPrice ? Number(params.minPrice) : undefined,
+    betaMoreThan: params.minBeta ? Number(params.minBeta) : undefined,
+    volumeMoreThan: params.minVolume ? Number(params.minVolume) : undefined,
+    ...(type === "etf" ? { isEtf: true, isFund: false } : type === "all" ? { isEtf: undefined } : { isEtf: false }),
   };
   const [rows, sectors, industries] = await Promise.all([
     getScreener(filters, { page, limit: country === "US" && !params.exchange ? 100 : 50 }),
@@ -49,16 +58,25 @@ export default async function ScreenerPage({
     getIndustryNames(),
   ]);
   const sectorOptions = sectors.length ? sectors : SECTOR_FALLBACK;
-  const sorted = preferPrimaryListings(rows).slice(0, 50);
+  let selected = preferPrimaryListings(rows);
+  if (minYield != null && Number.isFinite(minYield) && minYield > 0) {
+    selected = selected.filter((row) => {
+      const price = row.price;
+      const dividend = row.lastAnnualDividend;
+      return price > 0 && dividend > 0 && dividend / price >= minYield;
+    });
+  }
+  const sorted = selected.slice(0, 50);
   const withChanges = await withQuoteChanges(sorted);
+  const query = Object.fromEntries(Object.entries(params).filter(([, value]) => value)) as Record<string, string>;
 
   return (
     <Container>
       <PageHeader
         title="Stock Screener"
-        description="Filter stocks by country, sector, industry, market cap, and price using FMP data."
+        description="Filter stocks and ETFs by country, sector, market cap, beta, volume, and dividend yield using live FMP data."
       />
-      <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <label className="text-sm">
           <span className="mb-1 block text-muted">Country</span>
           <select name="country" defaultValue={country} className="h-9 w-full rounded-md border border-border bg-white px-2">
@@ -67,6 +85,14 @@ export default async function ScreenerPage({
             <option value="GB">United Kingdom</option>
             <option value="JP">Japan</option>
             <option value="DE">Germany</option>
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Type</span>
+          <select name="type" defaultValue={type} className="h-9 w-full rounded-md border border-border bg-white px-2">
+            <option value="stock">Stocks</option>
+            <option value="etf">ETFs</option>
+            <option value="all">Stocks & ETFs</option>
           </select>
         </label>
         <label className="text-sm">
@@ -122,15 +148,50 @@ export default async function ScreenerPage({
             className="h-9 w-full rounded-md border border-border bg-white px-2"
           />
         </label>
-        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-6">
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Min beta</span>
+          <input
+            name="minBeta"
+            type="number"
+            min="0"
+            step="0.1"
+            defaultValue={params.minBeta ?? ""}
+            className="h-9 w-full rounded-md border border-border bg-white px-2"
+          />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Min volume</span>
+          <input
+            name="minVolume"
+            type="number"
+            min="0"
+            step="1000"
+            defaultValue={params.minVolume ?? ""}
+            className="h-9 w-full rounded-md border border-border bg-white px-2"
+          />
+        </label>
+        <label className="text-sm">
+          <span className="mb-1 block text-muted">Min yield (%)</span>
+          <input
+            name="minYield"
+            type="number"
+            min="0"
+            step="0.1"
+            defaultValue={params.minYield ?? ""}
+            className="h-9 w-full rounded-md border border-border bg-white px-2"
+          />
+        </label>
+        <div className="flex items-end sm:col-span-2 lg:col-span-3 xl:col-span-2">
           <button type="submit" className="rounded-md bg-header px-4 py-2 text-sm font-medium text-white">
             Apply filters
           </button>
         </div>
       </form>
-      <p className="mb-3 text-sm text-muted">{withChanges.length} stocks on this page</p>
+      <p className="mb-3 text-sm text-muted">{withChanges.length} results on this page</p>
       <SymbolTable
-        empty="No stocks matched these filters."
+        empty="No securities matched these filters."
+        hrefBase={type === "etf" ? "/etf" : "/stocks"}
+        showYield={minYield != null && minYield > 0}
         rows={withChanges.map((row) => ({
           symbol: row.symbol,
           name: row.companyName,
@@ -139,12 +200,13 @@ export default async function ScreenerPage({
           changePercentage: row.changePercentage,
           industry: row.industry,
           volume: row.volume,
+          dividendYield: row.price && row.lastAnnualDividend ? row.lastAnnualDividend / row.price : null,
         }))}
       />
       <div className="mt-4 flex gap-3 text-sm">
         {page > 0 ? (
           <Link
-            href={`/screener?${new URLSearchParams({ ...params, page: String(page - 1) } as Record<string, string>)}`}
+            href={`/screener?${new URLSearchParams({ ...query, page: String(page - 1) })}`}
             className="text-link hover:underline"
           >
             Previous
@@ -152,7 +214,7 @@ export default async function ScreenerPage({
         ) : null}
         {sorted.length >= 50 ? (
           <Link
-            href={`/screener?${new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, v]) => v)), page: String(page + 1) })}`}
+            href={`/screener?${new URLSearchParams({ ...query, page: String(page + 1) })}`}
             className="text-link hover:underline"
           >
             Next

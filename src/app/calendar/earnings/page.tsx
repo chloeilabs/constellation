@@ -5,6 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { CALENDAR_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { getEarningsCalendar } from "@/lib/fmp";
+import { quoteHref } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function EarningsCalendarPage({
@@ -62,7 +63,7 @@ export default async function EarningsCalendarPage({
                 <tr key={`${row.symbol}-${row.date}`}>
                   <td>{formatDate(row.date)}</td>
                   <td className="symbol">
-                    <Link href={`/stocks/${row.symbol}`} className="text-link hover:underline">
+                    <Link href={quoteHref(row.symbol)} className="text-link hover:underline">
                       {row.symbol}
                     </Link>
                   </td>

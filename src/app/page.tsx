@@ -5,9 +5,11 @@ import { MoversTable } from "@/components/movers-table";
 import { NewsList } from "@/components/news-list";
 import { Container } from "@/components/container";
 import { PopularStocks } from "@/components/popular-stocks";
+import { SectorStrip } from "@/components/sector-strip";
 import { Toolkit } from "@/components/toolkit";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import {
+  getEarningsCalendar,
   getGainers,
   getIndexQuotes,
   getIpos,
@@ -15,11 +17,24 @@ import {
   getMarketHours,
   getMostActive,
   getQuotes,
+  getSectorPerformance,
   getStockNews,
   POPULAR_SYMBOLS,
 } from "@/lib/fmp";
+import { isForeignListingSymbol, quoteHref } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
-import type { FmpIpo } from "@/lib/types";
+import type { FmpEarnings, FmpIpo } from "@/lib/types";
+
+const MARKET_LINKS = [
+  ["/markets/premarket", "Premarket"],
+  ["/markets/afterhours", "After Hours"],
+  ["/markets/heatmap", "Heatmap"],
+  ["/markets/sectors", "Sectors"],
+  ["/markets/treasury", "Treasury"],
+  ["/list/magnificent-seven", "Mag 7"],
+  ["/list/dividend-aristocrats", "Aristocrats"],
+  ["/list/52-week-high", "52-Week High"],
+] as const;
 
 function IpoTable({ title, rows }: { title: string; rows: FmpIpo[] }) {
   return (
@@ -65,24 +80,76 @@ function IpoTable({ title, rows }: { title: string; rows: FmpIpo[] }) {
   );
 }
 
+function EarningsTable({ rows }: { rows: FmpEarnings[] }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between">
+        <h2 className="text-xl font-semibold text-header">Today&apos;s Earnings</h2>
+        <Link href="/calendar/earnings" className="text-sm text-link hover:underline">
+          Calendar
+        </Link>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th className="num">EPS Est.</th>
+              <th className="num">EPS Act.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="text-muted">
+                  No earnings scheduled today.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={row.symbol}>
+                  <td className="symbol">
+                    <Link href={quoteHref(row.symbol)} className="text-link hover:underline">
+                      {row.symbol}
+                    </Link>
+                  </td>
+                  <td className="num">{formatPrice(row.epsEstimated)}</td>
+                  <td className="num">{formatPrice(row.epsActual)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   const today = new Date(`${nyDateString()}T00:00:00Z`);
   const from = isoDate(addDays(today, -30));
   const to = isoDate(addDays(today, 30));
-  const [indexes, gainers, losers, news, ipos, hours, popular, actives] = await Promise.all([
-    getIndexQuotes(),
-    getGainers(),
-    getLosers(),
-    getStockNews(20),
-    getIpos(from, to),
-    getMarketHours("NASDAQ"),
-    getQuotes([...POPULAR_SYMBOLS]),
-    getMostActive(),
-  ]);
-
   const todayStr = nyDateString();
+  const yesterday = isoDate(addDays(today, -1));
+  const [indexes, gainers, losers, news, ipos, hours, popular, actives, sectorsToday, sectorsYesterday, earnings] =
+    await Promise.all([
+      getIndexQuotes(),
+      getGainers(),
+      getLosers(),
+      getStockNews(20),
+      getIpos(from, to),
+      getMarketHours("NASDAQ"),
+      getQuotes([...POPULAR_SYMBOLS]),
+      getMostActive(),
+      getSectorPerformance(todayStr),
+      getSectorPerformance(yesterday),
+      getEarningsCalendar(todayStr, todayStr),
+    ]);
+
   const recentIpos = ipos.filter((ipo) => ipo.date <= todayStr).slice(0, 8);
   const upcomingIpos = ipos.filter((ipo) => ipo.date > todayStr).slice(0, 8);
+  const sectors = sectorsToday.length ? sectorsToday : sectorsYesterday;
+  const todaysEarnings = earnings.filter((row) => !isForeignListingSymbol(row.symbol)).slice(0, 10);
 
   return (
     <>
@@ -104,7 +171,10 @@ export default async function HomePage() {
               Trending:{" "}
               {actives.slice(0, 4).map((row, index) => (
                 <span key={row.symbol}>
-                  <Link href={`/stocks/${row.symbol}`} className="font-semibold text-header hover:text-brand">
+                  <Link
+                    href={quoteHref(row.symbol, { name: row.name, exchange: row.exchange })}
+                    className="font-semibold text-header hover:text-brand"
+                  >
                     {row.symbol}
                   </Link>
                   {index < 3 ? ", " : " "}
@@ -119,7 +189,19 @@ export default async function HomePage() {
         </div>
       </section>
       <Container>
-        <div className="grid gap-8 lg:grid-cols-2">
+        <nav className="mb-8 flex flex-wrap gap-2">
+          {MARKET_LINKS.map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-full border border-border bg-white px-3 py-1.5 text-sm font-medium text-header hover:border-border-strong hover:bg-muted-bg"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+        <SectorStrip rows={sectors} />
+        <div className="mt-12 grid gap-8 lg:grid-cols-2">
           <MoversTable title="Top Gainers" href="/markets/gainers" rows={gainers.slice(0, 10)} />
           <MoversTable title="Top Losers" href="/markets/losers" rows={losers.slice(0, 10)} />
         </div>
@@ -137,6 +219,7 @@ export default async function HomePage() {
             <NewsList items={news.slice(0, 12)} />
           </section>
           <div className="space-y-8">
+            <EarningsTable rows={todaysEarnings} />
             <IpoTable title="Recent IPOs" rows={recentIpos} />
             <IpoTable title="Upcoming IPOs" rows={upcomingIpos} />
             <p className="text-sm">

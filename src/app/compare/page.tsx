@@ -5,6 +5,7 @@ import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { getProfilesAndQuotes } from "@/lib/compare";
 import { industrySlug } from "@/lib/industries";
+import { quoteHref } from "@/lib/listings";
 
 export default async function ComparePage({
   searchParams,
@@ -45,7 +46,10 @@ export default async function ComparePage({
               <th>Metric</th>
               {rows.map((row) => (
                 <th key={row.symbol} className="num">
-                  <Link href={`/stocks/${row.symbol}`} className="text-link hover:underline">
+                  <Link
+                    href={quoteHref(row.symbol, { name: row.quote?.name ?? row.profile?.companyName, isEtf: row.profile?.isEtf })}
+                    className="text-link hover:underline"
+                  >
                     {row.symbol}
                   </Link>
                 </th>
@@ -102,6 +106,14 @@ export default async function ComparePage({
               ))}
             </tr>
             <tr>
+              <td>Free Cash Flow (ttm)</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatCompactUsd(row.cash?.freeCashFlow)}
+                </td>
+              ))}
+            </tr>
+            <tr>
               <td>EPS (ttm)</td>
               {rows.map((row) => (
                 <td key={row.symbol} className="num">
@@ -116,6 +128,42 @@ export default async function ComparePage({
               {rows.map((row) => (
                 <td key={row.symbol} className="num">
                   {formatRatio(row.ratios?.priceToEarningsRatioTTM)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>PS Ratio</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatRatio(row.ratios?.priceToSalesRatioTTM)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>PB Ratio</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatRatio(row.ratios?.priceToBookRatioTTM)}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>ROE</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatPercentPlain(
+                    typeof row.metrics?.returnOnEquityTTM === "number" ? row.metrics.returnOnEquityTTM : null,
+                  )}
+                </td>
+              ))}
+            </tr>
+            <tr>
+              <td>Dividend Yield</td>
+              {rows.map((row) => (
+                <td key={row.symbol} className="num">
+                  {formatPercentPlain(
+                    typeof row.ratios?.dividendYieldTTM === "number" ? row.ratios.dividendYieldTTM : null,
+                  )}
                 </td>
               ))}
             </tr>

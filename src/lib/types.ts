@@ -548,6 +548,22 @@ export type FmpInsiderTrade = {
   url: string;
 };
 
+export type FmpInsiderStatistics = {
+  symbol: string;
+  cik: string;
+  year: number;
+  quarter: number;
+  acquiredTransactions: number;
+  disposedTransactions: number;
+  acquiredDisposedRatio: number;
+  totalAcquired: number;
+  totalDisposed: number;
+  averageAcquired: number;
+  averageDisposed: number;
+  totalPurchases: number;
+  totalSales: number;
+};
+
 export type FmpSplit = {
   symbol: string;
   date: string;

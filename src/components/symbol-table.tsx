@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
 import { industrySlug } from "@/lib/industries";
+import { quoteHref } from "@/lib/listings";
 
 export type SymbolTableRow = {
   symbol: string;
@@ -64,7 +65,10 @@ export function SymbolTable({
             rows.map((row) => (
               <tr key={row.symbol}>
                 <td className="symbol">
-                  <Link href={`${hrefBase}/${row.symbol}`} className="text-link hover:underline">
+                  <Link
+                    href={quoteHref(row.symbol, { name: row.name, isEtf: hrefBase === "/etf" })}
+                    className="text-link hover:underline"
+                  >
                     {row.symbol}
                   </Link>
                 </td>

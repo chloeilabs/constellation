@@ -10,6 +10,7 @@ export const MARKET_NAV: NavItem[] = [
   { href: "/markets/losers", label: "Losers" },
   { href: "/markets/active", label: "Most Active" },
   { href: "/markets/sectors", label: "Sectors" },
+  { href: "/markets/treasury", label: "Treasury" },
   { href: "/markets/commodities", label: "Commodities" },
   { href: "/markets/crypto", label: "Crypto" },
   { href: "/markets/forex", label: "Forex" },
@@ -62,6 +63,11 @@ export const NEWS_NAV: NavItem[] = [
 
 export const ETF_NAV: NavItem[] = [
   { href: "/etf", label: "Largest ETFs" },
+  { href: "/list/vanguard-etfs", label: "Vanguard" },
+  { href: "/list/ishares-etfs", label: "iShares" },
+  { href: "/list/spdr-etfs", label: "SPDR" },
+  { href: "/list/invesco-etfs", label: "Invesco" },
+  { href: "/list/schwab-etfs", label: "Schwab" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
   { href: "/list/bond-etfs", label: "Bond ETFs" },
   { href: "/list/income-etfs", label: "Equity Income" },

@@ -27,6 +27,7 @@ import type {
   FmpIncomeStatement,
   FmpIndexConstituent,
   FmpInsiderTrade,
+  FmpInsiderStatistics,
   FmpIntradayCandle,
   FmpIpo,
   FmpKeyMetricsTtm,
@@ -747,6 +748,14 @@ export function getInsiderTrades(symbol: string, limit = 50) {
     "/insider-trading/search",
     { symbol: symbol.toUpperCase(), page: 0, limit },
     { revalidate: 300 },
+  );
+}
+
+export function getInsiderStatistics(symbol: string) {
+  return fmpList<FmpInsiderStatistics>(
+    "/insider-trading/statistics",
+    { symbol: symbol.toUpperCase() },
+    { revalidate: 3600 },
   );
 }
 

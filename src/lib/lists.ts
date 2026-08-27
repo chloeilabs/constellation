@@ -65,7 +65,33 @@ type SymbolsList = {
   symbols: readonly string[];
 };
 
-type StockList = ScreenerList | ConstituentList | CalendarList | OldestList | OtcList | ForeignList | SymbolsList;
+type EtfIssuerList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "etf-issuer";
+  namePattern: string;
+  hrefBase: "/etf";
+};
+
+type WeekRangeList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "week-range";
+  direction: "high" | "low";
+};
+
+type StockList =
+  | ScreenerList
+  | ConstituentList
+  | CalendarList
+  | OldestList
+  | OtcList
+  | ForeignList
+  | SymbolsList
+  | EtfIssuerList
+  | WeekRangeList;
 
 export const STOCK_LISTS = {
   "sp-500-stocks": {
@@ -289,6 +315,87 @@ export const STOCK_LISTS = {
     source: "symbols",
     symbols: ["NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA"],
   },
+  "52-week-high": {
+    title: "52-Week Highs",
+    description: "U.S. stocks trading closest to their 52-week high, from live FMP quotes.",
+    category: "popular",
+    source: "week-range",
+    direction: "high",
+  },
+  "52-week-low": {
+    title: "52-Week Lows",
+    description: "U.S. stocks trading closest to their 52-week low, from live FMP quotes.",
+    category: "popular",
+    source: "week-range",
+    direction: "low",
+  },
+  "dividend-aristocrats": {
+    title: "Dividend Aristocrats",
+    description: "S&P 500 companies known for 25+ years of dividend increases, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: [
+      "AOS", "ABT", "ABBV", "AFL", "APD", "ALB", "AMCR", "ADM", "ATO", "ADP",
+      "BDX", "BRO", "BF.B", "CAH", "CAT", "CHRW", "CVX", "CINF", "CTAS", "CLX",
+      "KO", "CL", "ED", "DOV", "ECL", "EMR", "ESS", "EXPD", "XOM", "FAST",
+      "FRT", "BEN", "GD", "GPC", "HRL", "ITW", "IBM", "SJM", "JNJ", "KVUE",
+      "KMB", "LIN", "LOW", "MKC", "MCD", "MDT", "NUE", "NDSN", "NEE", "O",
+      "PEP", "PNR", "PPG", "PG", "ROP", "SPGI", "SHW", "SWK", "SYY", "TROW",
+      "TGT", "WMT", "GWW", "WST", "CHD",
+    ],
+  },
+  "dividend-kings": {
+    title: "Dividend Kings",
+    description: "U.S. companies known for 50+ years of dividend increases, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: [
+      "KO", "JNJ", "PG", "MMM", "EMR", "GPC", "CINF", "SWK", "DOV", "ITW",
+      "PPG", "CL", "HRL", "FRT", "ED", "LOW", "ABT", "KMB", "PEP", "TGT",
+      "WMT", "SYY", "GWW", "ADP", "NUE", "APD", "PH", "NDSN", "SJM", "CLX",
+      "MO", "BDX", "AFL", "CBSH", "FUL", "MSA", "NJR", "UGI", "CWT", "AWR",
+    ],
+  },
+  "vanguard-etfs": {
+    title: "Vanguard ETFs",
+    description: "The largest U.S. Vanguard ETFs, ranked by market value from the FMP screener.",
+    category: "etf",
+    source: "etf-issuer",
+    namePattern: "vanguard",
+    hrefBase: "/etf",
+  },
+  "ishares-etfs": {
+    title: "iShares ETFs",
+    description: "The largest U.S. iShares ETFs, ranked by market value from the FMP screener.",
+    category: "etf",
+    source: "etf-issuer",
+    namePattern: "ishares",
+    hrefBase: "/etf",
+  },
+  "spdr-etfs": {
+    title: "SPDR ETFs",
+    description: "The largest U.S. State Street SPDR ETFs, ranked by market value from the FMP screener.",
+    category: "etf",
+    source: "etf-issuer",
+    namePattern: "spdr|state street",
+    hrefBase: "/etf",
+  },
+  "invesco-etfs": {
+    title: "Invesco ETFs",
+    description: "The largest U.S. Invesco ETFs, ranked by market value from the FMP screener.",
+    category: "etf",
+    source: "etf-issuer",
+    namePattern: "invesco",
+    hrefBase: "/etf",
+  },
+  "schwab-etfs": {
+    title: "Schwab ETFs",
+    description: "The largest U.S. Charles Schwab ETFs, ranked by market value from the FMP screener.",
+    category: "etf",
+    source: "etf-issuer",
+    namePattern: "schwab",
+    hrefBase: "/etf",
+  },
   "tsx-stocks": {
     title: "Toronto Stock Exchange",
     description: "The largest Canadian companies listed on the TSX.",
@@ -366,10 +473,13 @@ export const LIST_NAV = [
   { href: "/list/oldest-companies", label: "Oldest" },
   { href: "/list/foreign-stocks", label: "Foreign" },
   { href: "/list/highest-dividend", label: "Dividends" },
+  { href: "/list/dividend-aristocrats", label: "Aristocrats" },
+  { href: "/list/dividend-kings", label: "Kings" },
   { href: "/list/monthly-dividend-stocks", label: "Monthly Dividends" },
   { href: "/list/penny-stocks", label: "Penny Stocks" },
   { href: "/list/high-beta-stocks", label: "High Beta" },
   { href: "/list/magnificent-seven", label: "Mag 7" },
+  { href: "/list/52-week-high", label: "52-Week High" },
   { href: "/list/highest-volume", label: "Volume" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
 ];
@@ -411,19 +521,15 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
   }
 
   if (list.source === "symbols") {
-    const quotes = await getQuotes([...list.symbols]);
-    const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
-    return list.symbols.map((symbol) => {
-      const quote = bySymbol.get(symbol);
-      return {
-        symbol,
-        name: quote?.name || symbol,
-        marketCap: quote?.marketCap ?? null,
-        price: quote?.price ?? null,
-        changePercentage: quote?.changePercentage ?? null,
-        volume: quote?.volume ?? null,
-      };
-    });
+    return loadSymbolsList(list.symbols);
+  }
+
+  if (list.source === "week-range") {
+    return loadWeekRangeList(list.direction);
+  }
+
+  if (list.source === "etf-issuer") {
+    return loadEtfIssuerList(list.namePattern);
   }
 
   if (list.source === "oldest") {
@@ -491,6 +597,91 @@ async function toScreenerRows(raw: FmpScreenerRow[]): Promise<SymbolTableRow[]> 
       dividendYield,
     };
   });
+}
+
+async function loadSymbolsList(symbols: readonly string[]): Promise<SymbolTableRow[]> {
+  const [quotes, screener] = await Promise.all([
+    getQuotes([...symbols]),
+    getScreener({ country: "US" }, { limit: 1000 }),
+  ]);
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const meta = new Map(screener.map((row) => [row.symbol, row]));
+  return symbols
+    .map((symbol) => {
+      const quote = bySymbol.get(symbol);
+      const row = meta.get(symbol);
+      const price = quote?.price ?? row?.price ?? null;
+      const dividend = row?.lastAnnualDividend;
+      return {
+        symbol,
+        name: quote?.name || row?.companyName || symbol,
+        industry: row?.industry,
+        marketCap: quote?.marketCap ?? row?.marketCap ?? null,
+        price,
+        changePercentage: quote?.changePercentage ?? null,
+        volume: quote?.volume ?? row?.volume ?? null,
+        dividendYield: price && dividend ? dividend / price : null,
+        country: row?.country,
+      };
+    })
+    .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+}
+
+async function loadWeekRangeList(direction: "high" | "low"): Promise<SymbolTableRow[]> {
+  const raw = await getScreener(
+    { country: "US", marketCapMoreThan: 1_000_000_000, volumeMoreThan: 200_000 },
+    { limit: 200 },
+  );
+  const selected = preferPrimaryListings(raw);
+  const quotes = await getQuotes(selected.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const scored = selected.flatMap((row) => {
+    const quote = bySymbol.get(row.symbol);
+    const price = quote?.price ?? row.price;
+    const yearHigh = quote?.yearHigh;
+    const yearLow = quote?.yearLow;
+    if (!price || price <= 0) return [];
+    const proximity =
+      direction === "high"
+        ? yearHigh && yearHigh > 0
+          ? price / yearHigh
+          : null
+        : yearLow && yearLow > 0
+          ? price / yearLow
+          : null;
+    if (proximity == null) return [];
+    if (direction === "high" && proximity < 0.97) return [];
+    if (direction === "low" && (price <= 1 || proximity > 1.08)) return [];
+    const dividend = row.lastAnnualDividend;
+    return [
+      {
+        proximity,
+        row: {
+          symbol: row.symbol,
+          name: row.companyName,
+          industry: row.industry,
+          marketCap: quote?.marketCap ?? row.marketCap,
+          price,
+          changePercentage: quote?.changePercentage,
+          volume: quote?.volume ?? row.volume,
+          dividendYield: dividend ? dividend / price : null,
+        } satisfies SymbolTableRow,
+      },
+    ];
+  });
+  scored.sort((a, b) => (direction === "high" ? b.proximity - a.proximity : a.proximity - b.proximity));
+  return scored.slice(0, 100).map((item) => item.row);
+}
+
+async function loadEtfIssuerList(namePattern: string): Promise<SymbolTableRow[]> {
+  const matcher = new RegExp(namePattern, "i");
+  const raw = await getScreener({ isEtf: true, isFund: false, country: "US" }, { limit: 200 });
+  const selected = preferPrimaryListings(raw).filter((row) => matcher.test(row.companyName || ""));
+  const rows = await toScreenerRows(selected);
+  return rows
+    .filter((row) => (row.marketCap ?? 0) > 0)
+    .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
+    .slice(0, 50);
 }
 
 async function loadOldestSp500(): Promise<SymbolTableRow[]> {
