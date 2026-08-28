@@ -1,10 +1,10 @@
 import { yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getCashFlows, getCashFlowTtm, getDailyChart, getIncomeStatements, getIncomeTtm, getQuote } from "@/lib/fmp";
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
-import { derivedBalanceMetrics, derivedEfficiencyMetrics, derivedStatementMetrics } from "@/lib/statements";
+import { derivedBalanceMetrics, derivedEfficiencyMetrics, derivedQualityMetrics, derivedStatementMetrics } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 import { addDays, cashAndInvestments, isoDate, nyDateString } from "@/lib/utils";
-import { derivedValuationMetrics, marketCapFromPrice } from "@/lib/valuation";
+import { altmanZScore, derivedValuationMetrics, marketCapFromPrice } from "@/lib/valuation";
 
 function finite(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -28,6 +28,7 @@ function matchStatement<T extends { date?: string; fiscalYear?: string | number 
 export function valuationFromFilings(input: {
   price?: number | null;
   marketCap?: number | null;
+  shares?: number | null;
   income?: Record<string, unknown> | null;
   cash?: Record<string, unknown> | null;
   balance?: Record<string, unknown> | null;
@@ -49,25 +50,27 @@ export function valuationFromFilings(input: {
       finite(cash.netCashProvidedByOperatingActivities),
   };
   const derivedIncome = derivedStatementMetrics(mergedIncome);
+  const shares =
+    finite(input.shares) ?? finite(mergedIncome.weightedAverageShsOutDil) ?? finite(income.weightedAverageShsOut);
   const balance: Record<string, unknown> = {
     ...mergedIncome,
     ...(input.balance ?? {}),
   };
   const derivedBalance = derivedBalanceMetrics({
     ...balance,
-    weightedAverageShsOutDil: finite(balance.weightedAverageShsOutDil) ?? finite(mergedIncome.weightedAverageShsOutDil),
+    weightedAverageShsOutDil: shares ?? finite(balance.weightedAverageShsOutDil),
   });
   const price = finite(input.price);
-  const shares = finite(mergedIncome.weightedAverageShsOutDil) ?? finite(balance.weightedAverageShsOutDil);
   const efficiency = derivedEfficiencyMetrics({
     income: { ...mergedIncome, ebit: derivedIncome.ebit, ebitda: derivedIncome.ebitda },
     balance,
     priorBalance: input.priorBalance,
     daysInPeriod: input.daysInPeriod,
   });
+  const marketCap = finite(input.marketCap) ?? marketCapFromPrice(price, shares);
   const derived = derivedValuationMetrics({
     price,
-    marketCap: finite(input.marketCap) ?? marketCapFromPrice(price, shares),
+    marketCap,
     equity: finite(balance.totalStockholdersEquity),
     tangibleEquity: derivedBalance.tangibleBookValue,
     bookPerShare: derivedBalance.bookValuePerShare,
@@ -85,9 +88,23 @@ export function valuationFromFilings(input: {
     nextEps: input.nextEps,
     epsCagr: input.epsCagr,
   });
+  const quality = derivedQualityMetrics({
+    income: { ...mergedIncome, ebit: derivedIncome.ebit, ebitda: derivedIncome.ebitda },
+    cash,
+    balance,
+    shares,
+    bookPerShare: derivedBalance.bookValuePerShare,
+    daysOfSalesOutstanding: efficiency.daysOfSalesOutstanding,
+    daysOfInventoryOutstanding: efficiency.daysOfInventoryOutstanding,
+  });
   return {
     ...derived,
     ...efficiency,
+    ...quality,
+    workingCapital: derivedBalance.workingCapital,
+    bookValuePerShare: derivedBalance.bookValuePerShare,
+    tangibleBookValue: derivedBalance.tangibleBookValue,
+    tangibleBookValuePerShare: derivedBalance.tangibleBookValuePerShare,
     totalDebt: finite(balance.totalDebt),
     netCash: derivedBalance.netCashPosition,
     cashAndInvestments: cashAndInvestments({
@@ -95,6 +112,17 @@ export function valuationFromFilings(input: {
       longTermInvestments: finite(balance.longTermInvestments) ?? undefined,
     }),
     eps: finite(mergedIncome.epsDiluted) ?? finite(mergedIncome.eps),
+    ebit: derivedIncome.ebit,
+    ebitda: derivedIncome.ebitda,
+    altmanZScore: altmanZScore({
+      marketCap,
+      workingCapital: derivedBalance.workingCapital,
+      totalAssets: finite(balance.totalAssets),
+      retainedEarnings: finite(balance.retainedEarnings),
+      ebit: derivedIncome.ebit,
+      totalLiabilities: finite(balance.totalLiabilities),
+      revenue: finite(mergedIncome.revenue),
+    }),
   };
 }
 
@@ -128,6 +156,7 @@ export async function loadPeriodValuationHistory(symbol: string, period: Stateme
       date: row.date,
       fiscalYear: row.fiscalYear,
       period: row.period,
+      reportedCurrency: row.reportedCurrency,
       ...valuationFromFilings({
         price,
         income: row as unknown as Record<string, unknown>,
@@ -168,4 +197,12 @@ export function historyLabel(
 ) {
   if (period === "quarter" && row.period) return `${row.period} ${row.fiscalYear ?? row.date.slice(0, 4)}`;
   return String(row.fiscalYear ?? row.date.slice(0, 4));
+}
+
+export function periodValuationColumns(rows: PeriodValuationRow[], period: StatementPeriod) {
+  return rows.map((row) => ({
+    key: `${row.date}-${row.period ?? period}`,
+    label: historyLabel(row, period),
+    values: row as unknown as Record<string, unknown>,
+  }));
 }

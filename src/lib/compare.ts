@@ -1,18 +1,20 @@
 import {
+  getBalanceSheets,
   getCashFlowTtm,
   getDailyChart,
   getEstimates,
   getGradesConsensus,
   getIncomeTtm,
-  getKeyMetricsTtm,
   getPriceChange,
   getPriceTarget,
   getProfile,
   getQuote,
-  getRatiosTtm,
 } from "@/lib/fmp";
+import { valuationFromFilings } from "@/lib/period-valuation";
+import { derivedStatementMetrics } from "@/lib/statements";
 import type { ChartPoint } from "@/lib/types";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import { addDays, indicatedAnnualDividend, isoDate, nyDateString } from "@/lib/utils";
+import { estimateCagr, nextEstimate } from "@/lib/valuation";
 
 export const POPULAR_STOCK_COMPARISONS = [
   ["AAPL", "MSFT"],
@@ -32,19 +34,38 @@ export const POPULAR_STOCK_COMPARISONS = [
 export async function getProfilesAndQuotes(symbols: string[]) {
   return Promise.all(
     symbols.map(async (symbol) => {
-      const [quote, profile, ttm, ratios, cash, metrics, changes, estimates, target, grades] = await Promise.all([
+      const [quote, profile, ttm, cash, sheets, changes, estimates, target, grades] = await Promise.all([
         getQuote(symbol),
         getProfile(symbol),
         getIncomeTtm(symbol),
-        getRatiosTtm(symbol),
         getCashFlowTtm(symbol),
-        getKeyMetricsTtm(symbol),
+        getBalanceSheets(symbol, "quarter", 5),
         getPriceChange(symbol),
         getEstimates(symbol, "annual"),
         getPriceTarget(symbol),
         getGradesConsensus(symbol),
       ]);
-      return { symbol, quote, profile, ttm, ratios, cash, metrics, changes, estimates, target, grades };
+      const live = valuationFromFilings({
+        price: quote?.price,
+        marketCap: quote?.marketCap,
+        income: ttm as unknown as Record<string, unknown> | null,
+        cash: cash as unknown as Record<string, unknown> | null,
+        balance: (sheets[0] ?? null) as unknown as Record<string, unknown> | null,
+        priorBalance: (sheets[4] ?? sheets[1] ?? null) as unknown as Record<string, unknown> | null,
+        daysInPeriod: 365,
+        nextEps: nextEstimate(estimates)?.epsAvg,
+        epsCagr: estimateCagr(estimates, "epsAvg", 3),
+      });
+      const margins = ttm
+        ? derivedStatementMetrics({
+            ...(ttm as unknown as Record<string, unknown>),
+            freeCashFlow: cash?.freeCashFlow,
+          })
+        : null;
+      const indicated = indicatedAnnualDividend(null, profile?.lastDividend);
+      const dividendYield =
+        indicated != null && quote?.price && quote.price > 0 ? indicated / quote.price : null;
+      return { symbol, quote, profile, ttm, cash, changes, estimates, target, grades, live, margins, dividendYield };
     }),
   );
 }

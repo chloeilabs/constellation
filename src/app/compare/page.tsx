@@ -47,11 +47,7 @@ function MetricRow({
 
 function pegForRow(row: CompareRow) {
   const pe = trailingPe(row.quote?.price, row.ttm?.epsDiluted ?? row.ttm?.eps);
-  return (
-    pegRatio(pe, estimateCagr(row.estimates, "epsAvg", 3)) ??
-    num(row.ratios?.priceToEarningsGrowthRatioTTM) ??
-    num(row.metrics?.pegRatioTTM)
-  );
+  return row.live.priceToEarningsGrowthRatio ?? pegRatio(pe, estimateCagr(row.estimates, "epsAvg", 3));
 }
 
 function targetUpside(row: CompareRow) {
@@ -168,7 +164,7 @@ export default async function ComparePage({
               {(row) => <ChangePercent value={row.changes?.["5Y"]} />}
             </MetricRow>
             <MetricRow label="PE Ratio" rows={rows}>
-              {(row) => formatPlausiblePe(row.ratios?.priceToEarningsRatioTTM ?? row.quote?.pe)}
+              {(row) => formatPlausiblePe(row.live.priceToEarningsRatio ?? row.quote?.pe)}
             </MetricRow>
             <MetricRow label="Forward PE" rows={rows}>
               {(row) => formatPlausiblePe(forwardPe(row.quote?.price, row.estimates))}
@@ -177,34 +173,34 @@ export default async function ComparePage({
               {(row) => formatRatio(pegForRow(row))}
             </MetricRow>
             <MetricRow label="PS Ratio" rows={rows}>
-              {(row) => formatRatio(row.ratios?.priceToSalesRatioTTM)}
+              {(row) => formatRatio(row.live.priceToSalesRatio)}
             </MetricRow>
             <MetricRow label="Forward PS" rows={rows}>
               {(row) => formatRatio(forwardPs(row.quote?.marketCap ?? row.profile?.marketCap, row.estimates))}
             </MetricRow>
             <MetricRow label="PB Ratio" rows={rows}>
-              {(row) => formatRatio(row.ratios?.priceToBookRatioTTM)}
+              {(row) => formatRatio(row.live.priceToBookRatio)}
             </MetricRow>
             <MetricRow label="P/FCF" rows={rows}>
-              {(row) => formatRatio(row.ratios?.priceToFreeCashFlowRatioTTM)}
+              {(row) => formatRatio(row.live.priceToFreeCashFlowRatio)}
             </MetricRow>
             <MetricRow label="EV / EBITDA" rows={rows}>
-              {(row) => formatRatio(num(row.metrics?.evToEBITDATTM))}
+              {(row) => formatRatio(row.live.evToEBITDA)}
             </MetricRow>
             <MetricRow label="ROE" rows={rows}>
-              {(row) => formatPercentPlain(num(row.metrics?.returnOnEquityTTM))}
+              {(row) => formatPercentPlain(row.live.returnOnEquity)}
             </MetricRow>
             <MetricRow label="ROIC" rows={rows}>
-              {(row) => formatPercentPlain(num(row.metrics?.returnOnInvestedCapitalTTM))}
+              {(row) => formatPercentPlain(row.live.returnOnInvestedCapital)}
             </MetricRow>
             <MetricRow label="ROA" rows={rows}>
-              {(row) => formatPercentPlain(num(row.metrics?.returnOnAssetsTTM))}
+              {(row) => formatPercentPlain(row.live.returnOnAssets)}
             </MetricRow>
             <MetricRow label="Dividend Yield" rows={rows}>
-              {(row) => formatPercentPlain(num(row.ratios?.dividendYieldTTM))}
+              {(row) => formatPercentPlain(row.dividendYield)}
             </MetricRow>
             <MetricRow label="Profit Margin" rows={rows}>
-              {(row) => formatPercentPlain(num(row.ratios?.netProfitMarginTTM))}
+              {(row) => formatPercentPlain(row.margins?.netProfitMargin)}
             </MetricRow>
             <MetricRow label="Analyst Consensus" rows={rows}>
               {(row) => formatAnalystConsensus(row.grades)}

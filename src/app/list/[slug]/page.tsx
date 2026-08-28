@@ -4,36 +4,38 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { SymbolTable } from "@/components/symbol-table";
 import { ETF_NAV } from "@/lib/nav";
-import { isStockListSlug, LIST_NAV, listHrefBase, loadStockList, STOCK_LISTS } from "@/lib/lists";
+import { LIST_NAV, listHrefBase, loadStockList, resolveStockListSlug, STOCK_LISTS } from "@/lib/lists";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (!isStockListSlug(slug)) return {};
-  const list = STOCK_LISTS[slug];
+  const resolved = resolveStockListSlug(slug);
+  if (!resolved) return {};
+  const list = STOCK_LISTS[resolved];
   return { title: list.title, description: list.description };
 }
 
 export default async function StockListPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (!isStockListSlug(slug)) notFound();
-  const list = STOCK_LISTS[slug];
-  const rows = await loadStockList(slug);
-  const hrefBase = listHrefBase(slug);
+  const resolved = resolveStockListSlug(slug);
+  if (!resolved) notFound();
+  const list = STOCK_LISTS[resolved];
+  const rows = await loadStockList(resolved);
+  const hrefBase = listHrefBase(resolved);
   const isEtfList = hrefBase === "/etf";
   const noun = hrefBase === "/etf" ? "ETFs" : hrefBase === "/funds" ? "funds" : "stocks";
   const showYield =
     ("sort" in list && list.sort === "dividendYield") ||
-    slug === "monthly-dividend-stocks" ||
-    slug === "bond-etfs" ||
-    slug === "dividend-etfs" ||
-    slug === "dividend-aristocrats" ||
-    slug === "dividend-kings" ||
-    slug === "reit-stocks" ||
-    slug === "highest-dividend" ||
-    slug === "bdc-stocks" ||
-    slug === "cef-funds" ||
-    slug === "preferred-stocks" ||
-    slug === "top-rated-dividend-stocks";
+    resolved === "monthly-dividend-stocks" ||
+    resolved === "bond-etfs" ||
+    resolved === "dividend-etfs" ||
+    resolved === "dividend-aristocrats" ||
+    resolved === "dividend-kings" ||
+    resolved === "reit-stocks" ||
+    resolved === "highest-dividend" ||
+    resolved === "bdc-stocks" ||
+    resolved === "cef-funds" ||
+    resolved === "preferred-stocks" ||
+    resolved === "top-rated-dividend-stocks";
 
   return (
     <Container>
@@ -46,14 +48,14 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
         rows={rows}
         hrefBase={hrefBase}
         showYield={showYield}
-        showFounded={slug === "oldest-companies"}
-        showCountry={list.category === "international" || slug === "foreign-stocks"}
+        showFounded={resolved === "oldest-companies"}
+        showCountry={list.category === "international" || resolved === "foreign-stocks"}
         localCurrency={list.category === "international"}
-        showRevenue={slug === "highest-revenue"}
-        showProfit={slug === "highest-profit"}
-        showEmployees={slug === "highest-employees"}
-        showTax={slug === "highest-taxes"}
-        showRating={slug === "top-rated" || slug === "top-rated-dividend-stocks"}
+        showRevenue={resolved === "highest-revenue"}
+        showProfit={resolved === "highest-profit"}
+        showEmployees={resolved === "highest-employees"}
+        showTax={resolved === "highest-taxes"}
+        showRating={resolved === "top-rated" || resolved === "top-rated-dividend-stocks"}
       />
     </Container>
   );

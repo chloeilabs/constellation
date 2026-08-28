@@ -3,9 +3,10 @@ import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
-import { getKeyMetrics, getKeyMetricsTtm, getRevenueGeographicSegments, getRevenueProductSegments } from "@/lib/fmp";
+import { getRevenueGeographicSegments, getRevenueProductSegments } from "@/lib/fmp";
 import { reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { loadLiveValuation, loadPeriodValuationHistory, periodValuationColumns } from "@/lib/period-valuation";
 import {
   KEY_METRIC_ROWS,
   orderedGeoNames,
@@ -17,13 +18,12 @@ import {
   spanFrom,
   statementHref,
   statementLimit,
-  stripTtmSuffix,
-  toStatementColumns,
   topSegmentNames,
   ttmSegmentMap,
-  withTtmColumn,
+  withStatementHrefs,
 } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
+import { nyDateString } from "@/lib/utils";
 
 export default async function MetricsPage({
   params,
@@ -40,15 +40,18 @@ export default async function MetricsPage({
   const yearCount = statementLimit("annual", span);
   const quarterCount = statementLimit("quarter", span);
   const base = stockPath(ticker, "/financials/metrics");
-  const [rows, ttm, products, productQuarters, geos, geoQuarters] = await Promise.all([
-    getKeyMetrics(ticker, period, statementLimit(period, span)),
-    getKeyMetricsTtm(ticker),
+  const [live, history, products, productQuarters, geos, geoQuarters] = await Promise.all([
+    loadLiveValuation(ticker),
+    loadPeriodValuationHistory(ticker, period, statementLimit(period, span)),
     getRevenueProductSegments(ticker, "annual"),
     getRevenueProductSegments(ticker, "quarter"),
     getRevenueGeographicSegments(ticker, "annual"),
     getRevenueGeographicSegments(ticker, "quarter"),
   ]);
-  const currency = reportingCurrency(rows[0]?.reportedCurrency, products[0]?.reportedCurrency);
+  const currency = reportingCurrency(
+    (history[0] as { reportedCurrency?: string } | undefined)?.reportedCurrency,
+    products[0]?.reportedCurrency,
+  );
   const productTtm = ttmSegmentMap(productQuarters);
   const productPriorTtm = priorTtmSegmentMap(productQuarters);
   const geoTtm = ttmSegmentMap(geoQuarters);
@@ -74,6 +77,10 @@ export default async function MetricsPage({
     period === "annual" ? geoPriorTtm : null,
     geoQuarters[0]?.date,
   );
+  const valuationColumns = [
+    { key: "ttm", label: "TTM", values: { ...(live as Record<string, unknown>), date: nyDateString() } },
+    ...periodValuationColumns(history, period),
+  ];
 
   return (
     <Container>
@@ -102,8 +109,8 @@ export default async function MetricsPage({
         <section className="mt-2">
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-lg font-semibold text-header">Revenue by Segment</h2>
-            <Link href={stockPath(ticker, "/revenue")} className="text-sm text-link hover:underline">
-              Revenue page
+            <Link href={stockPath(ticker, "/metrics/revenue-by-segment")} className="text-sm text-link hover:underline">
+              Segment page
             </Link>
           </div>
           <StatementTable
@@ -124,8 +131,8 @@ export default async function MetricsPage({
         <section className="mt-10">
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-lg font-semibold text-header">Revenue by Geography</h2>
-            <Link href={stockPath(ticker, "/revenue")} className="text-sm text-link hover:underline">
-              Revenue page
+            <Link href={stockPath(ticker, "/metrics/revenue-by-geography")} className="text-sm text-link hover:underline">
+              Geography page
             </Link>
           </div>
           <StatementTable
@@ -143,10 +150,10 @@ export default async function MetricsPage({
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Valuation & Efficiency</h2>
         <StatementTable
-          rows={KEY_METRIC_ROWS}
-          columns={withTtmColumn(stripTtmSuffix(ttm as Record<string, unknown> | null), toStatementColumns(rows, period))}
+          rows={withStatementHrefs(KEY_METRIC_ROWS, ticker)}
+          columns={valuationColumns}
           currency={currency}
-          caption={`Amounts are shown in ${currency}. The TTM column uses trailing-twelve-month metrics.`}
+          caption={`Amounts are shown in ${currency}. The TTM column uses trailing-twelve-month filings and the latest close.`}
           downloadName={`${ticker}-key-metrics-${period}-${span}`}
         />
       </section>

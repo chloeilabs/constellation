@@ -2,10 +2,6 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-const numberFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 2,
-});
-
 export function formatPrice(value: number | null | undefined, digits = 2) {
   if (value == null || Number.isNaN(value)) return "—";
   const abs = Math.abs(value);
@@ -243,7 +239,10 @@ export function formatInteger(value: number | null | undefined) {
 
 export function formatRatio(value: number | null | undefined, digits = 2) {
   if (value == null || Number.isNaN(value)) return "—";
-  return numberFormatter.format(Number(value.toFixed(digits)));
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
 }
 
 /** Hide nonsensical TTM P/E values that FMP returns for funds and some ETFs. */

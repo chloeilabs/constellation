@@ -155,6 +155,7 @@ export function derivedValuationMetrics(input: {
     evToSales: ratio(enterpriseValue, finite(input.revenue)),
     evToEBITDA: ratio(enterpriseValue, finite(input.ebitda)),
     evToEBIT: ratio(enterpriseValue, finite(input.ebit)),
+    evToOperatingCashFlow: ratio(enterpriseValue, finite(input.ocf)),
     evToFreeCashFlow: ratio(enterpriseValue, finite(input.fcf)),
     evToEarnings: ratio(enterpriseValue, finite(input.netIncome)),
     debtToEquityRatio: ratio(finite(input.totalDebt), finite(input.equity)),
@@ -169,6 +170,38 @@ export function derivedValuationMetrics(input: {
     shareholderYield:
       buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null,
   };
+}
+
+/** Graham Number: sqrt(22.5 × EPS × book value per share). */
+export function grahamNumber(eps: number | null | undefined, bookPerShare: number | null | undefined) {
+  const earnings = finite(eps);
+  const book = finite(bookPerShare);
+  if (earnings == null || book == null || earnings <= 0 || book <= 0) return null;
+  return Math.sqrt(22.5 * earnings * book);
+}
+
+/**
+ * Original Altman Z-Score. Working capital, retained earnings, EBIT, and sales are
+ * scaled by total assets; market cap is scaled by total liabilities.
+ */
+export function altmanZScore(input: {
+  marketCap?: number | null;
+  workingCapital?: number | null;
+  totalAssets?: number | null;
+  retainedEarnings?: number | null;
+  ebit?: number | null;
+  totalLiabilities?: number | null;
+  revenue?: number | null;
+}) {
+  const assets = finite(input.totalAssets);
+  const liabilities = finite(input.totalLiabilities);
+  if (assets == null || assets === 0 || liabilities == null || liabilities === 0) return null;
+  const a = (finite(input.workingCapital) ?? 0) / assets;
+  const b = (finite(input.retainedEarnings) ?? 0) / assets;
+  const c = (finite(input.ebit) ?? 0) / assets;
+  const d = (finite(input.marketCap) ?? 0) / liabilities;
+  const e = (finite(input.revenue) ?? 0) / assets;
+  return 1.2 * a + 1.4 * b + 3.3 * c + 0.6 * d + 1.0 * e;
 }
 
 /** Copy finite numeric overlay fields onto a statement column without wiping existing values with nulls. */

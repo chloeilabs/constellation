@@ -153,14 +153,20 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   evToSales: "ev-sales",
   evToEBITDA: "ev-ebitda",
   evToEBIT: "ev-ebit",
+  evToOperatingCashFlow: "pocf-ratio",
   evToFreeCashFlow: "ev-fcf",
   evToEarnings: "ev-earnings",
   debtToEquityRatio: "debt-equity-ratio",
-  debtToEbitda: "debt-ebitda",
-  debtToFcf: "debt-fcf",
+  grahamNumber: "fair-value",
+  grahamNetNet: "fair-value",
+  investedCapital: "roic",
+  freeCashFlowToEquity: "free-cash-flow",
+  operatingCycle: "cash-conversion-cycle",
   currentRatio: "current-ratio",
   quickRatio: "quick-ratio",
   cashRatio: "cash-ratio",
+  debtToEbitda: "debt-ebitda",
+  debtToFcf: "debt-fcf",
   interestCoverageRatio: "interest-coverage",
   cashConversionCycle: "cash-conversion-cycle",
   daysOfSalesOutstanding: "days-sales-outstanding",
@@ -373,6 +379,178 @@ export const GROWTH_ROWS: StatementRow[] = [
   { key: "fiveYShareholdersEquityGrowthPerShare", label: "5Y Equity / Share", format: "percent" },
   { key: "tenYShareholdersEquityGrowthPerShare", label: "10Y Equity / Share", format: "percent" },
 ];
+
+type GrowthStatement = { date: string; fiscalYear: string; period: string } & Record<string, unknown>;
+
+function matchGrowthRow<T extends { date?: string; fiscalYear?: string | number }>(
+  rows: T[],
+  date?: string | null,
+  year?: string | number | null,
+) {
+  if (date) {
+    const exact = rows.find((row) => row.date === date);
+    if (exact) return exact;
+  }
+  if (year != null) return rows.find((row) => String(row.fiscalYear) === String(year)) ?? null;
+  return null;
+}
+
+function growthPerShare(amount: unknown, shares: unknown) {
+  const value = finiteMetric(amount);
+  const count = finiteMetric(shares);
+  if (value == null || count == null || count === 0) return null;
+  return value / count;
+}
+
+function cashFlowAmount(row: Record<string, unknown> | null | undefined, key: "operating" | "free") {
+  if (!row) return null;
+  if (key === "free") return pickMetric(row, "freeCashFlow");
+  return pickMetric(row, "operatingCashFlow") ?? pickMetric(row, "netCashProvidedByOperatingActivities");
+}
+
+/**
+ * Period-over-period growth from income, cash-flow, and balance filings.
+ * Sequential (prior period) rates match FMP financial-growth; 3/5/10-year per-share
+ * rows are cumulative change versus that many fiscal years earlier.
+ */
+export function growthFromStatements(input: {
+  income: GrowthStatement[];
+  cash: Array<{ date?: string; fiscalYear?: string | number } & Record<string, unknown>>;
+  balance: Array<{ date?: string; fiscalYear?: string | number } & Record<string, unknown>>;
+  period: "annual" | "quarter";
+  limit: number;
+}) {
+  const yearOffset = input.period === "quarter" ? 4 : 1;
+  return input.income.slice(0, input.limit).map((row, index) => {
+    const cash = matchGrowthRow(input.cash, row.date, row.fiscalYear);
+    const balance = matchGrowthRow(input.balance, row.date, row.fiscalYear);
+    const derivedIncome = derivedStatementMetrics({
+      ...row,
+      depreciationAndAmortization:
+        finiteMetric(row.depreciationAndAmortization) ?? finiteMetric(cash?.depreciationAndAmortization),
+      freeCashFlow: finiteMetric(row.freeCashFlow) ?? cashFlowAmount(cash, "free"),
+      operatingCashFlow: cashFlowAmount(row, "operating") ?? cashFlowAmount(cash, "operating"),
+    });
+    const shares = pickMetric(row, "weightedAverageShsOutDil") ?? pickMetric(row, "weightedAverageShsOut");
+    const derivedBalance = derivedBalanceMetrics({
+      ...(balance ?? {}),
+      weightedAverageShsOutDil: shares,
+    });
+    const snapshot: Record<string, unknown> = {
+      ...row,
+      ...derivedIncome,
+      ...derivedBalance,
+      operatingCashFlow: cashFlowAmount(row, "operating") ?? cashFlowAmount(cash, "operating"),
+      freeCashFlow: finiteMetric(row.freeCashFlow) ?? cashFlowAmount(cash, "free"),
+      dividendPerShare:
+        pickMetric(row, "dividendPerShare") ??
+        pickMetric(row, "dividendsPerShare") ??
+        growthPerShare(
+          pickMetric(cash, "netDividendsPaid") != null ? Math.abs(pickMetric(cash, "netDividendsPaid")!) : null,
+          shares,
+        ),
+    };
+
+    const at = (offset: number) => {
+      const prior = input.income[index + offset];
+      if (!prior) return null;
+      const priorCash = matchGrowthRow(input.cash, prior.date, prior.fiscalYear);
+      const priorBalance = matchGrowthRow(input.balance, prior.date, prior.fiscalYear);
+      const priorShares = pickMetric(prior, "weightedAverageShsOutDil") ?? pickMetric(prior, "weightedAverageShsOut");
+      const priorDerived = derivedStatementMetrics({
+        ...prior,
+        freeCashFlow: finiteMetric(prior.freeCashFlow) ?? cashFlowAmount(priorCash, "free"),
+        operatingCashFlow: cashFlowAmount(prior, "operating") ?? cashFlowAmount(priorCash, "operating"),
+      });
+      const priorBook = derivedBalanceMetrics({
+        ...(priorBalance ?? {}),
+        weightedAverageShsOutDil: priorShares,
+      });
+      return {
+        income: prior,
+        cash: priorCash,
+        shares: priorShares,
+        derived: priorDerived,
+        book: priorBook.bookValuePerShare,
+        ocf: cashFlowAmount(prior, "operating") ?? cashFlowAmount(priorCash, "operating"),
+        fcf: finiteMetric(prior.freeCashFlow) ?? cashFlowAmount(priorCash, "free"),
+        dps:
+          pickMetric(prior, "dividendPerShare") ??
+          pickMetric(prior, "dividendsPerShare") ??
+          growthPerShare(
+            pickMetric(priorCash, "netDividendsPaid") != null ? Math.abs(pickMetric(priorCash, "netDividendsPaid")!) : null,
+            priorShares,
+          ),
+        equity: pickMetric(priorBalance, "totalStockholdersEquity"),
+        assets: pickMetric(priorBalance, "totalAssets"),
+        debt: pickMetric(priorBalance, "totalDebt"),
+        receivables: pickMetric(priorBalance, "netReceivables"),
+        inventory: pickMetric(priorBalance, "inventory"),
+        rd: pickMetric(prior, "researchAndDevelopmentExpenses"),
+        sga: pickMetric(prior, "sellingGeneralAndAdministrativeExpenses"),
+      };
+    };
+
+    const sequential = at(1);
+    const values: Record<string, unknown> = {
+      date: row.date,
+      fiscalYear: row.fiscalYear,
+      period: row.period,
+      reportedCurrency: row.reportedCurrency,
+      revenueGrowth: yearOverYear(snapshot.revenue, sequential?.income.revenue),
+      grossProfitGrowth: yearOverYear(snapshot.grossProfit, sequential?.income.grossProfit),
+      operatingIncomeGrowth: yearOverYear(snapshot.operatingIncome, sequential?.income.operatingIncome),
+      netIncomeGrowth: yearOverYear(snapshot.netIncome, sequential?.income.netIncome),
+      epsdilutedGrowth: yearOverYear(
+        pickMetric(row, "epsDiluted") ?? pickMetric(row, "eps"),
+        sequential ? pickMetric(sequential.income, "epsDiluted") ?? pickMetric(sequential.income, "eps") : null,
+      ),
+      ebitdaGrowth: yearOverYear(derivedIncome.ebitda, sequential?.derived.ebitda),
+      operatingCashFlowGrowth: yearOverYear(snapshot.operatingCashFlow, sequential?.ocf),
+      freeCashFlowGrowth: yearOverYear(snapshot.freeCashFlow, sequential?.fcf),
+      assetGrowth: yearOverYear(pickMetric(balance, "totalAssets"), sequential?.assets),
+      bookValueperShareGrowth: yearOverYear(derivedBalance.bookValuePerShare, sequential?.book),
+      debtGrowth: yearOverYear(pickMetric(balance, "totalDebt"), sequential?.debt),
+      receivablesGrowth: yearOverYear(pickMetric(balance, "netReceivables"), sequential?.receivables),
+      inventoryGrowth: yearOverYear(pickMetric(balance, "inventory"), sequential?.inventory),
+      weightedAverageSharesDilutedGrowth: yearOverYear(shares, sequential?.shares),
+      dividendsPerShareGrowth: yearOverYear(snapshot.dividendPerShare, sequential?.dps),
+      rdexpenseGrowth: yearOverYear(pickMetric(row, "researchAndDevelopmentExpenses"), sequential?.rd),
+      sgaexpensesGrowth: yearOverYear(pickMetric(row, "sellingGeneralAndAdministrativeExpenses"), sequential?.sga),
+    };
+
+    const longTerm = (dest: string, current: number | null, past: number | null) => {
+      values[dest] = yearOverYear(current, past);
+    };
+
+    for (const years of [3, 5, 10] as const) {
+      const prior = at(years * yearOffset);
+      const prefix = years === 3 ? "threeY" : years === 5 ? "fiveY" : "tenY";
+      longTerm(
+        `${prefix}RevenueGrowthPerShare`,
+        growthPerShare(snapshot.revenue, shares),
+        prior ? growthPerShare(prior.income.revenue, prior.shares) : null,
+      );
+      longTerm(
+        `${prefix}NetIncomeGrowthPerShare`,
+        growthPerShare(snapshot.netIncome, shares),
+        prior ? growthPerShare(prior.income.netIncome, prior.shares) : null,
+      );
+      longTerm(
+        `${prefix}OperatingCFGrowthPerShare`,
+        growthPerShare(snapshot.operatingCashFlow, shares),
+        prior ? growthPerShare(prior.ocf, prior.shares) : null,
+      );
+      longTerm(
+        `${prefix}ShareholdersEquityGrowthPerShare`,
+        growthPerShare(pickMetric(balance, "totalStockholdersEquity"), shares),
+        prior ? growthPerShare(prior.equity, prior.shares) : null,
+      );
+    }
+
+    return values as GrowthStatement;
+  });
+}
 
 export const KEY_METRIC_ROWS: StatementRow[] = [
   { key: "marketCap", label: "Market Cap", emphasize: true, format: "money" },
@@ -669,7 +847,71 @@ export function derivedEfficiencyMetrics(input: {
     daysOfInventoryOutstanding: dio,
     daysOfPayablesOutstanding: dpo,
     cashConversionCycle: dso != null && dio != null && dpo != null ? dso + dio - dpo : null,
+    operatingCycle: dso != null && dio != null ? dso + dio : null,
     interestCoverageRatio: interest != null && interest > 0 ? metricRatio(ebit, interest) : null,
+    investedCapital: investedCapital(balance),
+  };
+}
+
+/** Graham Net-Net: (cash & ST investments + 75% of receivables + 50% of inventory − total liabilities) / shares. */
+export function grahamNetNetValue(balance: Record<string, unknown> | null | undefined, shares: number | null) {
+  if (shares == null || !(shares > 0)) return null;
+  const cash = cashShortTerm(balance);
+  const receivables = pickMetric(balance, "netReceivables");
+  const inventory = pickMetric(balance, "inventory");
+  const liabilities = pickMetric(balance, "totalLiabilities");
+  if (liabilities == null) return null;
+  if (cash == null && receivables == null && inventory == null) return null;
+  return ((cash ?? 0) + 0.75 * (receivables ?? 0) + 0.5 * (inventory ?? 0) - liabilities) / shares;
+}
+
+/**
+ * Filing-derived quality and Graham figures used on Metrics / Statistics.
+ * FCFE is free cash flow plus net debt issuance (FMP's freeCashFlowToEquity).
+ */
+export function derivedQualityMetrics(input: {
+  income?: Record<string, unknown> | null;
+  cash?: Record<string, unknown> | null;
+  balance?: Record<string, unknown> | null;
+  shares?: number | null;
+  bookPerShare?: number | null;
+  daysOfSalesOutstanding?: number | null;
+  daysOfInventoryOutstanding?: number | null;
+}) {
+  const income = input.income ?? {};
+  const cash = input.cash ?? {};
+  const balance = input.balance ?? {};
+  const revenue = pickMetric(income, "revenue");
+  const netIncome = pickMetric(income, "netIncome");
+  const ocf =
+    pickMetric(income, "operatingCashFlow") ??
+    pickMetric(cash, "operatingCashFlow") ??
+    pickMetric(cash, "netCashProvidedByOperatingActivities");
+  const fcf = pickMetric(income, "freeCashFlow") ?? pickMetric(cash, "freeCashFlow");
+  const capex = pickMetric(cash, "capitalExpenditure") ?? pickMetric(cash, "investmentsInPropertyPlantAndEquipment");
+  const sbc = pickMetric(cash, "stockBasedCompensation") ?? pickMetric(income, "stockBasedCompensation");
+  const rd = pickMetric(income, "researchAndDevelopmentExpenses");
+  const netBorrow = pickMetric(cash, "netDebtIssuance");
+  const shares =
+    input.shares ?? pickMetric(income, "weightedAverageShsOutDil") ?? pickMetric(balance, "weightedAverageShsOutDil");
+  const eps = pickMetric(income, "epsDiluted") ?? pickMetric(income, "eps");
+  const equity = pickMetric(balance, "totalStockholdersEquity");
+  const bookPerShare =
+    input.bookPerShare ?? (equity != null && shares != null && shares > 0 ? equity / shares : null);
+  const dso = input.daysOfSalesOutstanding;
+  const dio = input.daysOfInventoryOutstanding;
+
+  return {
+    investedCapital: investedCapital(balance),
+    incomeQuality: metricRatio(ocf, netIncome),
+    capexToRevenue: metricRatio(capex != null ? Math.abs(capex) : null, revenue),
+    stockBasedCompensationToRevenue: metricRatio(sbc, revenue),
+    researchAndDevelopementToRevenue: metricRatio(rd, revenue),
+    freeCashFlowToEquity: fcf != null ? fcf + (netBorrow ?? 0) : null,
+    operatingCycle: dso != null && dio != null ? dso + dio : null,
+    grahamNumber:
+      eps != null && bookPerShare != null && eps > 0 && bookPerShare > 0 ? Math.sqrt(22.5 * eps * bookPerShare) : null,
+    grahamNetNet: grahamNetNetValue(balance, shares),
   };
 }
 

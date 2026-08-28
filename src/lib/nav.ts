@@ -154,6 +154,16 @@ export function companyNav(symbol: string): NavItem[] {
   ];
 }
 
+export function metricsNav(symbol: string): NavItem[] {
+  const ticker = decodeTicker(symbol);
+  return [
+    { href: stockPath(ticker, "/metrics"), label: "Overview", match: "exact" },
+    { href: stockPath(ticker, "/metrics/revenue-by-segment"), label: "Revenue by Segment" },
+    { href: stockPath(ticker, "/metrics/revenue-by-geography"), label: "Revenue by Geography" },
+    { href: stockPath(ticker, "/metrics/operating-expense-breakdown"), label: "Operating Expenses" },
+  ];
+}
+
 export function quoteFundamentalsNav(symbol: string) {
   const base = stockPath(symbol);
   return [

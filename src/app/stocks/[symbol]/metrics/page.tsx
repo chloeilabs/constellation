@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
+import { SectionNav } from "@/components/section-nav";
 import { StatementTable } from "@/components/statement-table";
 import {
   getIncomeStatements,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/fmp";
 import { reportingCurrency } from "@/lib/format";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
+import { metricsNav } from "@/lib/nav";
 import {
   INCOME_ROWS,
   orderedGeoNames,
@@ -99,6 +101,7 @@ export default async function OperatingMetricsPage({
     toStatementColumns(income, period).slice(0, 6),
   );
   const shortName = displayCompanyName(profile?.companyName) || ticker;
+  const periodQuery = period === "quarter" ? "?period=quarter" : "";
 
   return (
     <Container>
@@ -113,8 +116,9 @@ export default async function OperatingMetricsPage({
           />
         }
       />
+      <SectionNav items={metricsNav(ticker)} />
       <p className="mb-6 text-sm text-muted">
-        Full valuation metrics and longer history live on{" "}
+        Full valuation history lives on{" "}
         <Link href={stockPath(ticker, "/financials/metrics")} className="text-link hover:underline">
           Financials → Metrics
         </Link>
@@ -125,8 +129,8 @@ export default async function OperatingMetricsPage({
         <section>
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-lg font-semibold text-header">Revenue by Segment</h2>
-            <Link href={stockPath(ticker, "/revenue")} className="text-sm text-link hover:underline">
-              Revenue page
+            <Link href={`${stockPath(ticker, "/metrics/revenue-by-segment")}${periodQuery}`} className="text-sm text-link hover:underline">
+              Full table
             </Link>
           </div>
           <StatementTable
@@ -147,8 +151,8 @@ export default async function OperatingMetricsPage({
         <section className="mt-10">
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-lg font-semibold text-header">Revenue by Geography</h2>
-            <Link href={stockPath(ticker, "/revenue")} className="text-sm text-link hover:underline">
-              Revenue page
+            <Link href={`${stockPath(ticker, "/metrics/revenue-by-geography")}${periodQuery}`} className="text-sm text-link hover:underline">
+              Full table
             </Link>
           </div>
           <StatementTable
@@ -166,8 +170,8 @@ export default async function OperatingMetricsPage({
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-header">Operating Expense Breakdown</h2>
-          <Link href={stockPath(ticker, "/operating-expenses")} className="text-sm text-link hover:underline">
-            Operating expenses
+          <Link href={`${stockPath(ticker, "/metrics/operating-expense-breakdown")}${periodQuery}`} className="text-sm text-link hover:underline">
+            Full table
           </Link>
         </div>
         <StatementTable

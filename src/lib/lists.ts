@@ -1106,6 +1106,19 @@ export function isStockListSlug(value: string): value is StockListSlug {
   return value in STOCK_LISTS;
 }
 
+/** Stock Analysis slugs that map onto lists we already publish under a different path. */
+export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
+  "most-employees": "highest-employees",
+  "most-taxes-us": "highest-taxes",
+  "car-company-stocks": "auto-stocks",
+  "pharmaceutical-stocks": "pharma-stocks",
+};
+
+export function resolveStockListSlug(value: string): StockListSlug | null {
+  if (isStockListSlug(value)) return value;
+  return LIST_SLUG_ALIASES[value] ?? null;
+}
+
 export type IndexMemberFilters = {
   sector?: string;
   industry?: string;

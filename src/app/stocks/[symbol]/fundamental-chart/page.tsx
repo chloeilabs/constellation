@@ -13,7 +13,7 @@ import {
   reportingCurrency,
   yearOverYear,
 } from "@/lib/format";
-import { getBalanceSheets, getCashFlows, getDailyChart, getIncomeStatements, getKeyMetrics, getProfile, getRatios } from "@/lib/fmp";
+import { getBalanceSheets, getCashFlows, getDailyChart, getIncomeStatements, getProfile } from "@/lib/fmp";
 import {
   closeOnOrBefore,
   fundamentalMetricGroups,
@@ -21,6 +21,7 @@ import {
   toCloseSeries,
 } from "@/lib/fundamental-chart";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
+import { historyLabel, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { derivedBalanceMetrics, derivedStatementMetrics, STATEMENT_METRIC_HREFS } from "@/lib/statements";
 import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ export default async function FundamentalChartPage({
   const base = stockPath(ticker, "/fundamental-chart");
   const limit = period === "quarter" ? 16 : 12;
   const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * 16));
+  const usesFilings = metric.source === "ratios" || metric.source === "metrics";
   const [profile, rows, candles] = await Promise.all([
     getProfile(ticker),
     metric.source === "income"
@@ -47,13 +49,11 @@ export default async function FundamentalChartPage({
         ? getCashFlows(ticker, period, limit)
         : metric.source === "balance"
           ? getBalanceSheets(ticker, period, limit)
-          : metric.source === "ratios"
-            ? getRatios(ticker, period, limit)
-            : getKeyMetrics(ticker, period, limit),
-    getDailyChart(ticker, priceFrom),
+          : loadPeriodValuationHistory(ticker, period, limit),
+    usesFilings ? Promise.resolve([]) : getDailyChart(ticker, priceFrom),
   ]);
   const history = [...rows].sort((a, b) => String(a.date).localeCompare(String(b.date))) as Array<
-    Record<string, unknown> & { date: string; fiscalYear?: string | number; period?: string }
+    Record<string, unknown> & { date: string; fiscalYear?: string | number; period?: string; lastClosePrice?: number | null }
   >;
   const prices = toCloseSeries(candles);
   const items = history.map((row) => {
@@ -66,13 +66,15 @@ export default async function FundamentalChartPage({
     const raw = values[metric.field];
     const value = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
     const date = String(row.date ?? "");
-    const fiscalYear = row.fiscalYear != null ? String(row.fiscalYear) : date.slice(0, 4);
-    const periodLabel = "period" in row && row.period ? String(row.period) : "";
+    const price =
+      usesFilings && typeof row.lastClosePrice === "number" && Number.isFinite(row.lastClosePrice)
+        ? row.lastClosePrice
+        : closeOnOrBefore(prices, date);
     return {
       date,
-      label: period === "quarter" ? `${periodLabel} ${fiscalYear}` : fiscalYear,
+      label: historyLabel(row, period),
       metric: value,
-      price: closeOnOrBefore(prices, date),
+      price,
     };
   });
   const latest = items.at(-1);
@@ -97,7 +99,7 @@ export default async function FundamentalChartPage({
     <Container>
       <PageHeader
         title={`${shortName} Fundamental Chart`}
-        description={`${metric.label} from live FMP ${period === "quarter" ? "quarterly" : "annual"} statements, with the last close on or before each period end.`}
+        description={`${metric.label} from live FMP ${period === "quarter" ? "quarterly" : "annual"} filings, with the last close on or before each period end.`}
         actions={
           <PeriodToggle
             period={period}
