@@ -51,7 +51,8 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     currency: "MXN",
     country: "MX",
     exchange: "MEX",
-    symbolPattern: "^[A-Z0-9]+\\.MX$",
+    symbolPattern: "^[A-Z0-9&-]+\\.MX$",
+    listSlug: "mexico-stocks",
   },
   {
     code: "br",
@@ -106,6 +107,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "CH",
     exchange: "SIX",
     symbolPattern: "^[A-Z0-9]+\\.SW$",
+    listSlug: "swiss-stocks",
   },
   {
     code: "nl",
@@ -116,6 +118,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "NL",
     exchange: "AMS",
     symbolPattern: "^[A-Z0-9]+\\.AS$",
+    listSlug: "amsterdam-stocks",
   },
   {
     code: "it",
@@ -126,6 +129,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "IT",
     exchange: "MIL",
     symbolPattern: "^[A-Z0-9]+\\.MI$",
+    listSlug: "italy-stocks",
   },
   {
     code: "es",
@@ -136,6 +140,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "ES",
     exchange: "BME",
     symbolPattern: "^[A-Z0-9]+\\.MC$",
+    listSlug: "spain-stocks",
   },
   {
     code: "se",
@@ -145,7 +150,8 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     currency: "SEK",
     country: "SE",
     exchange: "STO",
-    symbolPattern: "^[A-Z0-9]+\\.ST$",
+    symbolPattern: "^[A-Z0-9-]+\\.ST$",
+    listSlug: "sweden-stocks",
   },
   {
     code: "dk",
@@ -155,7 +161,8 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     currency: "DKK",
     country: "DK",
     exchange: "CPH",
-    symbolPattern: "^[A-Z0-9]+\\.CO$",
+    symbolPattern: "^[A-Z0-9-]+\\.CO$",
+    listSlug: "denmark-stocks",
   },
   {
     code: "no",
@@ -237,7 +244,8 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     currency: "TWD",
     country: "TW",
     exchange: "TAI",
-    symbolPattern: "^[A-Z0-9]+\\.TW$",
+    symbolPattern: "^[0-9]+\\.TW$",
+    listSlug: "taiwan-stocks",
   },
   {
     code: "hk",
@@ -258,6 +266,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "SG",
     exchange: "SES",
     symbolPattern: "^[A-Z0-9]+\\.SI$",
+    listSlug: "singapore-stocks",
   },
   {
     code: "au",
