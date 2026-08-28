@@ -4,6 +4,7 @@ import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { StatementTable } from "@/components/statement-table";
+import { TablePager } from "@/components/table-pager";
 import { ChangePercent } from "@/components/change";
 import {
   compactMoneyFn,
@@ -25,7 +26,7 @@ import {
   getIncomeStatements,
   getLeveredDcf,
   getPriceTarget,
-  getPriceTargetNews,
+  getPriceTargetNewsArchive,
   getPriceTargetSummary,
   getProfile,
   getQuote,
@@ -44,6 +45,7 @@ import { FORECAST_ROWS, withStatementHrefs } from "@/lib/statements";
 import { RecommendationMix, RecommendationTrendTable } from "@/components/recommendation-trends";
 import { gradeActionLabel } from "@/lib/grades";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
 function EstimateRangeTable({
   title,
@@ -114,10 +116,10 @@ export default async function ForecastPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; page?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [
@@ -154,7 +156,7 @@ export default async function ForecastPage({
     getGradesHistorical(ticker, 12),
     getRatingsHistorical(ticker, 12),
     getPriceTargetSummary(ticker),
-    getPriceTargetNews(ticker, 16),
+    getPriceTargetNewsArchive(ticker),
     getIncomeStatements(ticker, "annual", 8),
     getIncomeStatements(ticker, "quarter", 12),
     getCashFlows(ticker, "annual", 8),
@@ -186,7 +188,9 @@ export default async function ForecastPage({
   const headlines = forecastHeadlines(annualColumns);
   const ranges = forecastRanges(estimates, annualIncome, annualColumns, 3);
   const actions = latestForecasts(history, targetNews);
+  const newsFeed = paginate(targetNews, pageNumber(pageParam), TABLE_PAGE_SIZE);
   const trend = recommendationTrend(gradeTrend, 6);
+  const forecastExtra = { period: period === "quarter" ? "quarter" : undefined };
 
   const upside =
     target && quote?.price ? ((target.targetConsensus - quote.price) / quote.price) * 100 : null;
@@ -457,15 +461,15 @@ export default async function ForecastPage({
               </tr>
             </thead>
             <tbody>
-              {targetNews.length === 0 ? (
+              {newsFeed.rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-muted">
                     No price-target articles available.
                   </td>
                 </tr>
               ) : (
-                targetNews.map((row, index) => (
-                  <tr key={`${row.publishedDate}-${row.analystCompany}-${index}`}>
+                newsFeed.rows.map((row, index) => (
+                  <tr key={`${row.publishedDate}-${row.analystCompany}-${newsFeed.from + index}`}>
                     <td>{formatDate(row.publishedDate)}</td>
                     <td>{row.analystCompany || row.newsPublisher || "—"}</td>
                     <td>{row.analystName || "—"}</td>
@@ -486,6 +490,14 @@ export default async function ForecastPage({
             </tbody>
           </table>
         </div>
+        <TablePager
+          from={newsFeed.from}
+          to={newsFeed.to}
+          total={newsFeed.total}
+          page={newsFeed.page}
+          pageCount={newsFeed.pageCount}
+          {...pagerLinks(forecastPath, newsFeed.page, newsFeed.pageCount, forecastExtra)}
+        />
       </section>
 
       <section className="mt-10">

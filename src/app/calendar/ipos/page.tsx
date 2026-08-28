@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { CALENDAR_NAV, IPO_NAV } from "@/lib/nav";
 import { formatCompact, formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
-import { getIpoDisclosures, getIpoProspectuses, getIpos } from "@/lib/fmp";
+import { getIpoProspectuses, getIpos } from "@/lib/fmp";
 import { quoteHref } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpIpo } from "@/lib/types";
-
-const REGISTRATION_FORMS = /^(S-1|S-1\/A|F-1|F-1\/A)$/i;
 
 function mondayIso(dateStr: string) {
   const day = dateStr.slice(0, 10);
@@ -37,28 +37,39 @@ function groupIposByWeek(rows: FmpIpo[]) {
   return groups;
 }
 
-export default async function IpoCalendarPage() {
+export const metadata = {
+  title: "IPO Calendar",
+  description: "Recent and upcoming initial public offerings, plus IPO prospectuses.",
+};
+
+export default async function IpoCalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; prospectus?: string }>;
+}) {
+  const { page: pageParam, prospectus: prospectusParam } = await searchParams;
   const today = new Date(`${nyDateString()}T00:00:00Z`);
   const calendarFrom = isoDate(addDays(today, -45));
   const calendarTo = isoDate(addDays(today, 45));
-  const filingFrom = isoDate(addDays(today, -21));
-  const filingTo = isoDate(today);
-  const [rows, disclosures, prospectuses] = await Promise.all([
+  const [rows, prospectuses] = await Promise.all([
     getIpos(calendarFrom, calendarTo),
-    getIpoDisclosures(filingFrom, filingTo),
     getIpoProspectuses(calendarFrom, calendarTo),
   ]);
-  const registrations = disclosures
-    .filter((row) => REGISTRATION_FORMS.test(row.form))
-    .slice(0, 40);
-  const offerings = prospectuses.slice(0, 40);
-  const weeks = groupIposByWeek(rows);
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
+  const weeks = groupIposByWeek(feed.rows);
+  const offerings = paginate(prospectuses, pageNumber(prospectusParam), TABLE_PAGE_SIZE);
+  const calendarExtra = {
+    prospectus: offerings.page > 1 ? String(offerings.page) : undefined,
+  };
+  const prospectusExtra = {
+    page: feed.page > 1 ? String(feed.page) : undefined,
+  };
 
   return (
     <Container>
       <PageHeader
         title="IPO Calendar"
-        description="Recent and upcoming initial public offerings, plus S-1 filings and prospectuses."
+        description="Recent and upcoming initial public offerings, plus IPO prospectuses from live FMP filings."
       />
       <SectionNav items={CALENDAR_NAV} />
       <SectionNav items={IPO_NAV} />
@@ -121,6 +132,14 @@ export default async function IpoCalendarPage() {
           ))}
         </div>
       )}
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/calendar/ipos", feed.page, feed.pageCount, calendarExtra)}
+      />
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">IPO Prospectuses</h2>
@@ -137,14 +156,14 @@ export default async function IpoCalendarPage() {
               </tr>
             </thead>
             <tbody>
-              {offerings.length === 0 ? (
+              {offerings.rows.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-muted">
                     No prospectuses in this window.
                   </td>
                 </tr>
               ) : (
-                offerings.map((row) => (
+                offerings.rows.map((row) => (
                   <tr key={`${row.symbol}-${row.filingDate}-${row.form}`}>
                     <td>{formatDate(row.filingDate || row.acceptedDate)}</td>
                     <td className="symbol">
@@ -174,54 +193,15 @@ export default async function IpoCalendarPage() {
             </tbody>
           </table>
         </div>
+        <TablePager
+          from={offerings.from}
+          to={offerings.to}
+          total={offerings.total}
+          page={offerings.page}
+          pageCount={offerings.pageCount}
+          {...pagerLinks("/calendar/ipos", offerings.page, offerings.pageCount, prospectusExtra, "prospectus")}
+        />
       </section>
-
-      {registrations.length > 0 ? (
-      <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Registration Statements</h2>
-        <p className="mb-3 text-sm text-muted">S-1 and F-1 filings from the last three weeks.</p>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="sa-table">
-            <thead>
-              <tr>
-                <th>Filed</th>
-                <th>Symbol</th>
-                <th>Form</th>
-                <th>Effective</th>
-                <th>Document</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registrations.map((row) => (
-                  <tr key={`${row.symbol}-${row.filingDate}-${row.form}-${row.cik}`}>
-                    <td>{formatDate(row.filingDate)}</td>
-                    <td className="symbol">
-                      {row.symbol ? (
-                        <Link href={quoteHref(row.symbol)} className="text-link hover:underline">
-                          {row.symbol}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>{row.form}</td>
-                    <td>{formatDate(row.effectivenessDate)}</td>
-                    <td>
-                      {row.url ? (
-                        <a href={row.url} className="text-link hover:underline" target="_blank" rel="noreferrer">
-                          SEC
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                  </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      ) : null}
     </Container>
   );
 }

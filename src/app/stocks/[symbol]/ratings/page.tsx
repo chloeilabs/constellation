@@ -5,13 +5,14 @@ import { PageHeader } from "@/components/page-header";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { RecommendationMix, RecommendationTrendTable } from "@/components/recommendation-trends";
 import { ChangePercent } from "@/components/change";
+import { TablePager } from "@/components/table-pager";
 import { formatDate, formatMoney, formatPercentPlain, reportingCurrency } from "@/lib/format";
 import {
   getGrades,
   getGradesConsensus,
   getGradesHistorical,
   getPriceTarget,
-  getPriceTargetNews,
+  getPriceTargetNewsArchive,
   getPriceTargetSummary,
   getProfile,
   getQuote,
@@ -19,9 +20,17 @@ import {
 import { consensusAnalystCount, consensusMeaning, recommendationTrend } from "@/lib/forecast";
 import { enrichGradesWithTargets, gradeActionLabel } from "@/lib/grades";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
-export default async function RatingsPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function RatingsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { symbol } = await params;
+  const { page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const [quote, profile, target, grades, history, targetNews, gradeTrend, targetSummary] = await Promise.all([
     getQuote(ticker),
@@ -29,7 +38,7 @@ export default async function RatingsPage({ params }: { params: Promise<{ symbol
     getPriceTarget(ticker),
     getGradesConsensus(ticker),
     getGrades(ticker, 40),
-    getPriceTargetNews(ticker, 40),
+    getPriceTargetNewsArchive(ticker),
     getGradesHistorical(ticker, 12),
     getPriceTargetSummary(ticker),
   ]);
@@ -52,7 +61,9 @@ export default async function RatingsPage({ params }: { params: Promise<{ symbol
       ? `According to ${analysts} analysts in FMP consensus data, ${shortName} stock has a consensus rating of "${grades?.consensus ?? "—"}" and an average price target of ${px(target.targetConsensus)}. The average 1-year stock price forecast is ${formatPercentPlain(Math.abs(upside ?? 0), { alreadyPercent: true })} ${upside != null && upside >= 0 ? "higher" : "lower"} than the current stock price, while the lowest is ${px(target.targetLow)}${lowPct == null ? "" : ` (${formatPercentPlain(lowPct, { alreadyPercent: true })})`} and the highest is ${px(target.targetHigh)}${highPct == null ? "" : ` (${formatPercentPlain(highPct, { alreadyPercent: true })})`}.`
       : "Sell-side rating actions and price targets from live FMP grades. Not Stock Analysis Pro star rankings.";
   const rows = enrichGradesWithTargets(history, targetNews);
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
   const last = quote?.price;
+  const ratingsPath = stockPath(ticker, "/ratings");
 
   return (
     <Container>
@@ -161,18 +172,18 @@ export default async function RatingsPage({ params }: { params: Promise<{ symbol
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
+              {feed.rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-muted">
                     No analyst rating actions available.
                   </td>
                 </tr>
               ) : (
-                rows.map(({ grade, news }, index) => {
+                feed.rows.map(({ grade, news }, index) => {
                   const targetPrice = news?.adjPriceTarget ?? news?.priceTarget ?? null;
                   const vsPrice = targetPrice != null && last ? (targetPrice - last) / last : null;
                   return (
-                    <tr key={`${grade.date}-${grade.gradingCompany}-${index}`}>
+                    <tr key={`${grade.date}-${grade.gradingCompany}-${feed.from + index}`}>
                       <td>{news?.analystName || "—"}</td>
                       <td>{grade.gradingCompany || news?.analystCompany || "—"}</td>
                       <td className="font-medium">{grade.newGrade || "—"}</td>
@@ -186,9 +197,17 @@ export default async function RatingsPage({ params }: { params: Promise<{ symbol
                   );
                 })
               )}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
+      </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks(ratingsPath, feed.page, feed.pageCount)}
+      />
       </section>
     </Container>
   );

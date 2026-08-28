@@ -2,24 +2,26 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { CONGRESS_NAV } from "@/lib/nav";
 import { formatDate } from "@/lib/format";
-import { getLatestInstitutionalFilings } from "@/lib/fmp";
+import { getLatestInstitutionalFilingsArchive } from "@/lib/fmp";
 import { institutionalHref, WELL_KNOWN_FILERS } from "@/lib/institutional";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
 export const metadata = {
   title: "Latest 13F Filings",
   description: "The most recent institutional 13F-HR filings from investment managers.",
 };
 
-export default async function InstitutionalFilingsPage() {
-  const raw = await getLatestInstitutionalFilings(100);
-  const seen = new Set<string>();
-  const rows = raw.filter((row) => {
-    if (!row.name || !row.cik || seen.has(row.cik)) return false;
-    seen.add(row.cik);
-    return true;
-  });
+export default async function InstitutionalFilingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const rows = await getLatestInstitutionalFilingsArchive();
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
 
   return (
     <Container>
@@ -42,7 +44,6 @@ export default async function InstitutionalFilingsPage() {
           ))}
         </div>
       </section>
-      <p className="mb-3 text-sm text-muted">{rows.length} recent filings</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -55,15 +56,15 @@ export default async function InstitutionalFilingsPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-muted">
                   No recent 13F filings.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr key={`${row.cik}-${row.acceptedDate}-${row.formType}`}>
+              feed.rows.map((row) => (
+                <tr key={`${row.cik}-${row.acceptedDate}-${row.formType}-${row.date}`}>
                   <td>{formatDate(row.filingDate || row.acceptedDate)}</td>
                   <td className="max-w-[320px] truncate font-medium">
                     <Link href={institutionalHref(row.cik)} className="text-link hover:underline">
@@ -95,6 +96,14 @@ export default async function InstitutionalFilingsPage() {
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/institutional", feed.page, feed.pageCount)}
+      />
     </Container>
   );
 }

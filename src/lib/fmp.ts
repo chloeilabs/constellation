@@ -830,10 +830,10 @@ export function getPriceTargetSummary(symbol: string) {
   );
 }
 
-export function getPriceTargetNews(symbol: string, limit = 20) {
+export function getPriceTargetNews(symbol: string, limit = 20, page = 0) {
   return fmpList<FmpPriceTargetNews>(
     "/price-target-news",
-    { symbol: decodeTicker(symbol), page: 0, limit },
+    { symbol: decodeTicker(symbol), page, limit },
     { revalidate: 300 },
   );
 }
@@ -1643,6 +1643,24 @@ export async function getGradesLatestNewsArchive() {
   return out;
 }
 
+export async function getPriceTargetNewsArchive(symbol: string) {
+  const ticker = decodeTicker(symbol);
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getPriceTargetNews(ticker, 50, page)),
+  );
+  const seen = new Set<string>();
+  const out: FmpPriceTargetNews[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = row.newsURL || `${row.publishedDate}|${row.analystCompany}|${row.newsTitle}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
+}
+
 export function getCommoditiesList() {
   return fmpList<FmpCommodity>("/commodities-list", {}, { revalidate: 86400 });
 }
@@ -1771,12 +1789,32 @@ export function getCompanyNotes(symbol: string) {
   );
 }
 
-export function getLatestInstitutionalFilings(limit = 80) {
+export function getLatestInstitutionalFilings(limit = 80, page = 0) {
   return fmpList<FmpInstitutionalFiling>(
     "/institutional-ownership/latest",
-    { page: 0, limit },
+    { page, limit },
     { revalidate: 300 },
   );
+}
+
+export async function getLatestInstitutionalFilingsArchive() {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) =>
+      getLatestInstitutionalFilings(FMP_HUB_PAGE_SIZE, page),
+    ),
+  );
+  const seen = new Set<string>();
+  const out: FmpInstitutionalFiling[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      if (!row.name || !row.cik) continue;
+      const key = `${row.cik}|${row.filingDate}|${row.formType}|${row.date}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 export function getInstitutionalDates(cik: string) {

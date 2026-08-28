@@ -35,12 +35,17 @@ export function paginate<T>(rows: T[], page: number, size = TABLE_PAGE_SIZE) {
   };
 }
 
-export function pageHref(path: string, page: number, extra: Record<string, string | undefined> = {}) {
+export function pageHref(
+  path: string,
+  page: number,
+  extra: Record<string, string | undefined> = {},
+  pageKey = "page",
+) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(extra)) {
     if (value) params.set(key, value);
   }
-  if (page > 1) params.set("page", String(page));
+  if (page > 1) params.set(pageKey, String(page));
   const query = params.toString();
   return query ? `${path}?${query}` : path;
 }
@@ -50,8 +55,9 @@ export function pagerLinks(
   page: number,
   pageCount: number,
   extra: Record<string, string | undefined> = {},
+  pageKey = "page",
 ) {
-  const href = (nextPage: number) => pageHref(path, nextPage, extra);
+  const href = (nextPage: number) => pageHref(path, nextPage, extra, pageKey);
   return {
     firstHref: page > 1 ? href(1) : undefined,
     prevHref: page > 1 ? href(page - 1) : undefined,

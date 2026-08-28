@@ -2,9 +2,12 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
+import { TablePager } from "@/components/table-pager";
 import { IPO_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { loadRecentPricedIpos } from "@/lib/ipo";
+import { quoteHref } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import Link from "next/link";
 
 export const metadata = {
@@ -12,8 +15,14 @@ export const metadata = {
   description: "The most recent priced initial public offerings, with current price versus IPO price.",
 };
 
-export default async function RecentIposPage() {
+export default async function RecentIposPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
   const rows = await loadRecentPricedIpos(200);
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
 
   return (
     <Container>
@@ -22,7 +31,6 @@ export default async function RecentIposPage() {
         description="Priced initial public offerings from the FMP IPO calendar, compared with the latest quote."
       />
       <SectionNav items={IPO_NAV} />
-      <p className="mb-3 text-sm text-muted">{rows.length} priced offerings</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -37,18 +45,18 @@ export default async function RecentIposPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-muted">
                   No priced IPOs in the recent calendar window.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              feed.rows.map((row) => (
                 <tr key={`${row.symbol}-${row.date}`}>
                   <td>{formatDate(row.date)}</td>
                   <td className="symbol">
-                    <Link href={`/stocks/${row.symbol}`} className="text-link hover:underline">
+                    <Link href={quoteHref(row.symbol)} className="text-link hover:underline">
                       {row.symbol}
                     </Link>
                   </td>
@@ -65,6 +73,14 @@ export default async function RecentIposPage() {
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/ipos", feed.page, feed.pageCount)}
+      />
     </Container>
   );
 }

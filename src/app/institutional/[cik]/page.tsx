@@ -5,10 +5,12 @@ import { Container } from "@/components/container";
 import { MetricCards } from "@/components/metric-cards";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { CONGRESS_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain } from "@/lib/format";
 import { loadInstitutionalPortfolio, padCik, titleCaseIndustry } from "@/lib/institutional";
 import { quoteHref } from "@/lib/listings";
+import { HOLDINGS_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
 export async function generateMetadata({ params }: { params: Promise<{ cik: string }> }) {
   const { cik } = await params;
@@ -21,8 +23,15 @@ export async function generateMetadata({ params }: { params: Promise<{ cik: stri
   };
 }
 
-export default async function InstitutionalFilerPage({ params }: { params: Promise<{ cik: string }> }) {
+export default async function InstitutionalFilerPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ cik: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { cik } = await params;
+  const { page: pageParam } = await searchParams;
   const padded = padCik(cik);
   if (!padded) notFound();
   const { name, period, holdings, filing, latestPerformance, performance, industries } =
@@ -34,10 +43,12 @@ export default async function InstitutionalFilerPage({ params }: { params: Promi
     return kind !== "put" && kind !== "call";
   });
   const totalValue = equity.reduce((sum, row) => sum + (row.value || 0), 0);
-  const top = equity.slice(0, 100);
+  const holdingsPage = paginate(equity, pageNumber(pageParam), HOLDINGS_PAGE_SIZE);
+  const topHolding = equity[0];
   const history = performance.slice(0, 8);
   const mix = industries.slice(0, 15);
   const marketValue = latestPerformance?.marketValue || totalValue;
+  const base = `/institutional/${padded}`;
 
   return (
     <Container>
@@ -84,8 +95,8 @@ export default async function InstitutionalFilerPage({ params }: { params: Promi
           },
           {
             label: "Top Holding",
-            value: top[0]?.symbol || "—",
-            hint: top[0] ? formatCompactUsd(top[0].value) : undefined,
+            value: topHolding?.symbol || "—",
+            hint: topHolding ? formatCompactUsd(topHolding.value) : undefined,
           },
         ]}
       />
@@ -174,18 +185,18 @@ export default async function InstitutionalFilerPage({ params }: { params: Promi
               </tr>
             </thead>
             <tbody>
-              {top.length === 0 ? (
+              {holdingsPage.rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-muted">
                     No 13F holdings extract is available for this filer.
                   </td>
                 </tr>
               ) : (
-                top.map((row, index) => {
+                holdingsPage.rows.map((row, index) => {
                   const href = row.symbol ? quoteHref(row.symbol) : null;
                   return (
-                    <tr key={`${row.symbol}-${row.securityCusip}-${index}`}>
-                      <td className="text-muted">{index + 1}</td>
+                    <tr key={`${row.symbol}-${row.securityCusip}-${holdingsPage.from + index}`}>
+                      <td className="text-muted">{holdingsPage.from + index}</td>
                       <td className="symbol">
                         {href ? (
                           <Link href={href} className="text-link hover:underline">
@@ -207,11 +218,19 @@ export default async function InstitutionalFilerPage({ params }: { params: Promi
                     </tr>
                   );
                 })
-              )}
-            </tbody>
-          </table>
-        </div>
-        {ranked[0]?.link ? (
+            )}
+          </tbody>
+        </table>
+      </div>
+      <TablePager
+        from={holdingsPage.from}
+        to={holdingsPage.to}
+        total={holdingsPage.total}
+        page={holdingsPage.page}
+        pageCount={holdingsPage.pageCount}
+        {...pagerLinks(base, holdingsPage.page, holdingsPage.pageCount)}
+      />
+      {ranked[0]?.link ? (
           <p className="mt-2 text-sm text-muted">
             <a href={ranked[0].link} className="text-link hover:underline" target="_blank" rel="noreferrer">
               SEC filing
