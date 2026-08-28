@@ -132,10 +132,15 @@ export type PeriodValuationRow = {
   period?: string;
 } & ReturnType<typeof valuationFromFilings>;
 
+/** Daily closes covering `limit` filings, not a 1970 MAX chart. */
+export function priceFromForFilings(period: StatementPeriod, limit: number) {
+  const years = period === "quarter" ? Math.ceil(limit / 4) + 2 : limit + 2;
+  return isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * Math.max(years, 3)));
+}
+
 export async function loadPeriodValuationHistory(symbol: string, period: StatementPeriod, limit = 20) {
-  const lookbackYears = period === "quarter" ? 12 : 22;
   const priorOffset = period === "quarter" ? 4 : 1;
-  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * lookbackYears));
+  const priceFrom = priceFromForFilings(period, limit);
   const [income, cash, balance, candles] = await Promise.all([
     getIncomeStatements(symbol, period, limit + priorOffset),
     getCashFlows(symbol, period, limit + 1),

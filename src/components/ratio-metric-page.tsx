@@ -8,6 +8,7 @@ import { formatCompactUsd, formatNumber, formatPercentPlain, formatRatio } from 
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { historyLabel, loadLiveValuation, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { periodFrom } from "@/components/statement-metric-page";
+import { filingLimit } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 function num(value: unknown) {
@@ -43,7 +44,7 @@ export async function RatioMetricPage({
 }) {
   const ticker = decodeTicker(symbol);
   const path = stockPath(ticker, `/${slug}`);
-  const limit = period === "quarter" ? 12 : 20;
+  const limit = filingLimit(period);
   const [historyRows, live] = await Promise.all([
     loadPeriodValuationHistory(ticker, period, limit),
     loadLiveValuation(ticker),

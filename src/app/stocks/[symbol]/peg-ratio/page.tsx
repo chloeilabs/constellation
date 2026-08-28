@@ -7,6 +7,7 @@ import { MetricHistory } from "@/components/metric-history";
 import { formatMoney, formatPercentPlain, formatRatio, yearOverYear } from "@/lib/format";
 import { getEstimates, getIncomeStatements, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { filingLimit } from "@/lib/statements";
 import { historyLabel, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { actualToEstimateCagr, estimateCagr, pegRatio, trailingPe } from "@/lib/valuation";
 
@@ -27,7 +28,7 @@ export default async function PegRatioPage({
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const path = stockPath(ticker, "/peg-ratio");
   const [history, ttmIncome, quote, profile, estimates, annualIncome] = await Promise.all([
-    loadPeriodValuationHistory(ticker, period, period === "quarter" ? 12 : 20),
+    loadPeriodValuationHistory(ticker, period, filingLimit(period)),
     getIncomeTtm(ticker),
     getQuote(ticker),
     getProfile(ticker),

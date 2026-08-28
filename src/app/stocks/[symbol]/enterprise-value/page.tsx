@@ -9,6 +9,7 @@ import { compactMoneyFn, formatDate, formatMoney, formatRatio, yearOverYear } fr
 import { getProfile } from "@/lib/fmp";
 import { historyLabel, loadLiveValuation, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { filingLimit } from "@/lib/statements";
 
 function cashInvestments(row: { cashAndInvestments?: number | null; netCash?: number | null; totalDebt?: number | null }) {
   if (row.cashAndInvestments != null) return row.cashAndInvestments;
@@ -29,7 +30,7 @@ export default async function EnterpriseValuePage({
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [live, history, profile] = await Promise.all([
     loadLiveValuation(ticker),
-    loadPeriodValuationHistory(ticker, period, period === "quarter" ? 12 : 20),
+    loadPeriodValuationHistory(ticker, period, filingLimit(period)),
     getProfile(ticker),
   ]);
   const money = compactMoneyFn(profile?.currency);

@@ -11,6 +11,7 @@ import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { historyLabel, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { filingLimit } from "@/lib/statements";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -29,7 +30,7 @@ export default async function PeRatioPage({
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const base = stockPath(ticker, "/pe-ratio");
   const [history, ttmIncome, quote, estimates, profile] = await Promise.all([
-    loadPeriodValuationHistory(ticker, period, period === "quarter" ? 12 : 20),
+    loadPeriodValuationHistory(ticker, period, filingLimit(period)),
     getIncomeTtm(ticker),
     getQuote(ticker),
     getEstimates(ticker, "annual"),
