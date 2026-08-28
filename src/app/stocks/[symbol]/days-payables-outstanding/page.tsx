@@ -17,13 +17,13 @@ export default async function DaysPayablesOutstandingPage({
       period={periodFrom(periodParam)}
       slug="days-payables-outstanding"
       title={`${ticker} Days Payables Outstanding`}
-      description="How many days the company takes to pay suppliers, from FMP key metrics."
+      description="How many days the company takes to pay suppliers, from FMP filings."
       field="daysOfPayablesOutstanding"
       ttmField="daysOfPayablesOutstandingTTM"
       valueLabel="Days Payables Outstanding"
-      formula="DPO = (Payables ÷ Cost of Revenue) × 365"
-      source="metrics"
+      formula="DPO = (Average Payables ÷ Cost of Revenue) × 365"
       format="days"
+      priceBased
     />
   );
 }

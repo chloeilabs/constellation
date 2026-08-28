@@ -160,6 +160,12 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   debtToFcf: "debt-fcf",
   currentRatio: "current-ratio",
   quickRatio: "quick-ratio",
+  cashRatio: "cash-ratio",
+  interestCoverageRatio: "interest-coverage",
+  cashConversionCycle: "cash-conversion-cycle",
+  daysOfSalesOutstanding: "days-sales-outstanding",
+  daysOfInventoryOutstanding: "days-inventory-outstanding",
+  daysOfPayablesOutstanding: "days-payables-outstanding",
   dividendYield: "dividend-yield",
   dividendPayoutRatio: "payout-ratio",
   buybackYield: "buybacks",
@@ -550,6 +556,120 @@ export function derivedBalanceMetrics(values: Record<string, unknown>) {
     bookValuePerShare: equity != null && shares && shares > 0 ? equity / shares : null,
     tangibleBookValue: tangible,
     tangibleBookValuePerShare: tangible != null && shares && shares > 0 ? tangible / shares : null,
+  };
+}
+
+function finiteMetric(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function averageMetric(a: number | null, b: number | null) {
+  if (a == null && b == null) return null;
+  if (a == null) return b;
+  if (b == null) return a;
+  return (a + b) / 2;
+}
+
+function metricRatio(numerator: number | null, denominator: number | null) {
+  if (numerator == null || denominator == null || denominator === 0) return null;
+  return numerator / denominator;
+}
+
+function pickMetric(row: Record<string, unknown> | null | undefined, key: string) {
+  return finiteMetric(row?.[key]);
+}
+
+/** Cash and short-term investments only (not long-term), for liquidity and invested capital. */
+function cashShortTerm(row: Record<string, unknown> | null | undefined) {
+  const combined = pickMetric(row, "cashAndShortTermInvestments");
+  if (combined != null) return combined;
+  const cash = pickMetric(row, "cashAndCashEquivalents");
+  const shortTerm = pickMetric(row, "shortTermInvestments");
+  if (cash == null && shortTerm == null) return null;
+  return (cash ?? 0) + (shortTerm ?? 0);
+}
+
+/** Operating invested capital: equity + debt − cash and short-term investments. */
+function investedCapital(row: Record<string, unknown> | null | undefined) {
+  const equity = pickMetric(row, "totalStockholdersEquity");
+  const debt = pickMetric(row, "totalDebt");
+  const cash = cashShortTerm(row);
+  if (equity == null || debt == null || cash == null) return null;
+  return equity + debt - cash;
+}
+
+/**
+ * Liquidity, turnover, and return ratios from income and adjacent balance sheets.
+ * TTM/annual averages use the year-ago sheet; fiscal columns use the prior period.
+ * Quick ratio is cash + short-term investments + receivables over current liabilities.
+ * ROIC is NOPAT over average invested capital (equity + debt − cash & ST investments).
+ * ROCE uses period-end capital employed (assets − current liabilities).
+ */
+export function derivedEfficiencyMetrics(input: {
+  income?: Record<string, unknown> | null;
+  balance?: Record<string, unknown> | null;
+  priorBalance?: Record<string, unknown> | null;
+  daysInPeriod?: number;
+}) {
+  const income = input.income ?? {};
+  const balance = input.balance ?? {};
+  const prior = input.priorBalance ?? null;
+  const days = input.daysInPeriod != null && input.daysInPeriod > 0 ? input.daysInPeriod : 365;
+
+  const currentAssets = pickMetric(balance, "totalCurrentAssets");
+  const currentLiabilities = pickMetric(balance, "totalCurrentLiabilities");
+  const inventory = pickMetric(balance, "inventory");
+  const receivables = pickMetric(balance, "netReceivables");
+  const payables = pickMetric(balance, "accountPayables");
+  const assets = pickMetric(balance, "totalAssets");
+  const equity = pickMetric(balance, "totalStockholdersEquity");
+  const cashEq = pickMetric(balance, "cashAndCashEquivalents");
+  const cashST = cashShortTerm(balance);
+
+  const avgAssets = averageMetric(assets, pickMetric(prior, "totalAssets"));
+  const avgEquity = averageMetric(equity, pickMetric(prior, "totalStockholdersEquity"));
+  const avgInventory = averageMetric(inventory, pickMetric(prior, "inventory"));
+  const avgReceivables = averageMetric(receivables, pickMetric(prior, "netReceivables"));
+  const avgPayables = averageMetric(payables, pickMetric(prior, "accountPayables"));
+  const avgInvested = averageMetric(investedCapital(balance), investedCapital(prior));
+
+  const revenue = pickMetric(income, "revenue");
+  const cogs = pickMetric(income, "costOfRevenue");
+  const netIncome = pickMetric(income, "netIncome");
+  const ebit = pickMetric(income, "operatingIncome") ?? pickMetric(income, "ebit");
+  const interest = pickMetric(income, "interestExpense");
+  const pretax = pickMetric(income, "incomeBeforeTax");
+  const tax = pickMetric(income, "incomeTaxExpense");
+  const taxRate = pretax != null && pretax > 0 && tax != null ? tax / pretax : null;
+  const taxFactor = taxRate != null && taxRate >= 0 && taxRate < 1 ? taxRate : 0;
+  const nopat = ebit != null ? ebit * (1 - taxFactor) : null;
+  const capitalEmployed =
+    assets != null && currentLiabilities != null ? assets - currentLiabilities : null;
+
+  const daysOn = (part: number | null, whole: number | null) => {
+    const rate = metricRatio(part, whole);
+    return rate == null ? null : rate * days;
+  };
+  const dso = daysOn(avgReceivables, revenue);
+  const dio = daysOn(avgInventory, cogs);
+  const dpo = daysOn(avgPayables, cogs);
+  const quickAssets = cashST != null || receivables != null ? (cashST ?? 0) + (receivables ?? 0) : null;
+
+  return {
+    currentRatio: metricRatio(currentAssets, currentLiabilities),
+    quickRatio: metricRatio(quickAssets, currentLiabilities),
+    cashRatio: metricRatio(cashEq, currentLiabilities),
+    assetTurnover: metricRatio(revenue, avgAssets),
+    inventoryTurnover: metricRatio(cogs, avgInventory),
+    returnOnEquity: metricRatio(netIncome, avgEquity),
+    returnOnAssets: metricRatio(netIncome, avgAssets),
+    returnOnInvestedCapital: metricRatio(nopat, avgInvested),
+    returnOnCapitalEmployed: metricRatio(ebit, capitalEmployed),
+    daysOfSalesOutstanding: dso,
+    daysOfInventoryOutstanding: dio,
+    daysOfPayablesOutstanding: dpo,
+    cashConversionCycle: dso != null && dio != null && dpo != null ? dso + dio - dpo : null,
+    interestCoverageRatio: interest != null && interest > 0 ? metricRatio(ebit, interest) : null,
   };
 }
 

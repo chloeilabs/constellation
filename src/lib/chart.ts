@@ -116,14 +116,44 @@ export function rsiSeries(points: ChartPoint[], period = 14): ChartPoint[] {
   return out;
 }
 
+/** MACD(12,26,9) from local EMAs: line = EMA12 − EMA26, signal = 9-period EMA of the line. */
+export function macdFromPoints(points: ChartPoint[]) {
+  const fast = emaSeries(points, 12);
+  const slow = emaSeries(points, 26);
+  const fastByDay = new Map(fast.map((point) => [point.time.slice(0, 10), point.value]));
+  const macdLine: ChartPoint[] = [];
+  for (const point of slow) {
+    const ema12 = fastByDay.get(point.time.slice(0, 10));
+    if (ema12 == null) continue;
+    macdLine.push({ time: point.time, value: ema12 - point.value });
+  }
+  const signal = emaSeries(macdLine, 9);
+  const signalByDay = new Map(signal.map((point) => [point.time.slice(0, 10), point.value]));
+  const histogram: ChartPoint[] = [];
+  for (const point of macdLine) {
+    const sig = signalByDay.get(point.time.slice(0, 10));
+    if (sig == null) continue;
+    histogram.push({ time: point.time, value: point.value - sig });
+  }
+  return { macdSeries: macdLine, macdSignalSeries: signal, macdHistogramSeries: histogram };
+}
+
 function dailyIndicatorSeries(points: ChartPoint[], range: ChartRange) {
   if (range === "1D" || range === "5D") {
-    return { ema12Series: [] as ChartPoint[], ema26Series: [] as ChartPoint[], rsiSeries: [] as ChartPoint[] };
+    return {
+      ema12Series: [] as ChartPoint[],
+      ema26Series: [] as ChartPoint[],
+      rsiSeries: [] as ChartPoint[],
+      macdSeries: [] as ChartPoint[],
+      macdSignalSeries: [] as ChartPoint[],
+      macdHistogramSeries: [] as ChartPoint[],
+    };
   }
   return {
     ema12Series: emaSeries(points, 12),
     ema26Series: emaSeries(points, 26),
     rsiSeries: rsiSeries(points, 14),
+    ...macdFromPoints(points),
   };
 }
 

@@ -17,13 +17,13 @@ export default async function DaysSalesOutstandingPage({
       period={periodFrom(periodParam)}
       slug="days-sales-outstanding"
       title={`${ticker} Days Sales Outstanding`}
-      description="How many days it takes to collect receivables, from FMP key metrics."
+      description="How many days it takes to collect receivables, from FMP filings."
       field="daysOfSalesOutstanding"
       ttmField="daysOfSalesOutstandingTTM"
       valueLabel="Days Sales Outstanding"
-      formula="DSO = (Receivables ÷ Revenue) × 365"
-      source="metrics"
+      formula="DSO = (Average Receivables ÷ Revenue) × 365"
       format="days"
+      priceBased
     />
   );
 }

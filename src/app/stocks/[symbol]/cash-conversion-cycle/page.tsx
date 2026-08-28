@@ -17,13 +17,13 @@ export default async function CashConversionCyclePage({
       period={periodFrom(periodParam)}
       slug="cash-conversion-cycle"
       title={`${ticker} Cash Conversion Cycle`}
-      description="Days inventory outstanding plus days sales outstanding minus days payables outstanding, from FMP key metrics."
+      description="Days inventory outstanding plus days sales outstanding minus days payables outstanding, from FMP filings."
       field="cashConversionCycle"
       ttmField="cashConversionCycleTTM"
       valueLabel="Cash Conversion Cycle"
       formula="CCC = DIO + DSO − DPO"
-      source="metrics"
       format="days"
+      priceBased
     />
   );
 }

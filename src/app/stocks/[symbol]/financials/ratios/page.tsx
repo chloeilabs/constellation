@@ -26,6 +26,7 @@ import { dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trai
 import {
   RATIO_SECTIONS,
   derivedBalanceMetrics,
+  derivedEfficiencyMetrics,
   derivedStatementMetrics,
   mergeStatementValues,
   spanFrom,
@@ -108,6 +109,8 @@ function overlayRatioColumn(
     sharesYoy?: number | null;
     dividendYield?: number | null;
     date?: string | null;
+    priorBalance?: FmpBalanceSheet | Record<string, unknown> | null;
+    daysInPeriod?: number;
   },
 ): StatementColumn {
   const income: Record<string, unknown> = {
@@ -160,6 +163,13 @@ function overlayRatioColumn(
     nextEps: input.nextEps,
     epsCagr: input.epsCagr,
   });
+  const efficiency = derivedEfficiencyMetrics({
+    income: { ...mergedIncome, ebit: derivedIncome.ebit, ebitda: derivedIncome.ebitda },
+    balance,
+    priorBalance: (input.priorBalance as Record<string, unknown> | null | undefined) ?? null,
+    daysInPeriod: input.daysInPeriod,
+  });
+  const overlayWithEfficiency = { ...overlay, ...efficiency };
   const values = assignFinite(
     {
       ...column.values,
@@ -167,9 +177,9 @@ function overlayRatioColumn(
       weightedAverageShsOutDil: num(mergedIncome.weightedAverageShsOutDil),
       ...(input.date ? { date: input.date } : {}),
     },
-    overlay,
+    overlayWithEfficiency,
   ) as Record<string, unknown>;
-  for (const [key, value] of Object.entries(overlay)) {
+  for (const [key, value] of Object.entries(overlayWithEfficiency)) {
     values[key] = typeof value === "number" && Number.isFinite(value) ? value : null;
   }
   return { ...column, values };
@@ -215,8 +225,8 @@ export default async function RatiosPage({
     getIncomeTtm(ticker),
     getIncomeStatements(ticker, period, displayCount + (period === "quarter" ? 4 : 1)),
     period === "annual" ? Promise.resolve([] as FmpIncomeStatement[]) : getIncomeStatements(ticker, "annual", 2),
-    getBalanceSheets(ticker, period, displayCount + 1),
-    period === "annual" ? getBalanceSheets(ticker, "quarter", 1) : Promise.resolve([] as FmpBalanceSheet[]),
+    getBalanceSheets(ticker, period, displayCount + (period === "quarter" ? 4 : 1)),
+    getBalanceSheets(ticker, "quarter", 5),
     getCashFlows(ticker, period, displayCount + 1),
     getCashFlowTtm(ticker),
     getEstimates(ticker, "annual"),
@@ -319,6 +329,15 @@ export default async function RatiosPage({
         : yearOverYear(income?.weightedAverageShsOutDil, priorIncome?.weightedAverageShsOutDil),
       dividendYield: dividendYieldFromPrice(periodDps, periodPrice),
       date: isCurrent ? nyDateString() : undefined,
+      priorBalance: isCurrent
+        ? (quarterSheets[4] ?? quarterSheets[1] ?? null)
+        : (() => {
+            const matched = matchRow(balanceRows, column, period);
+            if (!matched) return null;
+            const idx = balanceRows.findIndex((row) => row.date === matched.date);
+            return idx >= 0 ? (balanceRows[idx + 1] ?? null) : null;
+          })(),
+      daysInPeriod: isCurrent ? 365 : period === "quarter" ? 365 / 4 : 365,
     });
     return {
       ...overlaid,
@@ -347,7 +366,7 @@ export default async function RatiosPage({
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth. Dividend yield is indicated or fiscal dividends divided by the same close. Payout is those dividends divided by diluted EPS."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth. Dividend yield is indicated or fiscal dividends divided by the same close. Payout is those dividends divided by diluted EPS. Liquidity, turnover, and return ratios are computed from filings: current/quick from the period-end sheet, turnover and ROE from income over average assets and equity versus the year-ago (Current) or prior period (fiscal) sheet."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle

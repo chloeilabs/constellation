@@ -17,13 +17,13 @@ export default async function DaysInventoryOutstandingPage({
       period={periodFrom(periodParam)}
       slug="days-inventory-outstanding"
       title={`${ticker} Days Inventory Outstanding`}
-      description="How many days inventory sits before sale, from FMP key metrics."
+      description="How many days inventory sits before sale, from FMP filings."
       field="daysOfInventoryOutstanding"
       ttmField="daysOfInventoryOutstandingTTM"
       valueLabel="Days Inventory Outstanding"
-      formula="DIO = (Inventory ÷ Cost of Revenue) × 365"
-      source="metrics"
+      formula="DIO = (Average Inventory ÷ Cost of Revenue) × 365"
       format="days"
+      priceBased
     />
   );
 }

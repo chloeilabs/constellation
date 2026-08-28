@@ -17,12 +17,12 @@ export default async function NetDebtEbitdaPage({
       period={periodFrom(periodParam)}
       slug="net-debt-ebitda"
       title={`${ticker} Net Debt / EBITDA`}
-      description="Net debt divided by EBITDA from FMP key metrics."
+      description="Net debt divided by EBITDA from live price, cash, and FMP filings."
       field="netDebtToEBITDA"
       ttmField="netDebtToEBITDATTM"
       valueLabel="Net Debt / EBITDA"
-      formula="Net Debt / EBITDA = (Total Debt − Cash) ÷ EBITDA"
-      source="metrics"
+      formula="Net Debt / EBITDA = (Total Debt − Cash & Investments) ÷ EBITDA"
+      priceBased
     />
   );
 }

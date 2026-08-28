@@ -62,6 +62,9 @@ export function PriceChart({
   ema12Series,
   ema26Series,
   rsiSeries,
+  macdSeries,
+  macdSignalSeries,
+  macdHistogramSeries,
   query,
   adjusted,
   showAdjustedToggle = false,
@@ -77,6 +80,9 @@ export function PriceChart({
   ema12Series?: ChartPoint[];
   ema26Series?: ChartPoint[];
   rsiSeries?: ChartPoint[];
+  macdSeries?: ChartPoint[];
+  macdSignalSeries?: ChartPoint[];
+  macdHistogramSeries?: ChartPoint[];
   query?: Record<string, string | undefined>;
   adjusted?: boolean;
   showAdjustedToggle?: boolean;
@@ -84,22 +90,29 @@ export function PriceChart({
   const [hover, setHover] = useState<number | null>(null);
   const pathname = usePathname();
   const showRsi = (rsiSeries?.length ?? 0) > 1;
+  const showMacd = (macdSeries?.length ?? 0) > 1;
 
   const layout = useMemo(() => {
     const width = 720;
-    const chartHeight = showRsi ? 200 : 220;
-    const volHeight = showRsi ? 44 : 52;
-    const rsiHeight = 56;
-    const gap = 10;
+    const oscillators = (showRsi ? 1 : 0) + (showMacd ? 1 : 0);
+    const chartHeight = oscillators ? 188 : 220;
+    const volHeight = oscillators ? 40 : 52;
+    const rsiHeight = 52;
+    const macdHeight = 56;
+    const gap = 8;
     const pad = 8;
     const volTop = chartHeight + gap;
     const rsiTop = volTop + volHeight + gap;
-    const height = showRsi ? rsiTop + rsiHeight : volTop + volHeight;
+    const macdTop = showRsi ? rsiTop + rsiHeight + gap : rsiTop;
+    const height = showMacd ? macdTop + macdHeight : showRsi ? rsiTop + rsiHeight : volTop + volHeight;
     const ma50Days = seriesByDay(ma50Series);
     const ma200Days = seriesByDay(ma200Series);
     const ema12Days = seriesByDay(ema12Series);
     const ema26Days = seriesByDay(ema26Series);
     const rsiDays = seriesByDay(rsiSeries);
+    const macdDays = seriesByDay(macdSeries);
+    const macdSignalDays = seriesByDay(macdSignalSeries);
+    const macdHistDays = seriesByDay(macdHistogramSeries);
     const empty = {
       path: "",
       area: "",
@@ -109,6 +122,7 @@ export function PriceChart({
       height,
       positive: true,
       volumes: [] as { x: number; barWidth: number; barHeight: number; y: number }[],
+      macdBars: [] as { x: number; y: number; barWidth: number; barHeight: number; up: boolean }[],
       ma50Y: null as number | null,
       ma200Y: null as number | null,
       ma50Path: "",
@@ -119,11 +133,16 @@ export function PriceChart({
       rsi30Y: 0,
       rsi50Y: 0,
       rsi70Y: 0,
+      macdPath: "",
+      macdSignalPath: "",
+      macdZeroY: 0,
       ma50Days,
       ma200Days,
       ema12Days,
       ema26Days,
       rsiDays,
+      macdDays,
+      macdSignalDays,
     };
     if (points.length === 0) return empty;
 
@@ -145,6 +164,11 @@ export function PriceChart({
     const span = max - min || 1;
     const yOf = (value: number) => pad + ((max - value) / span) * (chartHeight - pad * 2);
     const rsiYOf = (value: number) => rsiTop + pad + ((100 - value) / 100) * (rsiHeight - pad * 2);
+    const macdValues = [...macdDays.values(), ...macdSignalDays.values(), ...macdHistDays.values()];
+    const macdMin = macdValues.length ? Math.min(0, ...macdValues) : 0;
+    const macdMax = macdValues.length ? Math.max(0, ...macdValues) : 1;
+    const macdSpan = macdMax - macdMin || 1;
+    const macdYOf = (value: number) => macdTop + pad + ((macdMax - value) / macdSpan) * (macdHeight - pad * 2);
     const coords = points.map((point, index) => {
       const x = pad + (index / Math.max(points.length - 1, 1)) * (width - pad * 2);
       return { x, y: yOf(point.value) };
@@ -159,6 +183,22 @@ export function PriceChart({
       const barHeight = ((point.volume ?? 0) / maxVolume) * volHeight;
       return { x, barWidth, barHeight, y: volTop + volHeight - barHeight };
     });
+    const macdZeroY = macdYOf(0);
+    const macdBars = showMacd
+      ? points.map((point, index) => {
+          const hist = macdHistDays.get(point.time.slice(0, 10));
+          const x = pad + (index / Math.max(points.length - 1, 1)) * (width - pad * 2) - barWidth / 2;
+          if (hist == null) return { x, y: macdZeroY, barWidth, barHeight: 0, up: true };
+          const y = macdYOf(hist);
+          return {
+            x,
+            y: Math.min(y, macdZeroY),
+            barWidth,
+            barHeight: Math.abs(y - macdZeroY),
+            up: hist >= 0,
+          };
+        })
+      : [];
     const ma50Path = alignedPath(points, ma50Days, yOf, pad, width);
     const ma200Path = alignedPath(points, ma200Days, yOf, pad, width);
     return {
@@ -170,6 +210,7 @@ export function PriceChart({
       height,
       positive,
       volumes,
+      macdBars,
       ma50Y: !ma50Path && typeof ma50 === "number" && Number.isFinite(ma50) ? yOf(ma50) : null,
       ma200Y: !ma200Path && typeof ma200 === "number" && Number.isFinite(ma200) ? yOf(ma200) : null,
       ma50Path,
@@ -180,13 +221,32 @@ export function PriceChart({
       rsi30Y: rsiYOf(30),
       rsi50Y: rsiYOf(50),
       rsi70Y: rsiYOf(70),
+      macdPath: showMacd ? alignedPath(points, macdDays, macdYOf, pad, width) : "",
+      macdSignalPath: showMacd ? alignedPath(points, macdSignalDays, macdYOf, pad, width) : "",
+      macdZeroY,
       ma50Days,
       ma200Days,
       ema12Days,
       ema26Days,
       rsiDays,
+      macdDays,
+      macdSignalDays,
     };
-  }, [points, ma50, ma200, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, showRsi]);
+  }, [
+    points,
+    ma50,
+    ma200,
+    ma50Series,
+    ma200Series,
+    ema12Series,
+    ema26Series,
+    rsiSeries,
+    macdSeries,
+    macdSignalSeries,
+    macdHistogramSeries,
+    showRsi,
+    showMacd,
+  ]);
 
   const {
     path,
@@ -197,6 +257,7 @@ export function PriceChart({
     height,
     positive,
     volumes,
+    macdBars,
     ma50Y,
     ma200Y,
     ma50Path,
@@ -207,11 +268,16 @@ export function PriceChart({
     rsi30Y,
     rsi50Y,
     rsi70Y,
+    macdPath,
+    macdSignalPath,
+    macdZeroY,
     ma50Days,
     ma200Days,
     ema12Days,
     ema26Days,
     rsiDays,
+    macdDays,
+    macdSignalDays,
   } = layout;
 
   const active = hover != null ? points[hover] : points.at(-1);
@@ -224,6 +290,9 @@ export function PriceChart({
   const ema12Now = activeDay ? ema12Days.get(activeDay) : undefined;
   const ema26Now = activeDay ? ema26Days.get(activeDay) : undefined;
   const rsiNow = activeDay ? rsiDays.get(activeDay) : undefined;
+  const macdNow = activeDay ? macdDays.get(activeDay) : undefined;
+  const macdSignalNow = activeDay ? macdSignalDays.get(activeDay) : undefined;
+  const svgHeightClass = showMacd ? "h-[430px] w-full" : showRsi ? "h-[360px] w-full" : "h-[280px] w-full";
 
   return (
     <div>
@@ -249,6 +318,12 @@ export function PriceChart({
           ) : null}
           {typeof rsiNow === "number" ? (
             <span className="text-xs font-medium text-violet-700">RSI {formatNumber(rsiNow)}</span>
+          ) : null}
+          {typeof macdNow === "number" ? (
+            <span className="text-xs font-medium text-sky-700">MACD {formatNumber(macdNow, 2)}</span>
+          ) : null}
+          {typeof macdSignalNow === "number" ? (
+            <span className="text-xs font-medium text-orange-600">Signal {formatNumber(macdSignalNow, 2)}</span>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -298,7 +373,7 @@ export function PriceChart({
       ) : (
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className={showRsi ? "h-[360px] w-full" : "h-[280px] w-full"}
+          className={svgHeightClass}
           onMouseLeave={() => setHover(null)}
           onMouseMove={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
@@ -349,6 +424,29 @@ export function PriceChart({
               </text>
               <text x="10" y={rsi30Y + 10} fill="#6d28d9" fontSize="9">
                 30
+              </text>
+            </>
+          ) : null}
+          {showMacd ? (
+            <>
+              <line x1="8" x2={width - 8} y1={macdZeroY} y2={macdZeroY} stroke="#e2e8f0" strokeWidth="1" />
+              {macdBars.map((bar, index) =>
+                bar.barHeight > 0 ? (
+                  <rect
+                    key={`macd-${index}`}
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.barWidth}
+                    height={bar.barHeight}
+                    fill={bar.up ? "#86efac" : "#fca5a5"}
+                    opacity={hover == null || hover === index ? 0.9 : 0.35}
+                  />
+                ) : null,
+              )}
+              {macdPath ? <path d={macdPath} fill="none" stroke="#0369a1" strokeWidth="1.5" /> : null}
+              {macdSignalPath ? <path d={macdSignalPath} fill="none" stroke="#ea580c" strokeWidth="1.25" /> : null}
+              <text x="10" y={macdZeroY - 3} fill="#0369a1" fontSize="9">
+                MACD
               </text>
             </>
           ) : null}

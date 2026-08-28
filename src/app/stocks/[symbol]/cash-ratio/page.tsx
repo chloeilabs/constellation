@@ -17,11 +17,12 @@ export default async function CashRatioPage({
       period={periodFrom(periodParam)}
       slug="cash-ratio"
       title={`${ticker} Cash Ratio`}
-      description="Cash and cash equivalents versus current liabilities."
+      description="Cash and cash equivalents versus current liabilities from the latest FMP balance sheet."
       field="cashRatio"
       ttmField="cashRatioTTM"
       valueLabel="Cash Ratio"
       formula="Cash Ratio = Cash ÷ Current Liabilities"
+      priceBased
     />
   );
 }

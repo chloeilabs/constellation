@@ -17,12 +17,13 @@ export default async function InterestCoveragePage({
       period={periodFrom(periodParam)}
       slug="interest-coverage"
       title={`${ticker} Interest Coverage`}
-      description="EBIT divided by interest expense. Zero or missing coverage is shown as unavailable."
+      description="EBIT divided by interest expense from FMP filings. Zero or missing coverage is shown as unavailable."
       field="interestCoverageRatio"
       ttmField="interestCoverageRatioTTM"
       valueLabel="Interest Coverage"
       formula="Interest Coverage = EBIT ÷ Interest Expense"
       zeroAsEmpty
+      priceBased
     />
   );
 }

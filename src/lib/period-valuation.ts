@@ -1,7 +1,7 @@
 import { yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getCashFlows, getCashFlowTtm, getDailyChart, getIncomeStatements, getIncomeTtm, getQuote } from "@/lib/fmp";
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
-import { derivedBalanceMetrics, derivedStatementMetrics } from "@/lib/statements";
+import { derivedBalanceMetrics, derivedEfficiencyMetrics, derivedStatementMetrics } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 import { addDays, cashAndInvestments, isoDate, nyDateString } from "@/lib/utils";
 import { derivedValuationMetrics, marketCapFromPrice } from "@/lib/valuation";
@@ -31,9 +31,11 @@ export function valuationFromFilings(input: {
   income?: Record<string, unknown> | null;
   cash?: Record<string, unknown> | null;
   balance?: Record<string, unknown> | null;
+  priorBalance?: Record<string, unknown> | null;
   nextEps?: number | null;
   sharesYoy?: number | null;
   epsCagr?: number | null;
+  daysInPeriod?: number;
 }) {
   const income = (input.income ?? {}) as Record<string, unknown>;
   const cash = (input.cash ?? {}) as Record<string, unknown>;
@@ -57,6 +59,12 @@ export function valuationFromFilings(input: {
   });
   const price = finite(input.price);
   const shares = finite(mergedIncome.weightedAverageShsOutDil) ?? finite(balance.weightedAverageShsOutDil);
+  const efficiency = derivedEfficiencyMetrics({
+    income: { ...mergedIncome, ebit: derivedIncome.ebit, ebitda: derivedIncome.ebitda },
+    balance,
+    priorBalance: input.priorBalance,
+    daysInPeriod: input.daysInPeriod,
+  });
   const derived = derivedValuationMetrics({
     price,
     marketCap: finite(input.marketCap) ?? marketCapFromPrice(price, shares),
@@ -79,6 +87,7 @@ export function valuationFromFilings(input: {
   });
   return {
     ...derived,
+    ...efficiency,
     totalDebt: finite(balance.totalDebt),
     netCash: derivedBalance.netCashPosition,
     cashAndInvestments: cashAndInvestments({
@@ -110,6 +119,10 @@ export async function loadPeriodValuationHistory(symbol: string, period: Stateme
     const cashRow = matchStatement(cash, row.date, row.fiscalYear);
     const balanceRow = matchStatement(balance, row.date, row.fiscalYear);
     const prior = income[index + priorOffset];
+    const priorPeriod = income[index + 1];
+    const priorBalance = priorPeriod
+      ? matchStatement(balance, priorPeriod.date, priorPeriod.fiscalYear)
+      : null;
     const price = closeOnOrBefore(closes, row.date);
     return {
       date: row.date,
@@ -120,6 +133,8 @@ export async function loadPeriodValuationHistory(symbol: string, period: Stateme
         income: row as unknown as Record<string, unknown>,
         cash: cashRow as unknown as Record<string, unknown> | null,
         balance: balanceRow as unknown as Record<string, unknown> | null,
+        priorBalance: priorBalance as unknown as Record<string, unknown> | null,
+        daysInPeriod: period === "quarter" ? 365 / 4 : 365,
         epsCagr: yearOverYear(
           finite(row.epsDiluted) ?? finite(row.eps),
           finite(prior?.epsDiluted) ?? finite(prior?.eps),
@@ -134,7 +149,7 @@ export async function loadLiveValuation(symbol: string) {
     getQuote(symbol),
     getIncomeTtm(symbol),
     getCashFlowTtm(symbol),
-    getBalanceSheets(symbol, "quarter", 1),
+    getBalanceSheets(symbol, "quarter", 5),
   ]);
   return valuationFromFilings({
     price: quote?.price,
@@ -142,6 +157,8 @@ export async function loadLiveValuation(symbol: string) {
     income: income as unknown as Record<string, unknown> | null,
     cash: cash as unknown as Record<string, unknown> | null,
     balance: (sheets[0] ?? null) as unknown as Record<string, unknown> | null,
+    priorBalance: (sheets[4] ?? sheets[1] ?? null) as unknown as Record<string, unknown> | null,
+    daysInPeriod: 365,
   });
 }
 

@@ -17,13 +17,13 @@ export default async function RoePage({
       period={periodFrom(periodParam)}
       slug="roe"
       title={`${ticker} Return on Equity`}
-      description="Net income as a percentage of shareholders' equity."
+      description="Net income as a percentage of average shareholders' equity from FMP filings."
       field="returnOnEquity"
       ttmField="returnOnEquityTTM"
       valueLabel="ROE"
-      formula="ROE = Net Income ÷ Shareholders' Equity"
+      formula="ROE = Net Income ÷ Average Shareholders' Equity"
       format="percent"
-      source="metrics"
+      priceBased
     />
   );
 }

@@ -17,13 +17,13 @@ export default async function RocePage({
       period={periodFrom(periodParam)}
       slug="roce"
       title={`${ticker} Return on Capital Employed`}
-      description="Operating return on capital employed, from live FMP key metrics."
+      description="EBIT divided by period-end capital employed (total assets − current liabilities) from FMP filings."
       field="returnOnCapitalEmployed"
       ttmField="returnOnCapitalEmployedTTM"
       valueLabel="ROCE"
-      formula="ROCE = EBIT ÷ Capital Employed"
+      formula="ROCE = EBIT ÷ (Total Assets − Current Liabilities)"
       format="percent"
-      source="metrics"
+      priceBased
     />
   );
 }

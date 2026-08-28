@@ -17,11 +17,12 @@ export default async function CurrentRatioPage({
       period={periodFrom(periodParam)}
       slug="current-ratio"
       title={`${ticker} Current Ratio`}
-      description="Current assets divided by current liabilities."
+      description="Current assets divided by current liabilities from the latest FMP balance sheet."
       field="currentRatio"
       ttmField="currentRatioTTM"
       valueLabel="Current Ratio"
       formula="Current Ratio = Current Assets ÷ Current Liabilities"
+      priceBased
     />
   );
 }

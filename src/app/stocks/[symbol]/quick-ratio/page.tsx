@@ -17,11 +17,12 @@ export default async function QuickRatioPage({
       period={periodFrom(periodParam)}
       slug="quick-ratio"
       title={`${ticker} Quick Ratio`}
-      description="Cash, receivables, and short-term investments versus current liabilities."
+      description="Cash, short-term investments, and receivables versus current liabilities from FMP filings."
       field="quickRatio"
       ttmField="quickRatioTTM"
       valueLabel="Quick Ratio"
-      formula="Quick Ratio = (Cash + Receivables + Short-Term Investments) ÷ Current Liabilities"
+      formula="Quick Ratio = (Cash + Short-Term Investments + Receivables) ÷ Current Liabilities"
+      priceBased
     />
   );
 }

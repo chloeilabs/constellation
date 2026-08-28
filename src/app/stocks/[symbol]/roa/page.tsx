@@ -17,13 +17,13 @@ export default async function RoaPage({
       period={periodFrom(periodParam)}
       slug="roa"
       title={`${ticker} Return on Assets`}
-      description="Net income as a percentage of total assets."
+      description="Net income as a percentage of average total assets from FMP filings."
       field="returnOnAssets"
       ttmField="returnOnAssetsTTM"
       valueLabel="ROA"
-      formula="ROA = Net Income ÷ Total Assets"
+      formula="ROA = Net Income ÷ Average Total Assets"
       format="percent"
-      source="metrics"
+      priceBased
     />
   );
 }

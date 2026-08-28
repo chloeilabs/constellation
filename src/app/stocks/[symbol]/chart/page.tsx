@@ -23,7 +23,7 @@ export default async function ChartPage({
     getPriceChange(ticker),
     getQuoteSafe(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, macdSeries, macdSignalSeries, macdHistogramSeries, adjusted } = chart;
   const showAdjustedToggle = canDividendAdjust(range);
 
   return (
@@ -32,8 +32,8 @@ export default async function ChartPage({
         title={`${indexDisplayName(ticker, quote?.name)} Chart`}
         description={
           adjusted
-            ? "Dividend-adjusted closes from FMP, with SMA 50/200 computed on the adjusted series, plus EMA 12/26 and RSI (14)."
-            : "Interactive historical price chart with SMA 50/200, EMA 12/26, and RSI (14)."
+            ? "Dividend-adjusted closes from FMP, with SMA 50/200 computed on the adjusted series, plus EMA 12/26, RSI (14), and MACD (12, 26, 9)."
+            : "Interactive historical price chart with SMA 50/200, EMA 12/26, RSI (14), and MACD (12, 26, 9)."
         }
       />
       <PriceChart
@@ -47,6 +47,9 @@ export default async function ChartPage({
         ema12Series={ema12Series}
         ema26Series={ema26Series}
         rsiSeries={rsiSeries}
+        macdSeries={macdSeries}
+        macdSignalSeries={macdSignalSeries}
+        macdHistogramSeries={macdHistogramSeries}
         adjusted={adjusted}
         showAdjustedToggle={showAdjustedToggle}
         query={wantAdjusted ? { adj: "1" } : undefined}

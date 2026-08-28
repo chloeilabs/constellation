@@ -17,11 +17,12 @@ export default async function InventoryTurnoverPage({
       period={periodFrom(periodParam)}
       slug="inventory-turnover"
       title={`${ticker} Inventory Turnover`}
-      description="Cost of goods sold divided by average inventory, from FMP ratios."
+      description="Cost of revenue divided by average inventory from FMP filings."
       field="inventoryTurnover"
       ttmField="inventoryTurnoverTTM"
       valueLabel="Inventory Turnover"
       formula="Inventory Turnover = Cost of Revenue ÷ Average Inventory"
+      priceBased
     />
   );
 }

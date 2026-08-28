@@ -17,11 +17,12 @@ export default async function AssetTurnoverPage({
       period={periodFrom(periodParam)}
       slug="asset-turnover"
       title={`${ticker} Asset Turnover`}
-      description="Revenue generated per dollar of assets."
+      description="Trailing revenue divided by average total assets from FMP filings."
       field="assetTurnover"
       ttmField="assetTurnoverTTM"
       valueLabel="Asset Turnover"
       formula="Asset Turnover = Revenue ÷ Average Assets"
+      priceBased
     />
   );
 }
