@@ -17,6 +17,7 @@ export function PeriodToggle({
     <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Statement period">
       <Link
         href={annualHref}
+        scroll={false}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
           period === "annual" ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -26,6 +27,7 @@ export function PeriodToggle({
       </Link>
       <Link
         href={quarterHref}
+        scroll={false}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
           period === "quarter" ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -36,6 +38,7 @@ export function PeriodToggle({
       {trailingHref ? (
         <Link
           href={trailingHref}
+          scroll={false}
           className={cn(
             "rounded px-3 py-1.5 font-medium",
             period === "trailing" ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -61,6 +64,7 @@ export function SourceToggle({
     <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Statement source">
       <Link
         href={standardizedHref}
+        scroll={false}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
           source === "standardized" ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -70,6 +74,7 @@ export function SourceToggle({
       </Link>
       <Link
         href={reportedHref}
+        scroll={false}
         className={cn(
           "rounded px-3 py-1.5 font-medium",
           source === "reported" ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -104,6 +109,7 @@ export function YearToggle({
         <Link
           key={id}
           href={href}
+          scroll={false}
           className={cn(
             "rounded px-3 py-1.5 font-medium",
             span === id ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -142,6 +148,7 @@ export function RangeToggle({
         <Link
           key={id}
           href={href}
+          scroll={false}
           className={cn(
             "rounded px-3 py-1.5 font-medium",
             range === id ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -174,6 +181,7 @@ export function ViewToggle({
         <Link
           key={id}
           href={href}
+          scroll={false}
           className={cn(
             "rounded px-3 py-1.5 font-medium",
             view === id ? "bg-header text-on-header" : "text-muted hover:text-header",
