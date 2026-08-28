@@ -355,8 +355,16 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
                     ? enterpriseValue / ttm!.netIncome
                     : null,
                 ) },
-              { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: formatRatio(num(metrics?.evToSalesTTM)) },
-              { label: "EV / EBITDA", href: `/stocks/${ticker}/ev-ebitda`, value: formatRatio(num(metrics?.evToEBITDATTM)) },
+              { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: formatRatio(
+                  enterpriseValue != null && num(ttm?.revenue) != null && ttm!.revenue !== 0
+                    ? enterpriseValue / ttm!.revenue
+                    : num(metrics?.evToSalesTTM),
+                ) },
+              { label: "EV / EBITDA", href: `/stocks/${ticker}/ev-ebitda`, value: formatRatio(
+                  enterpriseValue != null && num(derivedTtm?.ebitda ?? ttm?.ebitda) != null && (derivedTtm?.ebitda ?? ttm?.ebitda) !== 0
+                    ? enterpriseValue / (derivedTtm?.ebitda ?? ttm!.ebitda)
+                    : num(metrics?.evToEBITDATTM),
+                ) },
               {
                 label: "EV / EBIT",
                 href: `/stocks/${ticker}/ev-ebit`,
@@ -366,7 +374,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
                     : null,
                 ),
               },
-              { label: "EV / FCF", href: `/stocks/${ticker}/ev-fcf`, value: formatRatio(num(metrics?.evToFreeCashFlowTTM)) },
+              { label: "EV / FCF", href: `/stocks/${ticker}/ev-fcf`, value: formatRatio(
+                  enterpriseValue != null && num(cash?.freeCashFlow) != null && cash!.freeCashFlow !== 0
+                    ? enterpriseValue / cash!.freeCashFlow
+                    : num(metrics?.evToFreeCashFlowTTM),
+                ) },
             ]}
           />
         </section>
