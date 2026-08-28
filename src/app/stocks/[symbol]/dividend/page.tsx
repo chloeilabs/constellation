@@ -37,7 +37,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const years = [...byYear.keys()].sort();
   const lastCompleteFy = annual[0]?.fiscalYear != null ? String(annual[0].fiscalYear) : null;
   const complete = years.filter((year) => !lastCompleteFy || year <= lastCompleteFy);
-  const bars = years.map((year) => ({ label: `FY ${year}`, value: byYear.get(year) ?? 0 }));
+  const bars = complete.map((year) => ({ label: `FY ${year}`, value: byYear.get(year) ?? 0 }));
   const five = (complete.length >= 2 ? complete : years).slice(-6);
   const first = five[0] ? byYear.get(five[0]) : null;
   const last = five.at(-1) ? byYear.get(five.at(-1)!) : null;
@@ -168,6 +168,9 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
       {bars.length > 1 ? (
         <div className="mt-8">
           <h2 className="mb-3 text-lg font-semibold text-header">Annual Dividends Per Share (Fiscal Year)</h2>
+          <p className="mb-3 text-sm text-muted">
+            Complete fiscal years only. The current year is omitted until the fiscal year ends.
+          </p>
           <HistoryBars items={bars} formatValue={(value) => px(value)} />
         </div>
       ) : null}

@@ -133,10 +133,36 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   inventoryTurnover: "inventory-turnover",
   returnOnInvestedCapital: "roic",
   returnOnCapitalEmployed: "roce",
+  returnOnEquity: "roe",
+  returnOnAssets: "roa",
   earningsYield: "earnings-yield",
   freeCashFlowYield: "fcf-yield",
   netDebtToEBITDA: "net-debt-ebitda",
+  netDebtToEquity: "net-cash",
+  netDebtToFcf: "debt-fcf",
   priceToEarningsGrowthRatio: "peg-ratio",
+  priceToEarningsRatio: "pe-ratio",
+  priceToSalesRatio: "ps-ratio",
+  priceToBookRatio: "pb-ratio",
+  priceToTangibleBookRatio: "tangible-book-value",
+  priceToFreeCashFlowRatio: "pfcf-ratio",
+  priceToOperatingCashFlowRatio: "pocf-ratio",
+  marketCap: "market-cap",
+  marketCapGrowth: "market-cap",
+  enterpriseValue: "enterprise-value",
+  evToSales: "ev-sales",
+  evToEBITDA: "ev-ebitda",
+  evToEBIT: "ev-ebit",
+  evToFreeCashFlow: "ev-fcf",
+  debtToEquityRatio: "debt-equity-ratio",
+  debtToEbitda: "debt-ebitda",
+  debtToFcf: "debt-fcf",
+  currentRatio: "current-ratio",
+  quickRatio: "quick-ratio",
+  dividendYield: "dividend-yield",
+  dividendPayoutRatio: "payout-ratio",
+  buybackYield: "buybacks",
+  shareholderYield: "buybacks",
 };
 
 export function withStatementHrefs(rows: StatementRow[], symbol: string): StatementRow[] {
@@ -226,32 +252,86 @@ export const ADDITIONAL_CASH_ROWS: StatementRow[] = [
   { key: "changeInWorkingCapital", label: "Change in Working Capital", format: "money" },
 ];
 
-export const RATIO_ROWS: StatementRow[] = [
-  { key: "grossProfitMargin", label: "Gross Margin", format: "percent" },
-  { key: "operatingProfitMargin", label: "Operating Margin", format: "percent" },
-  { key: "netProfitMargin", label: "Profit Margin", format: "percent" },
-  { key: "ebitdaMargin", label: "EBITDA Margin", format: "percent" },
-  { key: "returnOnAssets", label: "Return on Assets", format: "percent" },
-  { key: "returnOnEquity", label: "Return on Equity", format: "percent" },
-  { key: "currentRatio", label: "Current Ratio", format: "ratio" },
-  { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
-  { key: "debtToEquityRatio", label: "Debt / Equity", format: "ratio" },
-  { key: "netDebtToEBITDA", label: "Net Debt / EBITDA", format: "ratio" },
-  { key: "assetTurnover", label: "Asset Turnover", format: "ratio" },
-  { key: "inventoryTurnover", label: "Inventory Turnover", format: "ratio" },
-  { key: "priceToEarningsRatio", label: "PE Ratio", format: "ratio" },
-  { key: "forwardPe", label: "Forward PE", format: "ratio" },
-  { key: "priceToEarningsGrowthRatio", label: "PEG Ratio", format: "ratio" },
-  { key: "priceToBookRatio", label: "PB Ratio", format: "ratio" },
-  { key: "priceToSalesRatio", label: "PS Ratio", format: "ratio" },
-  { key: "priceToFreeCashFlowRatio", label: "P/FCF", format: "ratio" },
-  { key: "returnOnInvestedCapital", label: "Return on Invested Capital", format: "percent" },
-  { key: "returnOnCapitalEmployed", label: "Return on Capital Employed", format: "percent" },
-  { key: "earningsYield", label: "Earnings Yield", format: "percent" },
-  { key: "freeCashFlowYield", label: "FCF Yield", format: "percent" },
-  { key: "dividendYield", label: "Dividend Yield", format: "percent" },
-  { key: "dividendPayoutRatio", label: "Payout Ratio", format: "percent" },
+export type RatioSection = {
+  id: string;
+  title: string;
+  rows: StatementRow[];
+  scale?: "millions";
+  inlineYoy?: boolean;
+};
+
+export const RATIO_SECTIONS: RatioSection[] = [
+  {
+    id: "valuation",
+    title: "Total Valuation",
+    scale: "millions",
+    inlineYoy: false,
+    rows: [
+      { key: "marketCap", label: "Market Capitalization", emphasize: true, format: "money" },
+      { key: "marketCapGrowth", label: "Market Cap Growth", format: "percent" },
+      { key: "enterpriseValue", label: "Enterprise Value", emphasize: true, format: "money" },
+      { key: "lastClosePrice", label: "Last Close Price", format: "eps" },
+    ],
+  },
+  {
+    id: "price",
+    title: "Price Ratios",
+    rows: [
+      { key: "priceToEarningsRatio", label: "PE Ratio", format: "ratio" },
+      { key: "forwardPe", label: "Forward PE", format: "ratio" },
+      { key: "priceToSalesRatio", label: "PS Ratio", format: "ratio" },
+      { key: "priceToBookRatio", label: "PB Ratio", format: "ratio" },
+      { key: "priceToTangibleBookRatio", label: "P/TBV Ratio", format: "ratio" },
+      { key: "priceToFreeCashFlowRatio", label: "P/FCF Ratio", format: "ratio" },
+      { key: "priceToOperatingCashFlowRatio", label: "P/OCF Ratio", format: "ratio" },
+      { key: "priceToEarningsGrowthRatio", label: "PEG Ratio", format: "ratio" },
+    ],
+  },
+  {
+    id: "ev",
+    title: "EV Ratios",
+    rows: [
+      { key: "evToSales", label: "EV / Sales", format: "ratio" },
+      { key: "evToEBITDA", label: "EV / EBITDA", format: "ratio" },
+      { key: "evToEBIT", label: "EV / EBIT", format: "ratio" },
+      { key: "evToFreeCashFlow", label: "EV / FCF", format: "ratio" },
+    ],
+  },
+  {
+    id: "efficiency",
+    title: "Financial Efficiency",
+    rows: [
+      { key: "debtToEquityRatio", label: "Debt / Equity", format: "ratio" },
+      { key: "debtToEbitda", label: "Debt / EBITDA", format: "ratio" },
+      { key: "debtToFcf", label: "Debt / FCF", format: "ratio" },
+      { key: "netDebtToEquity", label: "Net Debt / Equity", format: "ratio" },
+      { key: "netDebtToEBITDA", label: "Net Debt / EBITDA", format: "ratio" },
+      { key: "netDebtToFcf", label: "Net Debt / FCF", format: "ratio" },
+      { key: "assetTurnover", label: "Asset Turnover", format: "ratio" },
+      { key: "inventoryTurnover", label: "Inventory Turnover", format: "ratio" },
+      { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
+      { key: "currentRatio", label: "Current Ratio", format: "ratio" },
+      { key: "returnOnEquity", label: "Return on Equity (ROE)", format: "percent" },
+      { key: "returnOnAssets", label: "Return on Assets (ROA)", format: "percent" },
+      { key: "returnOnInvestedCapital", label: "Return on Invested Capital (ROIC)", format: "percent" },
+      { key: "returnOnCapitalEmployed", label: "Return on Capital Employed (ROCE)", format: "percent" },
+    ],
+  },
+  {
+    id: "yields",
+    title: "Yields",
+    rows: [
+      { key: "earningsYield", label: "Earnings Yield", format: "percent" },
+      { key: "freeCashFlowYield", label: "FCF Yield", format: "percent" },
+      { key: "dividendYield", label: "Dividend Yield", format: "percent" },
+      { key: "dividendPayoutRatio", label: "Payout Ratio", format: "percent" },
+      { key: "buybackYield", label: "Buyback Yield / Dilution", format: "percent" },
+      { key: "shareholderYield", label: "Total Shareholder Return", format: "percent" },
+    ],
+  },
 ];
+
+export const RATIO_ROWS: StatementRow[] = RATIO_SECTIONS.flatMap((section) => section.rows);
 
 export const GROWTH_ROWS: StatementRow[] = [
   { key: "revenueGrowth", label: "Revenue Growth", emphasize: true, format: "percent" },

@@ -8,9 +8,7 @@ import { SectionNav } from "@/components/section-nav";
 import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPlausiblePe, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
 import {
-  getCashFlowTtm,
   getCompanyEarnings,
-  getDcf,
   getDividends,
   getEstimates,
   getEtfAssetExposure,
@@ -24,9 +22,7 @@ import {
   getPriceTarget,
   getProfile,
   getQuote,
-  getRatings,
   getRatiosTtm,
-  getScores,
   getSecFilings,
   getShareFloat,
   getSymbolNews,
@@ -41,14 +37,13 @@ import { listedPeers } from "@/lib/peers";
 import { ChangePercent } from "@/components/change";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { QuoteFaq } from "@/components/quote-faq";
-import { actualToEstimateCagr, buybackYieldFromShareChange, forwardPe as forwardPeFromEstimates, pegRatio, trailingPe } from "@/lib/valuation";
+import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
-import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
+import { splitCompanyEarnings } from "@/lib/earnings";
 import { overviewSecFilings } from "@/lib/filings";
-import { addDays, cashOutlay, isoDate, nyDateString, relativeChange } from "@/lib/utils";
-import { dividendTtmGrowth } from "@/lib/dividends";
-import { derivedStatementMetrics, ttmChange } from "@/lib/statements";
+import { addDays, indicatedAnnualDividend, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { ttmChange } from "@/lib/statements";
 
 export default async function StockOverviewPage({
   params,
@@ -66,12 +61,11 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings, ratings, scores, cash, shareFloat] =
+  const [quote, profile, ttm, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, yearAgoCap, press, transcriptDates, filings, shareFloat] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
       getIncomeTtm(ticker),
-      getRatiosTtm(ticker),
       getPriceTarget(ticker),
       getGradesConsensus(ticker),
       getDividends(ticker, 8),
@@ -84,26 +78,12 @@ export default async function StockOverviewPage({
       getEstimates(ticker, "annual"),
       getEtfAssetExposure(ticker),
       getPriceChange(ticker),
-      getDcf(ticker),
       getYearAgoMarketCap(ticker),
       getPressReleases(ticker, 12),
       getTranscriptDates(ticker),
       getSecFilings(ticker, filingFrom, filingTo, 40),
-      getRatings(ticker),
-      getScores(ticker),
-      getCashFlowTtm(ticker),
       getShareFloat(ticker),
     ]);
-  const derivedTtm = ttm
-    ? derivedStatementMetrics({
-        ...(ttm as unknown as Record<string, unknown>),
-        depreciationAndAmortization:
-          (ttm as unknown as Record<string, unknown>).depreciationAndAmortization ?? cash?.depreciationAndAmortization,
-        freeCashFlow: cash?.freeCashFlow,
-      })
-    : null;
-  const ttmWithEbitda =
-    ttm && typeof derivedTtm?.ebitda === "number" ? { ...ttm, ebitda: derivedTtm.ebitda } : ttm;
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
@@ -113,39 +93,18 @@ export default async function StockOverviewPage({
   const money = compactMoneyFn(currency);
   const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
   const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
-  const sharesYoy = relativeChange(latestYear?.weightedAverageShsOutDil, priorYear?.weightedAverageShsOutDil);
-  const ttmBuybacks = cashOutlay(cash?.commonStockRepurchased);
-  const cashBuybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
-  const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
-  const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
-  const shareholderYield =
-    buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
-  const fcfYield =
-    cash?.freeCashFlow != null && marketCap ? cash.freeCashFlow / marketCap : null;
-  const impliedPe = trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps);
-  const peValue = impliedPe ?? (typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe);
-  const epsCagr = actualToEstimateCagr(
-    latestYear?.epsDiluted ?? latestYear?.eps,
-    latestYear?.date,
-    estimates,
-    "epsAvg",
-    3,
-  );
-  const pegValue =
-    pegRatio(peValue, epsCagr) ??
-    (typeof ratios?.priceToEarningsGrowthRatioTTM === "number" ? ratios.priceToEarningsGrowthRatioTTM : null);
-  const earningsYield = peValue && peValue > 0 ? 1 / peValue : null;
+  const peValue = trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps) ?? quote?.pe ?? null;
+  const annualDividend = indicatedAnnualDividend(dividends[0] ?? null, profile?.lastDividend);
+  const dividendYield =
+    annualDividend != null && quote?.price && quote.price > 0 ? annualDividend / quote.price : null;
   const quarterlyRows = quarterly as Array<Record<string, unknown>>;
   const ttmYoy = {
     revenue: ttmChange(quarterlyRows, "revenue"),
-    grossProfit: ttmChange(quarterlyRows, "grossProfit"),
-    operatingIncome: ttmChange(quarterlyRows, "operatingIncome"),
     netIncome: ttmChange(quarterlyRows, "netIncome"),
     eps: ttmChange(quarterlyRows, "epsDiluted") ?? ttmChange(quarterlyRows, "eps"),
   };
   const { lastReported, next } = splitCompanyEarnings(earnings);
   const earningsDate = lastReported?.date ?? next?.date ?? null;
-  const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
   const targetUpside =
     target && quote?.price ? ((target.targetConsensus - quote.price) / quote.price) * 100 : null;
   const usEtfs = await listedUsEtfHolders(etfHolders);
@@ -210,30 +169,16 @@ export default async function StockOverviewPage({
           symbol={ticker}
           quote={quote}
           profile={profile}
-          ttm={ttmWithEbitda ?? ttm}
-          ratios={ratios}
+          ttm={ttm}
           target={target}
           grades={grades}
           dividend={dividends[0] ?? null}
-          dividendGrowth={dividendTtmGrowth(dividends)}
           earningsDate={earningsDate}
-          nextEarningsDate={nextEarningsDate}
-          earningsSurprise={earningsSurprise(lastReported)}
           forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
-          dcf={dcf?.dcf}
           marketCapYoy={marketCapYoy}
           sharesOutstanding={shareFloat?.outstandingShares ?? quote?.sharesOutstanding}
-          sharesYoy={sharesYoy}
           ttmYoy={ttmYoy}
-          ratings={ratings}
-          scores={scores}
-          buybackYield={buybackYield}
-          shareholderYield={shareholderYield}
-          fcfYield={fcfYield}
-          earningsYield={earningsYield}
           pe={peValue}
-          peg={pegValue}
-          profitMargin={derivedTtm?.netProfitMargin}
         />
       </div>
 
@@ -418,7 +363,8 @@ export default async function StockOverviewPage({
           quote={quote}
           profile={profile}
           ttm={ttm}
-          ratios={ratios}
+          pe={peValue}
+          dividendYield={dividendYield}
           target={target}
           grades={grades}
         />

@@ -1,12 +1,14 @@
 import { formatAnalystConsensus, formatCompactMoney, formatDate, formatInteger, formatMoney, formatPercentPlain, formatRatio } from "@/lib/format";
-import type { FmpGradesConsensus, FmpIncomeStatement, FmpPriceTarget, FmpProfile, FmpQuote, FmpRatiosTtm } from "@/lib/types";
+import { trailingPe } from "@/lib/valuation";
+import type { FmpGradesConsensus, FmpIncomeStatement, FmpPriceTarget, FmpProfile, FmpQuote } from "@/lib/types";
 
 export function QuoteFaq({
   symbol,
   quote,
   profile,
   ttm,
-  ratios,
+  pe,
+  dividendYield,
   target,
   grades,
 }: {
@@ -14,15 +16,16 @@ export function QuoteFaq({
   quote: FmpQuote | null;
   profile: FmpProfile | null;
   ttm: FmpIncomeStatement | null;
-  ratios: FmpRatiosTtm | null;
+  pe?: number | null;
+  dividendYield?: number | null;
   target?: FmpPriceTarget | null;
   grades?: FmpGradesConsensus | null;
 }) {
   const name = profile?.companyName ?? quote?.name ?? symbol;
   const price = quote?.price ?? profile?.price;
   const currency = profile?.currency || "USD";
-  const pe = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe;
-  const yieldValue = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
+  const trailing = pe ?? trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps) ?? quote?.pe;
+  const yieldValue = dividendYield ?? null;
   const items = [
     {
       q: `What is ${symbol}'s market cap?`,
@@ -30,7 +33,7 @@ export function QuoteFaq({
     },
     {
       q: `What is the PE ratio for ${symbol}?`,
-      a: pe != null ? `${name} trades at a trailing PE ratio of ${formatRatio(pe)}.` : `A trailing PE ratio is not available for ${symbol}.`,
+      a: trailing != null ? `${name} trades at a trailing PE ratio of ${formatRatio(trailing)}.` : `A trailing PE ratio is not available for ${symbol}.`,
     },
     {
       q: `How much revenue does ${name} make?`,
@@ -41,8 +44,8 @@ export function QuoteFaq({
     {
       q: `Does ${symbol} pay a dividend?`,
       a: yieldValue
-        ? `Yes. The trailing dividend yield is ${formatPercentPlain(yieldValue)}.`
-        : `${name} does not currently show a trailing dividend yield in FMP data.`,
+        ? `Yes. The indicated dividend yield is ${formatPercentPlain(yieldValue)}.`
+        : `${name} does not currently show an indicated dividend yield in FMP data.`,
     },
     {
       q: `How many employees does ${name} have?`,

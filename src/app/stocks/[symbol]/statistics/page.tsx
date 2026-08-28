@@ -152,8 +152,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const currency = profile?.currency || "USD";
   const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
-  const enterpriseValue = num(metrics?.enterpriseValueTTM) ?? num(ratios?.enterpriseValueTTM);
   const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
+  const enterpriseValue =
+    marketCap != null && netCash != null
+      ? marketCap - netCash
+      : num(metrics?.enterpriseValueTTM) ?? num(ratios?.enterpriseValueTTM);
   const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
   const sharesYoy =
     num(growthRows[0]?.growthWeightedAverageShsOutDil) ??

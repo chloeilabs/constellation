@@ -2,10 +2,26 @@ import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
-import { getEstimates, getIncomeStatements, getIncomeTtm, getKeyMetrics, getKeyMetricsTtm, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
+import {
+  getBalanceSheets,
+  getCashFlows,
+  getCashFlowTtm,
+  getEnterpriseValues,
+  getEstimates,
+  getIncomeStatements,
+  getIncomeTtm,
+  getKeyMetrics,
+  getKeyMetricsTtm,
+  getQuote,
+  getRatios,
+  getRatiosTtm,
+  getYearAgoMarketCap,
+} from "@/lib/fmp";
+import { yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
-  RATIO_ROWS,
+  RATIO_SECTIONS,
+  derivedBalanceMetrics,
   derivedStatementMetrics,
   mergeStatementValues,
   spanFrom,
@@ -13,11 +29,137 @@ import {
   statementLimit,
   stripTtmSuffix,
   toStatementColumns,
+  withAdjacentGrowth,
   withStatementHrefs,
-  withTtmColumn,
 } from "@/lib/statements";
-import type { StatementPeriod } from "@/lib/types";
-import { actualToEstimateCagr, estimateCagr, forwardPe, pegRatio, trailingPe } from "@/lib/valuation";
+import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, StatementPeriod } from "@/lib/types";
+import { nyDateString, relativeChange } from "@/lib/utils";
+import {
+  actualToEstimateCagr,
+  assignFinite,
+  derivedValuationMetrics,
+  estimateCagr,
+  nextEstimate,
+} from "@/lib/valuation";
+
+type StatementColumn = { key: string; label: string; values: Record<string, unknown> };
+
+const METRIC_KEYS = [
+  "marketCap",
+  "enterpriseValue",
+  "evToSales",
+  "evToEBITDA",
+  "evToFreeCashFlow",
+  "returnOnAssets",
+  "returnOnEquity",
+  "returnOnInvestedCapital",
+  "returnOnCapitalEmployed",
+  "earningsYield",
+  "freeCashFlowYield",
+  "netDebtToEBITDA",
+  "currentRatio",
+];
+
+function num(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function matchRow<T extends { date?: string; fiscalYear?: string }>(
+  rows: T[],
+  column: StatementColumn,
+  period: StatementPeriod,
+) {
+  const date = typeof column.values.date === "string" ? column.values.date : "";
+  const year = column.values.fiscalYear;
+  if (period === "annual" && year != null) {
+    return (
+      rows.find((row) => row.date === date) ??
+      rows.find((row) => String(row.fiscalYear) === String(year)) ??
+      null
+    );
+  }
+  return rows.find((row) => row.date === date) ?? null;
+}
+
+function matchEnterprise(rows: FmpEnterpriseValue[], column: StatementColumn) {
+  const date = typeof column.values.date === "string" ? column.values.date : "";
+  return rows.find((row) => row.date === date) ?? null;
+}
+
+function overlayRatioColumn(
+  column: StatementColumn,
+  input: {
+    income?: FmpIncomeStatement | Record<string, unknown> | null;
+    balance?: FmpBalanceSheet | Record<string, unknown> | null;
+    cash?: FmpCashFlow | Record<string, unknown> | null;
+    enterprise?: FmpEnterpriseValue | null;
+    price?: number | null;
+    marketCap?: number | null;
+    nextEps?: number | null;
+    epsCagr?: number | null;
+    sharesYoy?: number | null;
+    date?: string | null;
+  },
+): StatementColumn {
+  const income: Record<string, unknown> = {
+    ...column.values,
+    ...((input.income as Record<string, unknown> | null | undefined) ?? {}),
+  };
+  const cash: Record<string, unknown> = (input.cash as Record<string, unknown> | undefined) ?? {};
+  const mergedIncome: Record<string, unknown> = {
+    ...income,
+    depreciationAndAmortization:
+      num(income.depreciationAndAmortization) ?? num(cash.depreciationAndAmortization),
+    freeCashFlow: num(income.freeCashFlow) ?? num(cash.freeCashFlow),
+    operatingCashFlow:
+      num(income.operatingCashFlow) ??
+      num(cash.operatingCashFlow) ??
+      num(cash.netCashProvidedByOperatingActivities),
+  };
+  const derivedIncome = derivedStatementMetrics(mergedIncome);
+  const balance: Record<string, unknown> = {
+    ...mergedIncome,
+    ...((input.balance as Record<string, unknown> | null | undefined) ?? {}),
+  };
+  const derivedBalance = derivedBalanceMetrics({
+    ...balance,
+    weightedAverageShsOutDil:
+      num(balance.weightedAverageShsOutDil) ?? num(mergedIncome.weightedAverageShsOutDil),
+  });
+  const overlay = derivedValuationMetrics({
+    price: input.price ?? num(input.enterprise?.stockPrice),
+    marketCap:
+      input.marketCap ?? num(input.enterprise?.marketCapitalization) ?? num(mergedIncome.marketCap),
+    equity: num(balance.totalStockholdersEquity),
+    tangibleEquity: derivedBalance.tangibleBookValue,
+    bookPerShare: derivedBalance.bookValuePerShare,
+    tangibleBookPerShare: derivedBalance.tangibleBookValuePerShare,
+    totalDebt: num(balance.totalDebt),
+    netCash: derivedBalance.netCashPosition,
+    revenue: num(mergedIncome.revenue),
+    eps: num(mergedIncome.epsDiluted) ?? num(mergedIncome.eps),
+    ebit: derivedIncome.ebit,
+    ebitda: derivedIncome.ebitda,
+    fcf: num(mergedIncome.freeCashFlow),
+    ocf: num(mergedIncome.operatingCashFlow),
+    sharesYoy: input.sharesYoy,
+    dividendYield: num(column.values.dividendYield) ?? num(mergedIncome.dividendYield),
+    nextEps: input.nextEps,
+    epsCagr: input.epsCagr,
+  });
+  return {
+    ...column,
+    values: assignFinite(
+      {
+        ...column.values,
+        ...mergedIncome,
+        weightedAverageShsOutDil: num(mergedIncome.weightedAverageShsOutDil),
+        ...(input.date ? { date: input.date } : {}),
+      },
+      overlay,
+    ),
+  };
+}
 
 export default async function RatiosPage({
   params,
@@ -31,73 +173,114 @@ export default async function RatiosPage({
   const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const span = spanFrom(yearsParam);
-  const [rows, ttm, metrics, metricsTtm, incomeTtm, estimates, quote, annualIncome] = await Promise.all([
-    getRatios(ticker, period, statementLimit(period, span)),
+  const displayCount = statementLimit(period, span);
+  const [
+    rows,
+    ttm,
+    metrics,
+    metricsTtm,
+    incomeTtm,
+    incomeRows,
+    annualIncome,
+    balanceRows,
+    quarterSheets,
+    cashRows,
+    cashTtm,
+    estimates,
+    quote,
+    enterpriseRows,
+    yearAgoCap,
+  ] = await Promise.all([
+    getRatios(ticker, period, displayCount),
     getRatiosTtm(ticker),
-    getKeyMetrics(ticker, period, statementLimit(period, span)),
+    getKeyMetrics(ticker, period, displayCount),
     getKeyMetricsTtm(ticker),
     getIncomeTtm(ticker),
+    getIncomeStatements(ticker, period, displayCount + 1),
+    period === "annual" ? Promise.resolve([] as FmpIncomeStatement[]) : getIncomeStatements(ticker, "annual", 2),
+    getBalanceSheets(ticker, period, displayCount + 1),
+    period === "annual" ? getBalanceSheets(ticker, "quarter", 1) : Promise.resolve([] as FmpBalanceSheet[]),
+    getCashFlows(ticker, period, displayCount + 1),
+    getCashFlowTtm(ticker),
     getEstimates(ticker, "annual"),
     getQuote(ticker),
-    getIncomeStatements(ticker, "annual", 1),
+    getEnterpriseValues(ticker, period, displayCount + 1),
+    getYearAgoMarketCap(ticker),
   ]);
-  const metricKeys = [
-    "returnOnInvestedCapital",
-    "returnOnCapitalEmployed",
-    "earningsYield",
-    "freeCashFlowYield",
-    "netDebtToEBITDA",
-  ];
-  let columns = withTtmColumn(
-    {
-      ...stripTtmSuffix(ttm as Record<string, unknown> | null),
-      ...stripTtmSuffix(metricsTtm as Record<string, unknown> | null),
-    },
-    toStatementColumns(rows, period),
+  const latestAnnual = (annualIncome[0] ?? (period === "annual" ? incomeRows[0] : null)) ?? null;
+  const priorAnnual = (annualIncome[1] ?? (period === "annual" ? incomeRows[1] : null)) ?? null;
+  const annualShareYoy = relativeChange(
+    latestAnnual?.weightedAverageShsOutDil,
+    priorAnnual?.weightedAverageShsOutDil,
   );
-  columns = mergeStatementValues(columns, metrics, metricKeys);
-  const derived = incomeTtm
-    ? derivedStatementMetrics(incomeTtm as unknown as Record<string, unknown>)
-    : null;
-  const pe = trailingPe(quote?.price, incomeTtm?.epsDiluted ?? incomeTtm?.eps);
   const epsCagr =
     actualToEstimateCagr(
-      annualIncome[0]?.epsDiluted ?? annualIncome[0]?.eps,
-      annualIncome[0]?.date,
+      latestAnnual?.epsDiluted ?? latestAnnual?.eps,
+      latestAnnual?.date,
       estimates,
       "epsAvg",
       3,
     ) ?? estimateCagr(estimates, "epsAvg", 3);
-  columns = columns.map((column) => {
-    if (column.key !== "ttm" && column.label !== "TTM") return column;
-    return {
-      ...column,
+  const latestSheet = (period === "annual" ? quarterSheets[0] : balanceRows[0]) ?? null;
+  const currentIncome = incomeTtm
+    ? {
+        ...(incomeTtm as unknown as Record<string, unknown>),
+        depreciationAndAmortization:
+          (incomeTtm as unknown as Record<string, unknown>).depreciationAndAmortization ??
+          cashTtm?.depreciationAndAmortization,
+        freeCashFlow: cashTtm?.freeCashFlow,
+        operatingCashFlow: cashTtm?.operatingCashFlow ?? cashTtm?.netCashProvidedByOperatingActivities,
+      }
+    : null;
+
+  let columns: StatementColumn[] = [
+    {
+      key: "ttm",
+      label: "Current",
       values: {
-        ...column.values,
-        ...(derived
-          ? {
-              ebitdaMargin: derived.ebitdaMargin,
-              ebitMargin: derived.ebitMargin,
-              pretaxProfitMargin: derived.pretaxProfitMargin,
-              netProfitMargin: derived.netProfitMargin,
-              grossProfitMargin: derived.grossProfitMargin,
-              operatingProfitMargin: derived.operatingProfitMargin,
-              effectiveTaxRate: derived.effectiveTaxRate,
-            }
-          : {}),
-        forwardPe: forwardPe(quote?.price, estimates),
-        priceToEarningsGrowthRatio: pegRatio(pe, epsCagr),
-        priceToEarningsRatio: pe ?? column.values.priceToEarningsRatio,
+        ...stripTtmSuffix(metricsTtm as Record<string, unknown> | null),
+        ...stripTtmSuffix(ttm as Record<string, unknown> | null),
+        date: nyDateString(),
       },
-    };
+    },
+    ...toStatementColumns(rows, period),
+  ];
+  columns = mergeStatementValues(columns, metrics, METRIC_KEYS, period === "annual" ? "fiscalYear" : "date");
+  columns = columns.map((column) => {
+    const isCurrent = column.key === "ttm";
+    const income = isCurrent ? null : matchRow(incomeRows, column, period);
+    const priorIncome = income
+      ? incomeRows[incomeRows.findIndex((row) => row.date === income.date) + 1] ?? null
+      : null;
+    return overlayRatioColumn(column, {
+      income: isCurrent ? currentIncome : income,
+      balance: isCurrent ? latestSheet : matchRow(balanceRows, column, period),
+      cash: isCurrent ? cashTtm : matchRow(cashRows, column, period),
+      enterprise: isCurrent ? null : matchEnterprise(enterpriseRows, column),
+      price: isCurrent ? quote?.price : undefined,
+      marketCap: isCurrent ? quote?.marketCap : undefined,
+      nextEps: isCurrent ? nextEstimate(estimates)?.epsAvg : null,
+      epsCagr: isCurrent ? epsCagr : null,
+      sharesYoy: isCurrent
+        ? annualShareYoy
+        : yearOverYear(income?.weightedAverageShsOutDil, priorIncome?.weightedAverageShsOutDil),
+      date: isCurrent ? nyDateString() : undefined,
+    });
   });
+  columns = withAdjacentGrowth(
+    columns,
+    "marketCap",
+    "marketCapGrowth",
+    1,
+    relativeChange(quote?.marketCap, yearAgoCap?.marketCap),
+  );
   const base = stockPath(ticker, "/financials/ratios");
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Profitability, liquidity, leverage, and valuation ratios."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use year-end price and reported filings. Forward PE and PEG are shown for Current only."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle
@@ -115,12 +298,21 @@ export default async function RatiosPage({
         }
       />
       <FinancialsNav symbol={ticker} />
-      <StatementTable
-        rows={withStatementHrefs(RATIO_ROWS, ticker)}
-        columns={columns}
-        caption="The TTM column uses trailing-twelve-month ratios, with EBITDA and income margins from EBIT+D&A and reported income. Forward PE and PEG use live price and 3-year consensus EPS CAGR. Return and yield rows come from key metrics."
-        downloadName={`${ticker}-ratios-${period}-${span}`}
-      />
+      <div className="flex flex-col gap-10">
+        {RATIO_SECTIONS.map((section) => (
+          <section key={section.id}>
+            <h2 className="mb-3 font-semibold text-header">{section.title}</h2>
+            <StatementTable
+              rows={withStatementHrefs(section.rows, ticker)}
+              columns={columns}
+              scale={section.scale}
+              inlineYoy={section.inlineYoy ?? false}
+              downloadName={`${ticker}-ratios-${section.id}-${period}-${span}`}
+              cornerLabel="Fiscal Year"
+            />
+          </section>
+        ))}
+      </div>
     </Container>
   );
 }

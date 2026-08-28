@@ -94,3 +94,83 @@ export function actualToEstimateCagr(
 export function futureEstimates(estimates: FmpEstimate[], today = nyDateString()) {
   return rankedEstimates(estimates).filter((row) => row.date >= today);
 }
+
+function finite(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function ratio(numerator: number | null, denominator: number | null) {
+  if (numerator == null || denominator == null || denominator === 0) return null;
+  return numerator / denominator;
+}
+
+/** Price, EV, leverage, and yield ratios from live price and filings (cash includes marketable securities). */
+export function derivedValuationMetrics(input: {
+  price?: number | null;
+  marketCap?: number | null;
+  equity?: number | null;
+  tangibleEquity?: number | null;
+  bookPerShare?: number | null;
+  tangibleBookPerShare?: number | null;
+  totalDebt?: number | null;
+  netCash?: number | null;
+  revenue?: number | null;
+  eps?: number | null;
+  ebit?: number | null;
+  ebitda?: number | null;
+  fcf?: number | null;
+  ocf?: number | null;
+  sharesYoy?: number | null;
+  dividendYield?: number | null;
+  nextEps?: number | null;
+  epsCagr?: number | null;
+}) {
+  const price = finite(input.price);
+  const marketCap = finite(input.marketCap);
+  const netCash = finite(input.netCash);
+  const enterpriseValue = marketCap != null && netCash != null ? marketCap - netCash : null;
+  const pe = trailingPe(price, input.eps);
+  const buybackYield = buybackYieldFromShareChange(finite(input.sharesYoy));
+  const dividendYield = finite(input.dividendYield);
+  const netDebt = netCash != null ? -netCash : null;
+  return {
+    lastClosePrice: price,
+    marketCap,
+    enterpriseValue,
+    priceToEarningsRatio: pe,
+    forwardPe: trailingPe(price, input.nextEps),
+    priceToSalesRatio: ratio(marketCap, finite(input.revenue)),
+    priceToBookRatio: ratio(price, finite(input.bookPerShare)) ?? ratio(marketCap, finite(input.equity)),
+    priceToTangibleBookRatio:
+      ratio(price, finite(input.tangibleBookPerShare)) ?? ratio(marketCap, finite(input.tangibleEquity)),
+    priceToFreeCashFlowRatio: ratio(marketCap, finite(input.fcf)),
+    priceToOperatingCashFlowRatio: ratio(marketCap, finite(input.ocf)),
+    priceToEarningsGrowthRatio: pegRatio(pe, input.epsCagr),
+    evToSales: ratio(enterpriseValue, finite(input.revenue)),
+    evToEBITDA: ratio(enterpriseValue, finite(input.ebitda)),
+    evToEBIT: ratio(enterpriseValue, finite(input.ebit)),
+    evToFreeCashFlow: ratio(enterpriseValue, finite(input.fcf)),
+    debtToEquityRatio: ratio(finite(input.totalDebt), finite(input.equity)),
+    debtToEbitda: ratio(finite(input.totalDebt), finite(input.ebitda)),
+    debtToFcf: ratio(finite(input.totalDebt), finite(input.fcf)),
+    netDebtToEquity: ratio(netDebt, finite(input.equity)),
+    netDebtToEBITDA: ratio(netDebt, finite(input.ebitda)),
+    netDebtToFcf: ratio(netDebt, finite(input.fcf)),
+    earningsYield: pe != null && pe > 0 ? 1 / pe : null,
+    freeCashFlowYield: ratio(finite(input.fcf), marketCap),
+    buybackYield,
+    shareholderYield:
+      buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null,
+  };
+}
+
+/** Copy finite numeric overlay fields onto a statement column without wiping existing values with nulls. */
+export function assignFinite<T extends Record<string, unknown>>(base: T, overlay: Record<string, unknown>): T {
+  const next = { ...base };
+  for (const [key, value] of Object.entries(overlay)) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      (next as Record<string, unknown>)[key] = value;
+    }
+  }
+  return next;
+}
