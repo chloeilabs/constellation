@@ -5,9 +5,16 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
-import { compactMoneyFn, formatDate, formatMoney, yearOverYear } from "@/lib/format";
-import { getEnterpriseValues, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { compactMoneyFn, formatDate, formatMoney, formatRatio, yearOverYear } from "@/lib/format";
+import { getProfile } from "@/lib/fmp";
+import { historyLabel, loadLiveValuation, loadPeriodValuationHistory } from "@/lib/period-valuation";
+import { decodeTicker, stockPath } from "@/lib/listings";
+
+function cashInvestments(row: { cashAndInvestments?: number | null; netCash?: number | null; totalDebt?: number | null }) {
+  if (row.cashAndInvestments != null) return row.cashAndInvestments;
+  if (row.netCash != null && row.totalDebt != null) return row.netCash + row.totalDebt;
+  return null;
+}
 
 export default async function EnterpriseValuePage({
   params,
@@ -20,66 +27,54 @@ export default async function EnterpriseValuePage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [history, ttm, quote, profile] = await Promise.all([
-    getEnterpriseValues(ticker, period, 20),
-    getIncomeTtm(ticker),
-    getQuote(ticker),
+  const [live, history, profile] = await Promise.all([
+    loadLiveValuation(ticker),
+    loadPeriodValuationHistory(ticker, period, period === "quarter" ? 12 : 20),
     getProfile(ticker),
   ]);
   const money = compactMoneyFn(profile?.currency);
   const px = (value: number | null | undefined) => formatMoney(value, profile?.currency);
+  const liveCash = cashInvestments(live);
+  const netDebt = live.netCash != null ? -live.netCash : null;
   const latest = history[0];
   const prior = history[1];
   const growth = yearOverYear(latest?.enterpriseValue, prior?.enterpriseValue);
-  const evSales = latest?.enterpriseValue && ttm?.revenue ? latest.enterpriseValue / ttm.revenue : null;
-  const netDebt =
-    latest ? latest.addTotalDebt - latest.minusCashAndCashEquivalents : null;
   const chartItems = [...history]
     .reverse()
     .filter((row) => typeof row.enterpriseValue === "number")
     .map((row) => ({
-      label: period === "quarter" ? row.date.slice(0, 7) : row.date.slice(0, 4),
-      value: row.enterpriseValue,
+      label: historyLabel(row, period),
+      value: row.enterpriseValue as number,
     }));
+  const evHref = stockPath(ticker, "/enterprise-value");
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Enterprise Value`}
-        description="Market cap plus debt, minus cash — the total value of the operating business."
+        description="Market cap minus net cash. Cash includes marketable securities and long-term investments. Fiscal history uses the last FMP close on or before each period end."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <div className="mb-6">
         <PeriodToggle
           period={period}
-          annualHref={`/stocks/${ticker}/enterprise-value`}
-          quarterHref={`/stocks/${ticker}/enterprise-value?period=quarter`}
+          annualHref={evHref}
+          quarterHref={`${evHref}?period=quarter`}
         />
       </div>
       <MetricCards
         items={[
-          { label: "Enterprise Value", value: money(latest?.enterpriseValue) },
-          { label: "Market Cap", value: money(latest?.marketCapitalization ?? quote?.marketCap) },
-          { label: "Total Debt", value: money(latest?.addTotalDebt) },
-          { label: "Cash", value: money(latest?.minusCashAndCashEquivalents) },
+          { label: "Enterprise Value", value: money(live.enterpriseValue) },
+          { label: "Market Cap", href: stockPath(ticker, "/market-cap"), value: money(live.marketCap) },
+          { label: "Total Debt", value: money(live.totalDebt) },
+          { label: "Cash & Investments", value: money(liveCash) },
+          { label: "Net Cash", href: stockPath(ticker, "/net-cash"), value: money(live.netCash) },
           { label: "Net Debt", value: money(netDebt) },
-          { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: evSales == null ? "—" : evSales.toFixed(2) },
-          {
-            label: "EV / EBIT",
-            href: `/stocks/${ticker}/ev-ebit`,
-            value:
-              latest?.enterpriseValue && ttm?.ebit
-                ? (latest.enterpriseValue / ttm.ebit).toFixed(2)
-                : "—",
-          },
-          {
-            label: "EV / Earnings",
-            href: `/stocks/${ticker}/ev-earnings`,
-            value:
-              latest?.enterpriseValue && ttm?.netIncome
-                ? (latest.enterpriseValue / ttm.netIncome).toFixed(2)
-                : "—",
-          },
+          { label: "EV / Sales", href: stockPath(ticker, "/ev-sales"), value: formatRatio(live.evToSales) },
+          { label: "EV / EBITDA", href: stockPath(ticker, "/ev-ebitda"), value: formatRatio(live.evToEBITDA) },
+          { label: "EV / EBIT", href: stockPath(ticker, "/ev-ebit"), value: formatRatio(live.evToEBIT) },
+          { label: "EV / Earnings", href: stockPath(ticker, "/ev-earnings"), value: formatRatio(live.evToEarnings) },
+          { label: "EV / FCF", href: stockPath(ticker, "/ev-fcf"), value: formatRatio(live.evToFreeCashFlow) },
         ]}
       />
       {chartItems.length > 1 ? (
@@ -100,7 +95,7 @@ export default async function EnterpriseValuePage({
                 <th className="num">Stock Price</th>
                 <th className="num">Market Cap</th>
                 <th className="num">Debt</th>
-                <th className="num">Cash</th>
+                <th className="num">Cash & Investments</th>
                 <th className="num">Enterprise Value</th>
                 <th className="num">Change</th>
               </tr>
@@ -119,10 +114,10 @@ export default async function EnterpriseValuePage({
                   return (
                     <tr key={row.date}>
                       <td>{formatDate(row.date)}</td>
-                      <td className="num">{px(row.stockPrice)}</td>
-                      <td className="num">{money(row.marketCapitalization)}</td>
-                      <td className="num">{money(row.addTotalDebt)}</td>
-                      <td className="num">{money(row.minusCashAndCashEquivalents)}</td>
+                      <td className="num">{px(row.lastClosePrice)}</td>
+                      <td className="num">{money(row.marketCap)}</td>
+                      <td className="num">{money(row.totalDebt)}</td>
+                      <td className="num">{money(cashInvestments(row))}</td>
                       <td className="num">{money(row.enterpriseValue)}</td>
                       <td className="num">
                         <ChangePercent value={index === 0 ? growth : yoy} alreadyPercent={false} />
@@ -135,6 +130,10 @@ export default async function EnterpriseValuePage({
           </table>
         </div>
       </section>
+      <p className="mt-4 text-sm text-muted">
+        Enterprise value is market cap minus net cash, so cash includes marketable securities.{" "}
+        <span className="text-header">Formula: EV = Market Cap − (Cash & Investments − Total Debt)</span>
+      </p>
     </Container>
   );
 }

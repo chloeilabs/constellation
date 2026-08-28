@@ -125,6 +125,7 @@ export function derivedValuationMetrics(input: {
   ebitda?: number | null;
   fcf?: number | null;
   ocf?: number | null;
+  netIncome?: number | null;
   sharesYoy?: number | null;
   dividendYield?: number | null;
   nextEps?: number | null;
@@ -155,6 +156,7 @@ export function derivedValuationMetrics(input: {
     evToEBITDA: ratio(enterpriseValue, finite(input.ebitda)),
     evToEBIT: ratio(enterpriseValue, finite(input.ebit)),
     evToFreeCashFlow: ratio(enterpriseValue, finite(input.fcf)),
+    evToEarnings: ratio(enterpriseValue, finite(input.netIncome)),
     debtToEquityRatio: ratio(finite(input.totalDebt), finite(input.equity)),
     debtToEbitda: ratio(finite(input.totalDebt), finite(input.ebitda)),
     debtToFcf: ratio(finite(input.totalDebt), finite(input.fcf)),

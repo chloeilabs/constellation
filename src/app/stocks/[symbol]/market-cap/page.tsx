@@ -6,18 +6,19 @@ import { MetricCards } from "@/components/metric-cards";
 import { HistoryBars } from "@/components/history-bars";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatMoney } from "@/lib/format";
-import { getHistoricalMarketCap, getKeyMetricsTtm, getProfile, getQuote } from "@/lib/fmp";
+import { getHistoricalMarketCap, getProfile, getQuote } from "@/lib/fmp";
 import { addDays, isoDate, nyDateString, yearEndSnapshots } from "@/lib/utils";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
+import { loadLiveValuation } from "@/lib/period-valuation";
 
 export default async function MarketCapPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
   const today = nyDateString();
-  const [quote, profile, metrics, history] = await Promise.all([
+  const [quote, profile, live, history] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
-    getKeyMetricsTtm(ticker),
+    loadLiveValuation(ticker),
     getHistoricalMarketCap(ticker, 5000, "1998-01-01", today),
   ]);
   const money = compactMoneyFn(profile?.currency);
@@ -46,7 +47,7 @@ export default async function MarketCapPage({ params }: { params: Promise<{ symb
       <MetricCards
         items={[
           { label: "Market Cap", value: money(quote?.marketCap ?? latest?.marketCap) },
-          { label: "Enterprise Value", value: money(typeof metrics?.enterpriseValueTTM === "number" ? metrics.enterpriseValueTTM : null) },
+          { label: "Enterprise Value", href: stockPath(ticker, "/enterprise-value"), value: money(live.enterpriseValue) },
           {
             label: "1-Year Change",
             value: yoy == null ? "—" : <ChangePercent value={yoy} alreadyPercent={false} className="text-2xl" />,

@@ -154,6 +154,7 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   evToEBITDA: "ev-ebitda",
   evToEBIT: "ev-ebit",
   evToFreeCashFlow: "ev-fcf",
+  evToEarnings: "ev-earnings",
   debtToEquityRatio: "debt-equity-ratio",
   debtToEbitda: "debt-ebitda",
   debtToFcf: "debt-fcf",
@@ -296,6 +297,7 @@ export const RATIO_SECTIONS: RatioSection[] = [
       { key: "evToEBITDA", label: "EV / EBITDA", format: "ratio" },
       { key: "evToEBIT", label: "EV / EBIT", format: "ratio" },
       { key: "evToFreeCashFlow", label: "EV / FCF", format: "ratio" },
+      { key: "evToEarnings", label: "EV / Earnings", format: "ratio" },
     ],
   },
   {

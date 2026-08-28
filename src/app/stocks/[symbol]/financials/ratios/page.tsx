@@ -52,7 +52,9 @@ const METRIC_KEYS = [
   "enterpriseValue",
   "evToSales",
   "evToEBITDA",
+  "evToEBIT",
   "evToFreeCashFlow",
+  "evToEarnings",
   "returnOnAssets",
   "returnOnEquity",
   "returnOnInvestedCapital",
@@ -145,6 +147,7 @@ function overlayRatioColumn(
     ebitda: derivedIncome.ebitda,
     fcf: num(mergedIncome.freeCashFlow),
     ocf: num(mergedIncome.operatingCashFlow),
+    netIncome: num(mergedIncome.netIncome),
     sharesYoy: input.sharesYoy,
     dividendYield: num(column.values.dividendYield) ?? num(mergedIncome.dividendYield),
     nextEps: input.nextEps,
@@ -201,7 +204,7 @@ export default async function RatiosPage({
     getKeyMetrics(ticker, period, displayCount),
     getKeyMetricsTtm(ticker),
     getIncomeTtm(ticker),
-    getIncomeStatements(ticker, period, displayCount + 1),
+    getIncomeStatements(ticker, period, displayCount + (period === "quarter" ? 4 : 1)),
     period === "annual" ? Promise.resolve([] as FmpIncomeStatement[]) : getIncomeStatements(ticker, "annual", 2),
     getBalanceSheets(ticker, period, displayCount + 1),
     period === "annual" ? getBalanceSheets(ticker, "quarter", 1) : Promise.resolve([] as FmpBalanceSheet[]),
@@ -256,9 +259,9 @@ export default async function RatiosPage({
   columns = columns.map((column) => {
     const isCurrent = column.key === "ttm";
     const income = isCurrent ? null : matchRow(incomeRows, column, period);
-    const priorIncome = income
-      ? incomeRows[incomeRows.findIndex((row) => row.date === income.date) + 1] ?? null
-      : null;
+    const incomeIndex = income ? incomeRows.findIndex((row) => row.date === income.date) : -1;
+    const priorIncome = incomeIndex >= 0 ? incomeRows[incomeIndex + 1] ?? null : null;
+    const priorPegIncome = incomeIndex >= 0 ? incomeRows[incomeIndex + (period === "quarter" ? 4 : 1)] ?? null : null;
     const enterprise = isCurrent ? null : matchEnterprise(enterpriseRows, column);
     const periodDate = isCurrent
       ? null
@@ -281,7 +284,9 @@ export default async function RatiosPage({
         ? quote?.marketCap
         : (marketCapFromPrice(periodPrice, shares) ?? num(enterprise?.marketCapitalization)),
       nextEps: isCurrent ? nextEstimate(estimates)?.epsAvg : null,
-      epsCagr: isCurrent ? epsCagr : null,
+      epsCagr: isCurrent
+        ? epsCagr
+        : yearOverYear(income?.epsDiluted ?? income?.eps, priorPegIncome?.epsDiluted ?? priorPegIncome?.eps),
       sharesYoy: isCurrent
         ? annualShareYoy
         : yearOverYear(income?.weightedAverageShsOutDil, priorIncome?.weightedAverageShsOutDil),
@@ -292,7 +297,6 @@ export default async function RatiosPage({
     if (column.key === "ttm") return column;
     const values = { ...column.values };
     delete values.forwardPe;
-    delete values.priceToEarningsGrowthRatio;
     return { ...column, values };
   });
   columns = withAdjacentGrowth(
@@ -308,7 +312,7 @@ export default async function RatiosPage({
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE and PEG are shown for Current only."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle
