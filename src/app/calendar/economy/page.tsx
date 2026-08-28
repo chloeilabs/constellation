@@ -1,15 +1,17 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { CALENDAR_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatNumber, formatPercentPlain } from "@/lib/format";
 import { getEconomicCalendar, getEconomicIndicator, getTreasuryRates } from "@/lib/fmp";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function EconomicCalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const today = nyDateString();
@@ -27,6 +29,8 @@ export default async function EconomicCalendarPage({
     getEconomicIndicator("GDP"),
   ]);
   const latestTreasury = [...treasury].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+  const feed = paginate(rows, pageNumber(params.page), TABLE_PAGE_SIZE);
+  const extra = { from: params.from, to: params.to };
   const latest = (items: { date: string; value: number }[]) =>
     [...items].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   const indicators = [
@@ -120,14 +124,14 @@ export default async function EconomicCalendarPage({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-muted">
                   No U.S. economic releases in this range.
                 </td>
               </tr>
             ) : (
-              rows.slice(0, 120).map((row, index) => (
+              feed.rows.map((row, index) => (
                 <tr key={`${row.date}-${row.event}-${index}`}>
                   <td>{formatDate(row.date)}</td>
                   <td className="max-w-[360px] truncate">{row.event}</td>
@@ -141,6 +145,14 @@ export default async function EconomicCalendarPage({
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/calendar/economy", feed.page, feed.pageCount, extra)}
+      />
     </Container>
   );
 }

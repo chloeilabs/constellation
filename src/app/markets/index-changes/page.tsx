@@ -2,9 +2,11 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { INDEX_CHANGES_NAV, MARKET_NAV } from "@/lib/nav";
 import { formatDate } from "@/lib/format";
 import { getHistoricalConstituents } from "@/lib/fmp";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { cn } from "@/lib/utils";
 
 const INDEX_META = {
@@ -39,12 +41,14 @@ function SymbolCell({ symbol, name }: { symbol?: string | null; name?: string | 
 export default async function IndexChangesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ index?: string }>;
+  searchParams: Promise<{ index?: string; page?: string }>;
 }) {
-  const { index: indexParam } = await searchParams;
+  const { index: indexParam, page: pageParam } = await searchParams;
   const index = indexParam === "nasdaq" || indexParam === "dow" ? indexParam : "sp500";
   const meta = INDEX_META[index];
-  const rows = (await getHistoricalConstituents(index)).slice(0, 80);
+  const rows = await getHistoricalConstituents(index);
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
+  const extra = { index: index === "sp500" ? undefined : index };
   const activeHref = index === "sp500" ? "/markets/index-changes" : `/markets/index-changes?index=${index}`;
 
   return (
@@ -56,6 +60,7 @@ export default async function IndexChangesPage({
           <Link
             key={item.href}
             href={item.href}
+            scroll={false}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
               item.href === activeHref ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
@@ -65,7 +70,6 @@ export default async function IndexChangesPage({
           </Link>
         ))}
       </div>
-      <p className="mb-3 text-sm text-muted">{rows.length} most recent changes</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -77,15 +81,15 @@ export default async function IndexChangesPage({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-muted">
                   No constituent changes available.
                 </td>
               </tr>
             ) : (
-              rows.map((row, indexRow) => (
-                <tr key={`${row.date}-${row.symbol}-${row.removedTicker}-${indexRow}`}>
+              feed.rows.map((row, indexRow) => (
+                <tr key={`${row.date}-${row.symbol}-${row.removedTicker}-${feed.from + indexRow}`}>
                   <td>{formatDate(row.date)}</td>
                   <td>
                     <SymbolCell symbol={row.symbol} name={row.addedSecurity} />
@@ -100,6 +104,14 @@ export default async function IndexChangesPage({
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/markets/index-changes", feed.page, feed.pageCount, extra)}
+      />
     </Container>
   );
 }

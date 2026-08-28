@@ -111,8 +111,32 @@ async function loadChamberPages(
 }
 
 export async function loadSymbolCongressTrades(symbol: string, limit = 60) {
-  const [senate, house] = await Promise.all([getSenateTrades(symbol, limit), getHouseTrades(symbol, limit)]);
-  return sortCongressTrades([...withChamber(senate, "Senate"), ...withChamber(house, "House")]).slice(0, limit);
+  return (await loadSymbolCongressTradesArchive(symbol)).slice(0, limit);
+}
+
+export async function loadSymbolCongressTradesArchive(symbol: string) {
+  const [senatePages, housePages] = await Promise.all([
+    Promise.all(Array.from({ length: 4 }, (_, page) => getSenateTrades(symbol, 100, page))),
+    Promise.all(Array.from({ length: 4 }, (_, page) => getHouseTrades(symbol, 100, page))),
+  ]);
+  return sortCongressTrades([
+    ...withChamber(mergeSymbolCongressPages(senatePages), "Senate"),
+    ...withChamber(mergeSymbolCongressPages(housePages), "House"),
+  ]);
+}
+
+function mergeSymbolCongressPages(pages: FmpCongressTrade[][]) {
+  const seen = new Set<string>();
+  const rows: FmpCongressTrade[] = [];
+  for (const chunk of pages) {
+    for (const row of chunk) {
+      const key = `${row.transactionDate}|${row.disclosureDate}|${row.symbol}|${row.firstName}|${row.lastName}|${row.type}|${row.amount}|${row.link}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+  }
+  return rows;
 }
 
 function nameQueryFromSlug(slug: string) {

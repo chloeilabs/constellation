@@ -497,6 +497,31 @@ export function getDividendCalendar(from: string, to: string) {
   return fmpList<FmpDividend>("/dividends-calendar", { from, to }, { revalidate: 600 });
 }
 
+/** FMP `/dividends-calendar` caps each response at 4,000 rows, so long windows must be sliced. */
+export async function getDividendCalendarWindow(from: string, to: string) {
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+  const requests: Promise<FmpDividend[]>[] = [];
+  for (let cursor = start; cursor <= end; ) {
+    const sliceEnd = addDays(cursor, 11);
+    const sliceTo = sliceEnd < end ? sliceEnd : end;
+    requests.push(getDividendCalendar(isoDate(cursor), isoDate(sliceTo)));
+    cursor = addDays(sliceTo, 1);
+  }
+  const seen = new Set<string>();
+  const out: FmpDividend[] = [];
+  for (const rows of await Promise.all(requests)) {
+    for (const row of rows) {
+      const key = `${row.symbol}|${row.date}|${row.dividend}|${row.paymentDate}|${row.frequency}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || (a.symbol || "").localeCompare(b.symbol || ""));
+}
+
 export function getPriceChange(symbol: string) {
   return fmpFirst<FmpPriceChange>(
     "/stock-price-change",
@@ -1209,18 +1234,18 @@ export function getHouseLatest(limit = 100, page = 0) {
   return fmpList<FmpCongressTrade>("/house-latest", { page, limit }, { revalidate: 300 });
 }
 
-export function getSenateTrades(symbol: string, limit = 50) {
+export function getSenateTrades(symbol: string, limit = 50, page = 0) {
   return fmpList<FmpCongressTrade>(
     "/senate-trades",
-    { symbol: decodeTicker(symbol), page: 0, limit },
+    { symbol: decodeTicker(symbol), page, limit },
     { revalidate: 600 },
   );
 }
 
-export function getHouseTrades(symbol: string, limit = 50) {
+export function getHouseTrades(symbol: string, limit = 50, page = 0) {
   return fmpList<FmpCongressTrade>(
     "/house-trades",
-    { symbol: decodeTicker(symbol), page: 0, limit },
+    { symbol: decodeTicker(symbol), page, limit },
     { revalidate: 600 },
   );
 }
