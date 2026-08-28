@@ -295,8 +295,8 @@ export async function VehicleOverview({
                 </tr>
               </thead>
               <tbody>
-                {dividends.slice(0, 6).map((row) => (
-                  <tr key={`${row.date}-${row.paymentDate}`}>
+                {dividends.slice(0, 6).map((row, index) => (
+                  <tr key={`${row.date}-${row.paymentDate}-${row.dividend}-${index}`}>
                     <td>{row.date}</td>
                     <td>{row.paymentDate}</td>
                     <td className="num">${formatPrice(row.dividend)}</td>

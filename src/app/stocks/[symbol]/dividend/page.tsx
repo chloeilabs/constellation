@@ -206,8 +206,8 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
                 </td>
               </tr>
             ) : (
-              dividends.map((row) => (
-                <tr key={`${row.date}-${row.paymentDate}`}>
+              dividends.map((row, index) => (
+                <tr key={`${row.date}-${row.paymentDate}-${row.dividend}-${index}`}>
                   <td>{formatDate(row.date)}</td>
                   <td>{formatDate(row.recordDate)}</td>
                   <td>{formatDate(row.paymentDate)}</td>
