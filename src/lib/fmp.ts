@@ -429,10 +429,10 @@ export function getLatestPressReleases(limit = 20, page = 0) {
   );
 }
 
-export function getSymbolNews(symbol: string, limit = 20) {
+export function getSymbolNews(symbol: string, limit = 20, page = 0) {
   return fmpList<FmpNewsItem>(
     "/news/stock",
-    { symbols: decodeTicker(symbol), limit },
+    { symbols: decodeTicker(symbol), limit, page },
     { revalidate: 120 },
   );
 }
@@ -461,10 +461,10 @@ export function getForexNews(symbol: string, limit = 20) {
   );
 }
 
-export function getPressReleases(symbol: string, limit = 10) {
+export function getPressReleases(symbol: string, limit = 10, page = 0) {
   return fmpList<FmpNewsItem>(
     "/news/press-releases",
-    { symbols: decodeTicker(symbol), limit },
+    { symbols: decodeTicker(symbol), limit, page },
     { revalidate: 300 },
   );
 }

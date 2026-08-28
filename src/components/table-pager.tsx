@@ -13,21 +13,23 @@ export function TablePager({
 }: {
   from: number;
   to: number;
-  total: number;
+  total?: number;
   page: number;
-  pageCount: number;
+  pageCount?: number;
   prevHref?: string;
   nextHref?: string;
   firstHref?: string;
   lastHref?: string;
 }) {
-  if (total === 0) return null;
+  if ((total != null && total === 0) || (total == null && to === 0)) return null;
+  const showNav = (pageCount != null && pageCount > 1) || Boolean(prevHref || nextHref);
   return (
     <nav aria-label="Table pages" className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
       <p className="text-muted">
-        Showing {from.toLocaleString("en-US")}–{to.toLocaleString("en-US")} of {total.toLocaleString("en-US")}
+        Showing {from.toLocaleString("en-US")}–{to.toLocaleString("en-US")}
+        {total != null ? ` of ${total.toLocaleString("en-US")}` : ""}
       </p>
-      {pageCount > 1 ? (
+      {showNav ? (
         <div className="flex items-center gap-2">
           {firstHref && page > 1 ? (
             <Link href={firstHref} scroll={false} className="text-link hover:underline">
@@ -42,7 +44,8 @@ export function TablePager({
             <span className="text-muted">Previous</span>
           )}
           <span className="tabular text-muted">
-            Page {page} of {pageCount.toLocaleString("en-US")}
+            Page {page.toLocaleString("en-US")}
+            {pageCount != null ? ` of ${pageCount.toLocaleString("en-US")}` : ""}
           </span>
           {nextHref ? (
             <Link href={nextHref} scroll={false} className="text-link hover:underline">
@@ -51,7 +54,7 @@ export function TablePager({
           ) : (
             <span className="text-muted">Next</span>
           )}
-          {lastHref && page < pageCount ? (
+          {lastHref && pageCount != null && page < pageCount ? (
             <Link href={lastHref} scroll={false} className="text-link hover:underline">
               Last
             </Link>
