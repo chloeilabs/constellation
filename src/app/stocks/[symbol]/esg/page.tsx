@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { matchEsgBenchmark } from "@/lib/esg";
 import { formatDate, formatNumber } from "@/lib/format";
-import { getEsgBenchmark, getEsgDisclosures, getEsgRatings, getProfile } from "@/lib/fmp";
+import { getEsgBenchmarks, getEsgDisclosures, getEsgRatings, getProfile } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { companyNav } from "@/lib/nav";
 import Link from "next/link";
@@ -15,7 +15,7 @@ export default async function EsgPage({ params }: { params: Promise<{ symbol: st
   const [esgRatings, esgDisclosures, benchmarks, profile] = await Promise.all([
     getEsgRatings(ticker),
     getEsgDisclosures(ticker),
-    getEsgBenchmark(),
+    getEsgBenchmarks(),
     getProfile(ticker),
   ]);
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;

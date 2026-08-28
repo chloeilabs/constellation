@@ -1527,6 +1527,14 @@ export function getEsgBenchmark(year?: number) {
   );
 }
 
+export async function getEsgBenchmarks(years = 3) {
+  const latest = new Date().getUTCFullYear();
+  const batches = await Promise.all(
+    Array.from({ length: years }, (_, index) => getEsgBenchmark(latest - index)),
+  );
+  return batches.flat();
+}
+
 export function getMarketRiskPremium() {
   return fmpList<FmpMarketRiskPremium>("/market-risk-premium", {}, { revalidate: 86400 });
 }
