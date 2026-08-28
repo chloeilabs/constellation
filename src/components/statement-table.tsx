@@ -10,6 +10,7 @@ import {
   formatPercent,
   formatPercentPlain,
   formatPrice,
+  formatUsd,
   yearOverYear,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,8 @@ function formatCell(
       return scale === "millions" ? formatMillions(value) : formatCompact(value);
     case "eps":
       return formatPrice(value);
+    case "price":
+      return formatUsd(value);
     case "percent":
       return formatPercentPlain(value);
     case "growth":

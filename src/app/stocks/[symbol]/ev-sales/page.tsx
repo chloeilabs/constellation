@@ -17,12 +17,13 @@ export default async function EvSalesPage({
       period={periodFrom(periodParam)}
       slug="ev-sales"
       title={`${ticker} EV / Sales`}
-      description="Enterprise value relative to trailing revenue."
+      description="Enterprise value relative to trailing revenue, using period-end close and net cash from filings."
       field="evToSales"
       ttmField="evToSalesTTM"
       valueLabel="EV / Sales"
       formula="EV / Sales = Enterprise Value ÷ Revenue"
       source="metrics"
+      priceBased
     />
   );
 }

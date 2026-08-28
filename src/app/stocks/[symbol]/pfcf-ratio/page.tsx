@@ -17,11 +17,12 @@ export default async function PfcfRatioPage({
       period={periodFrom(periodParam)}
       slug="pfcf-ratio"
       title={`${ticker} Price to Free Cash Flow`}
-      description="Market capitalization divided by trailing free cash flow."
+      description="Market capitalization divided by trailing free cash flow. Fiscal history uses the last close on or before each period end."
       field="priceToFreeCashFlowRatio"
       ttmField="priceToFreeCashFlowRatioTTM"
       valueLabel="P/FCF"
       formula="P/FCF = Market Cap ÷ Free Cash Flow"
+      priceBased
     />
   );
 }

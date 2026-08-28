@@ -10,7 +10,7 @@ export type StatementRow = {
   emphasize?: boolean;
   href?: string;
   zeroAsEmpty?: boolean;
-  format?: "money" | "share" | "eps" | "ratio" | "percent" | "number" | "growth";
+  format?: "money" | "share" | "eps" | "price" | "ratio" | "percent" | "number" | "growth";
 };
 
 export const INCOME_ROWS: StatementRow[] = [
@@ -271,7 +271,7 @@ export const RATIO_SECTIONS: RatioSection[] = [
       { key: "marketCap", label: "Market Capitalization", emphasize: true, format: "money" },
       { key: "marketCapGrowth", label: "Market Cap Growth", format: "percent" },
       { key: "enterpriseValue", label: "Enterprise Value", emphasize: true, format: "money" },
-      { key: "lastClosePrice", label: "Last Close Price", format: "eps" },
+      { key: "lastClosePrice", label: "Last Close Price", format: "price" },
     ],
   },
   {

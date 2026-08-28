@@ -37,7 +37,8 @@ import {
 } from "@/lib/statements";
 import { addDays, cashAndInvestments, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString } from "@/lib/utils";
 import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
-import { marketCapFromPrice, nextEstimate, trailingPe } from "@/lib/valuation";
+import { marketCapFromPrice, nextEstimate } from "@/lib/valuation";
+import { valuationFromFilings } from "@/lib/period-valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
@@ -143,29 +144,35 @@ function overlayValuationColumn(
   input: {
     price?: number | null;
     marketCap?: number | null;
-    eps?: number | null;
-    revenue?: number | null;
-    fcf?: number | null;
+    income?: Record<string, unknown> | null;
+    cash?: Record<string, unknown> | null;
+    balance?: Record<string, unknown> | null;
     nextEps?: number | null;
   },
 ): YearMetricColumn {
-  const pe = trailingPe(input.price, input.eps);
-  const ps =
-    input.marketCap != null && input.revenue != null && input.revenue !== 0 ? input.marketCap / input.revenue : null;
-  const pfcf = input.marketCap != null && input.fcf != null && input.fcf !== 0 ? input.marketCap / input.fcf : null;
-  const forwardPe = input.nextEps != null ? trailingPe(input.price, input.nextEps) : null;
-  return {
-    ...column,
-    values: {
-      ...column.values,
-      ...(input.price != null ? { price: input.price } : {}),
-      ...(input.marketCap != null ? { marketCap: input.marketCap } : {}),
-      ...(pe != null ? { pe } : {}),
-      ...(forwardPe != null ? { forwardPe } : {}),
-      ...(ps != null ? { ps } : {}),
-      ...(pfcf != null ? { pfcf } : {}),
-    },
+  const derived = valuationFromFilings(input);
+  const mapped: Record<string, number | null> = {
+    price: derived.lastClosePrice,
+    marketCap: derived.marketCap,
+    enterpriseValue: derived.enterpriseValue,
+    pe: derived.priceToEarningsRatio,
+    forwardPe: derived.forwardPe,
+    ps: derived.priceToSalesRatio,
+    pb: derived.priceToBookRatio,
+    pfcf: derived.priceToFreeCashFlowRatio,
+    pocf: derived.priceToOperatingCashFlowRatio,
+    evSales: derived.evToSales,
+    evEbitda: derived.evToEBITDA,
+    evEbit: derived.evToEBIT,
+    evFcf: derived.evToFreeCashFlow,
+    earningsYield: derived.earningsYield,
+    fcfYield: derived.freeCashFlowYield,
   };
+  const values = { ...column.values };
+  for (const [key, value] of Object.entries(mapped)) {
+    if (value != null) values[key] = value;
+  }
+  return { ...column, values };
 }
 
 function matchEnterprise(
@@ -517,23 +524,24 @@ export default async function FinancialsOverviewPage({
       return overlayValuationColumn(column, {
         price: quote?.price,
         marketCap: quote?.marketCap,
-        eps: ttmIncomeSynthetic?.epsDiluted ?? ttmIncomeSynthetic?.eps,
-        revenue: ttmIncomeSynthetic?.revenue,
-        fcf: ttmCashRow?.freeCashFlow,
+        income: ttmIncomeSynthetic as unknown as Record<string, unknown> | null,
+        cash: ttmCashRow as unknown as Record<string, unknown> | null,
+        balance: latestBalance as unknown as Record<string, unknown> | null,
         nextEps: nextEstimate(estimates)?.epsAvg,
       });
     }
     const year = incomeYears.find((row) => fyLabel(row.fiscalYear) === column.label);
     const enterprise = year ? matchEnterprise(enterpriseRows, year.date, year.fiscalYear) : null;
     const cash = cashYears.find((row) => year && String(row.fiscalYear) === String(year.fiscalYear));
+    const sheet = balanceYears.find((row) => year && String(row.fiscalYear) === String(year.fiscalYear));
     const periodPrice = closeOnOrBefore(periodCloses, year?.date) ?? n(enterprise?.stockPrice);
     const shares = n(year?.weightedAverageShsOutDil) ?? n(enterprise?.numberOfShares);
     const overlaid = overlayValuationColumn(column, {
       price: periodPrice,
       marketCap: marketCapFromPrice(periodPrice, shares) ?? n(enterprise?.marketCapitalization),
-      eps: year?.epsDiluted ?? year?.eps,
-      revenue: year?.revenue,
-      fcf: cash?.freeCashFlow,
+      income: year as unknown as Record<string, unknown> | null,
+      cash: cash as unknown as Record<string, unknown> | null,
+      balance: sheet as unknown as Record<string, unknown> | null,
     });
     const values = { ...overlaid.values };
     delete values.forwardPe;
@@ -774,12 +782,20 @@ export default async function FinancialsOverviewPage({
         <YearMetricTable
           columns={valuationColumns}
           rows={[
-            { key: "price", label: "Last Close Price", format: "eps" },
+            { key: "price", label: "Last Close Price", format: "price" },
             { key: "marketCap", label: "Market Capitalization", format: "money", href: `/stocks/${ticker}/market-cap` },
+            { key: "enterpriseValue", label: "Enterprise Value", format: "money", href: `/stocks/${ticker}/enterprise-value` },
             { key: "pe", label: "PE Ratio", format: "ratio", href: `/stocks/${ticker}/pe-ratio` },
             { key: "forwardPe", label: "Forward PE", format: "ratio", href: `/stocks/${ticker}/forward-pe` },
-            { key: "pfcf", label: "P/FCF Ratio", format: "ratio", href: `/stocks/${ticker}/pfcf-ratio` },
             { key: "ps", label: "PS Ratio", format: "ratio", href: `/stocks/${ticker}/ps-ratio` },
+            { key: "pb", label: "PB Ratio", format: "ratio", href: `/stocks/${ticker}/pb-ratio` },
+            { key: "pfcf", label: "P/FCF Ratio", format: "ratio", href: `/stocks/${ticker}/pfcf-ratio` },
+            { key: "pocf", label: "P/OCF Ratio", format: "ratio", href: `/stocks/${ticker}/pocf-ratio` },
+            { key: "evSales", label: "EV / Sales", format: "ratio", href: `/stocks/${ticker}/ev-sales` },
+            { key: "evEbitda", label: "EV / EBITDA", format: "ratio", href: `/stocks/${ticker}/ev-ebitda` },
+            { key: "evFcf", label: "EV / FCF", format: "ratio", href: `/stocks/${ticker}/ev-fcf` },
+            { key: "earningsYield", label: "Earnings Yield", format: "margin", href: `/stocks/${ticker}/earnings-yield` },
+            { key: "fcfYield", label: "FCF Yield", format: "margin", href: `/stocks/${ticker}/fcf-yield` },
           ]}
         />
       </section>

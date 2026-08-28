@@ -6,8 +6,9 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { formatMoney, formatRatio } from "@/lib/format";
-import { getEstimates, getIncomeTtm, getProfile, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
+import { getEstimates, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
+import { historyLabel, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
 import { decodeTicker, stockPath } from "@/lib/listings";
 
@@ -27,19 +28,16 @@ export default async function PeRatioPage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const base = stockPath(ticker, "/pe-ratio");
-  const [annual, quarterly, ttmRatios, ttmIncome, quote, estimates, profile] = await Promise.all([
-    getRatios(ticker, "annual", 20),
-    getRatios(ticker, "quarter", 12),
-    getRatiosTtm(ticker),
+  const [history, ttmIncome, quote, estimates, profile] = await Promise.all([
+    loadPeriodValuationHistory(ticker, period, period === "quarter" ? 12 : 20),
     getIncomeTtm(ticker),
     getQuote(ticker),
     getEstimates(ticker, "annual"),
     getProfile(ticker),
   ]);
   const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
-  const history = period === "quarter" ? quarterly : annual;
   const eps = ttmIncome?.epsDiluted ?? ttmIncome?.eps;
-  const peValue = trailingPe(quote?.price, eps) ?? num(ttmRatios?.priceToEarningsRatioTTM) ?? quote?.pe ?? null;
+  const peValue = trailingPe(quote?.price, eps);
   const sectorPeVs = peValue != null && sectorPe ? peValue / sectorPe - 1 : null;
   const industryPeVs = peValue != null && industryPe ? peValue / industryPe - 1 : null;
   const currency = profile?.currency || "USD";
@@ -48,7 +46,7 @@ export default async function PeRatioPage({
     <Container>
       <PageHeader
         title={`${ticker} PE Ratio`}
-        description="Price-to-earnings versus the live FMP sector and industry snapshots, plus annual and quarterly history."
+        description="Price-to-earnings versus the live FMP sector and industry snapshots. Annual and quarterly history uses the last close on or before each period end."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
@@ -92,12 +90,12 @@ export default async function PeRatioPage({
         rows={history.map((row) => ({
           key: `${row.date}-${row.period}`,
           date: row.date,
-          label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
+          label: historyLabel(row, period),
           value: num(row.priceToEarningsRatio),
         }))}
       />
       <p className="mt-4 text-sm text-muted">
-        PE is share price divided by trailing earnings per share.{" "}
+        PE is share price divided by trailing earnings per share. Fiscal history uses the last FMP close on or before each period end.{" "}
         <span className="text-header">Formula: PE = Price ÷ EPS</span>
         {profile?.sector || profile?.industry
           ? " Sector and industry PE use the latest U.S. exchange snapshot from Financial Modeling Prep."

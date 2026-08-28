@@ -17,12 +17,13 @@ export default async function EvFcfPage({
       period={periodFrom(periodParam)}
       slug="ev-fcf"
       title={`${ticker} EV / FCF`}
-      description="Enterprise value relative to trailing free cash flow."
+      description="Enterprise value relative to trailing free cash flow, using period-end close and net cash from filings."
       field="evToFreeCashFlow"
       ttmField="evToFreeCashFlowTTM"
       valueLabel="EV / FCF"
       formula="EV / FCF = Enterprise Value ÷ Free Cash Flow"
       source="metrics"
+      priceBased
     />
   );
 }

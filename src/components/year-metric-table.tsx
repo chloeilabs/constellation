@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { DownloadCsvButton } from "@/components/download-csv";
 import { ChangePercent } from "@/components/change";
-import { formatDate, formatMillions, formatPrice, formatRatio, formatPercentPlain } from "@/lib/format";
+import { formatDate, formatMillions, formatPrice, formatRatio, formatPercentPlain, formatUsd } from "@/lib/format";
 
-export type YearMetricFormat = "money" | "eps" | "percent" | "ratio" | "margin";
+export type YearMetricFormat = "money" | "eps" | "price" | "percent" | "ratio" | "margin";
 
 export type YearMetricRow = {
   key: string;
@@ -27,6 +27,8 @@ function formatCell(value: number | null | undefined, format: YearMetricFormat) 
       return formatMillions(value);
     case "eps":
       return formatPrice(value);
+    case "price":
+      return formatUsd(value);
     case "ratio":
       return formatRatio(value);
     case "percent":

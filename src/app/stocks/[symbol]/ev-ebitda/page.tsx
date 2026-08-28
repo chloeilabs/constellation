@@ -17,12 +17,13 @@ export default async function EvEbitdaPage({
       period={periodFrom(periodParam)}
       slug="ev-ebitda"
       title={`${ticker} EV / EBITDA`}
-      description="Enterprise value relative to trailing EBITDA, from live FMP key metrics."
+      description="Enterprise value relative to trailing EBITDA, using period-end close and net cash from filings."
       field="evToEBITDA"
       ttmField="evToEBITDATTM"
       valueLabel="EV / EBITDA"
       formula="EV / EBITDA = Enterprise Value ÷ EBITDA"
       source="metrics"
+      priceBased
     />
   );
 }
