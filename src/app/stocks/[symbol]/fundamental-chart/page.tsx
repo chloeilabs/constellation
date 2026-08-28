@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { FundamentalOverlayChart } from "@/components/fundamental-overlay-chart";
 import { PageHeader, PeriodToggle } from "@/components/page-header";
-import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import {
   compactMoneyFn,
@@ -19,7 +18,6 @@ import {
   resolveFundamentalMetric,
 } from "@/lib/fundamental-chart";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
-import { quoteFundamentalsNav } from "@/lib/nav";
 import { derivedStatementMetrics, STATEMENT_METRIC_HREFS } from "@/lib/statements";
 import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
 
@@ -103,7 +101,6 @@ export default async function FundamentalChartPage({
           />
         }
       />
-      <SectionNav items={quoteFundamentalsNav(ticker)} />
       <div className="flex flex-col gap-5">
         {groups.map((group) => (
           <div key={group.title}>
