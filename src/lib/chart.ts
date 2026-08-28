@@ -250,11 +250,17 @@ function lastSessionPoints(points: ChartPoint[], sessionCount: number, rthOnly =
 }
 
 /** Mutual funds and some listings have no intraday tape; use recent daily closes so 1D/5D are not blank. */
-async function dailySessionPoints(symbol: string, sessions: number): Promise<ChartPoint[]> {
+async function dailySessionPoints(symbol: string, sessions: number, distinct = false): Promise<ChartPoint[]> {
   const today = new Date(`${nyDateString()}T00:00:00Z`);
-  const from = isoDate(addDays(today, -Math.max(sessions * 4, 14)));
+  const from = isoDate(addDays(today, -Math.max(sessions * 4, distinct ? 21 : 14)));
   const daily = toDailyPoints(await getDailyChart(symbol, from));
-  return daily.slice(-Math.max(sessions, 2));
+  if (!distinct) return daily.slice(-Math.max(sessions, 2));
+  const last = daily.at(-1);
+  if (!last) return [];
+  for (let i = daily.length - 2; i >= 0; i--) {
+    if (Math.abs(daily[i].value - last.value) > 1e-6) return [daily[i], last];
+  }
+  return daily.slice(-2);
 }
 
 export async function getChartData(symbol: string, range: ChartRange): Promise<ChartPoint[]> {
@@ -263,7 +269,7 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
     if (oneMin.length >= 2) return oneMin;
     const fiveMin = sessionChartPoints(toIntradayPoints(await getIntradayChart(symbol, "5min")));
     if (fiveMin.length >= 2) return fiveMin;
-    return dailySessionPoints(symbol, 2);
+    return dailySessionPoints(symbol, 2, true);
   }
   if (range === "5D") {
     const fiveMin = lastSessionPoints(toIntradayPoints(await getIntradayChart(symbol, "5min")), 5);

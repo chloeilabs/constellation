@@ -147,6 +147,8 @@ export function PriceChart({
     if (points.length === 0) return empty;
 
     const values = points.map((point) => point.value);
+    const priceMin = Math.min(...values);
+    const priceMax = Math.max(...values);
     const extras = [ma50, ma200].filter((value): value is number => typeof value === "number" && Number.isFinite(value));
     for (const point of points) {
       const day = point.time.slice(0, 10);
@@ -159,8 +161,11 @@ export function PriceChart({
       if (ema12 != null) extras.push(ema12);
       if (ema26 != null) extras.push(ema26);
     }
-    const min = Math.min(...values, ...extras);
-    const max = Math.max(...values, ...extras);
+    const mid = (priceMin + priceMax) / 2 || priceMax || 1;
+    const band = Math.max((priceMax - priceMin) * 3, Math.abs(mid) * 0.04);
+    const nearExtras = extras.filter((value) => value >= priceMin - band && value <= priceMax + band);
+    const min = Math.min(priceMin, ...nearExtras);
+    const max = Math.max(priceMax, ...nearExtras);
     const span = max - min || 1;
     const yOf = (value: number) => pad + ((max - value) / span) * (chartHeight - pad * 2);
     const rsiYOf = (value: number) => rsiTop + pad + ((100 - value) / 100) * (rsiHeight - pad * 2);
