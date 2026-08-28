@@ -267,6 +267,13 @@ export default async function RatiosPage({
       date: isCurrent ? nyDateString() : undefined,
     });
   });
+  columns = columns.map((column) => {
+    if (column.key === "ttm") return column;
+    const values = { ...column.values };
+    delete values.forwardPe;
+    delete values.priceToEarningsGrowthRatio;
+    return { ...column, values };
+  });
   columns = withAdjacentGrowth(
     columns,
     "marketCap",
