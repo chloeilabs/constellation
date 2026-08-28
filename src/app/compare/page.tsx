@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
+import { ComparePerformanceChart } from "@/components/compare-performance-chart";
 import {
   formatAnalystConsensus,
   formatCompactUsd,
@@ -12,7 +13,7 @@ import {
   formatPrice,
   formatRatio,
 } from "@/lib/format";
-import { getProfilesAndQuotes, POPULAR_STOCK_COMPARISONS } from "@/lib/compare";
+import { getProfilesAndQuotes, POPULAR_STOCK_COMPARISONS, compareChartFrom, compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
 import { industryHref, sectorHref } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
 import { estimateCagr, forwardPe, forwardPs, pegRatio, trailingPe } from "@/lib/valuation";
@@ -63,24 +64,30 @@ function targetUpside(row: CompareRow) {
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: Promise<{ symbols?: string }>;
+  searchParams: Promise<{ symbols?: string; chart?: string }>;
 }) {
-  const { symbols: raw } = await searchParams;
+  const { symbols: raw, chart: chartParam } = await searchParams;
   const symbols = (raw ?? "AAPL,MSFT,GOOGL")
     .split(",")
     .map((symbol) => symbol.trim().toUpperCase())
     .filter(Boolean)
     .slice(0, 4);
-  const rows = await getProfilesAndQuotes(symbols);
+  const span = compareChartSpan(chartParam);
+  const [rows, series] = await Promise.all([
+    getProfilesAndQuotes(symbols),
+    getNormalizedCompareSeries(symbols, compareChartFrom(span)),
+  ]);
+  const listQuery = `symbols=${encodeURIComponent(symbols.join(","))}`;
 
   return (
     <Container>
       <PageHeader
         title="Compare Stocks"
-        description="Side-by-side quotes, forward valuation, analyst targets, and trailing financials from live FMP data."
+        description="Side-by-side quotes, a normalized price chart, forward valuation, analyst targets, and trailing financials from live FMP data."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <form method="get" className="flex gap-2">
+            {span === "5Y" ? <input type="hidden" name="chart" value="5Y" /> : null}
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
@@ -97,6 +104,14 @@ export default async function ComparePage({
           </div>
         }
       />
+      <div className="mb-10 rounded-lg border border-border p-4">
+        <ComparePerformanceChart
+          series={series}
+          span={span}
+          oneHref={`/compare?${listQuery}`}
+          fiveHref={`/compare?${listQuery}&chart=5Y`}
+        />
+      </div>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>

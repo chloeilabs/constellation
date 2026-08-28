@@ -41,6 +41,15 @@ function alignedPath(
   return coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" ");
 }
 
+function chartSearch(query: Record<string, string | undefined> | undefined, range: string, extra?: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries({ ...query, range, ...extra })) {
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export function PriceChart({
   points,
   range,
@@ -53,6 +62,9 @@ export function PriceChart({
   ema12Series,
   ema26Series,
   rsiSeries,
+  query,
+  adjusted,
+  showAdjustedToggle = false,
 }: {
   points: ChartPoint[];
   range: ChartRange;
@@ -65,6 +77,9 @@ export function PriceChart({
   ema12Series?: ChartPoint[];
   ema26Series?: ChartPoint[];
   rsiSeries?: ChartPoint[];
+  query?: Record<string, string | undefined>;
+  adjusted?: boolean;
+  showAdjustedToggle?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const pathname = usePathname();
@@ -236,11 +251,35 @@ export function PriceChart({
             <span className="text-xs font-medium text-violet-700">RSI {formatNumber(rsiNow)}</span>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {showAdjustedToggle ? (
+            <div className="inline-flex rounded-md border border-border p-0.5 text-xs" role="group" aria-label="Price adjustment">
+              <Link
+                href={`${pathname}${chartSearch(query, range, { adj: undefined })}`}
+                scroll={false}
+                className={cn(
+                  "rounded px-2 py-1 font-semibold",
+                  !adjusted ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                )}
+              >
+                Close
+              </Link>
+              <Link
+                href={`${pathname}${chartSearch(query, range, { adj: "1" })}`}
+                scroll={false}
+                className={cn(
+                  "rounded px-2 py-1 font-semibold",
+                  adjusted ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                )}
+              >
+                Adj. Close
+              </Link>
+            </div>
+          ) : null}
           {CHART_RANGES.map((item) => (
             <Link
               key={item}
-              href={`${pathname}?range=${item}`}
+              href={`${pathname}${chartSearch(query, item)}`}
               scroll={false}
               className={cn(
                 "rounded px-2 py-1 text-xs font-semibold",

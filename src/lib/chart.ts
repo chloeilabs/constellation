@@ -1,6 +1,6 @@
-import type { FmpIntradayCandle, FmpLightCandle, ChartPoint } from "@/lib/types";
+import type { FmpAdjustedCandle, FmpIntradayCandle, FmpLightCandle, ChartPoint } from "@/lib/types";
 import { addDays, isoDate, nyDateString, nySession, type NySession } from "@/lib/utils";
-import { getDailyChart, getIntradayChart, getTechnicalSeries } from "@/lib/fmp";
+import { getDailyChart, getDividendAdjustedChart, getIntradayChart, getTechnicalSeries } from "@/lib/fmp";
 import { resolveChartRange, type ChartRange } from "@/lib/chart-range";
 
 export { CHART_RANGES, defaultChartRange, resolveChartRange, type ChartRange } from "@/lib/chart-range";
@@ -9,6 +9,34 @@ function toDailyPoints(rows: FmpLightCandle[]): ChartPoint[] {
   return [...rows]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((row) => ({ time: row.date, value: row.price, volume: row.volume }));
+}
+
+function toAdjustedPoints(rows: FmpAdjustedCandle[]): ChartPoint[] {
+  return [...rows]
+    .filter((row) => typeof row.adjClose === "number" && Number.isFinite(row.adjClose))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({ time: row.date, value: row.adjClose, volume: row.volume }));
+}
+
+function smaFromPoints(points: ChartPoint[], period: number): ChartPoint[] {
+  if (period < 1 || points.length < period) return [];
+  const out: ChartPoint[] = [];
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    sum += points[i].value;
+    if (i >= period) sum -= points[i - period].value;
+    if (i >= period - 1) out.push({ time: points[i].time, value: sum / period });
+  }
+  return out;
+}
+
+function sliceFrom(points: ChartPoint[], from?: string) {
+  if (!from) return points;
+  return points.filter((point) => point.time.slice(0, 10) >= from);
+}
+
+export function canDividendAdjust(range: ChartRange) {
+  return range !== "1D" && range !== "5D";
 }
 
 function toIntradayPoints(rows: FmpIntradayCandle[]): ChartPoint[] {
@@ -209,8 +237,38 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
   return toDailyPoints(await getDailyChart(symbol, fromDateForRange(range)));
 }
 
-export async function loadQuoteChart(symbol: string, rangeParam?: string | null) {
+export async function loadQuoteChart(
+  symbol: string,
+  rangeParam?: string | null,
+  options?: { adjusted?: boolean },
+) {
   const range = resolveChartRange(rangeParam);
+  const adjusted = Boolean(options?.adjusted) && canDividendAdjust(range);
+  if (adjusted) {
+    const chartFrom = fromDateForRange(range);
+    const today = new Date(`${nyDateString()}T00:00:00Z`);
+    const lookbackFrom =
+      range === "MAX"
+        ? undefined
+        : isoDate(addDays(chartFrom ? new Date(`${chartFrom}T00:00:00Z`) : today, -420));
+    const full = toAdjustedPoints(await getDividendAdjustedChart(symbol, lookbackFrom));
+    const points = sliceFrom(full, chartFrom);
+    return {
+      range,
+      points,
+      adjusted: true,
+      ma50Series: smaFromPoints(full, 50),
+      ma200Series: smaFromPoints(full, 200),
+      ...dailyIndicatorSeries(points, range),
+    };
+  }
   const [points, averages] = await Promise.all([getChartData(symbol, range), getChartMovingAverages(symbol, range)]);
-  return { range, points, ma50Series: averages.ma50, ma200Series: averages.ma200, ...dailyIndicatorSeries(points, range) };
+  return {
+    range,
+    points,
+    adjusted: false,
+    ma50Series: averages.ma50,
+    ma200Series: averages.ma200,
+    ...dailyIndicatorSeries(points, range),
+  };
 }

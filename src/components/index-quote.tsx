@@ -23,7 +23,7 @@ export async function IndexQuote({ ticker, range: rangeParam }: { ticker: string
     getStockNews(8),
     meta ? loadIndexMembers(meta.fmpIndex) : Promise.resolve(null),
   ]);
-  const { range, points, ma50Series, ma200Series } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
   const level = quote?.price;
   const changePct = quote?.changePercentage;
   const topMembers = members?.rows.slice(0, 15) ?? [];
@@ -55,6 +55,9 @@ export async function IndexQuote({ ticker, range: rangeParam }: { ticker: string
             ma200={quote?.priceAvg200}
             ma50Series={ma50Series}
             ma200Series={ma200Series}
+            ema12Series={ema12Series}
+            ema26Series={ema26Series}
+            rsiSeries={rsiSeries}
           />
           <ReturnsTable changes={priceChange} />
         </div>

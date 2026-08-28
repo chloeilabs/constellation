@@ -60,7 +60,7 @@ export async function MarketAssetQuote({
     getPriceChange(ticker),
     kindNews(ticker, expected),
   ]);
-  const { range, points, ma50Series, ma200Series } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
 
   if (!quote) {
     if (!hasFmpKey()) {
@@ -163,6 +163,9 @@ export async function MarketAssetQuote({
               ma200={quote.priceAvg200}
               ma50Series={ma50Series}
               ma200Series={ma200Series}
+              ema12Series={ema12Series}
+              ema26Series={ema26Series}
+              rsiSeries={rsiSeries}
             />
             <ReturnsTable changes={priceChange} />
           </div>

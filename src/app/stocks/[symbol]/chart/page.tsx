@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
-import { loadQuoteChart } from "@/lib/chart";
+import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
 import { getPriceChange, getQuoteSafe } from "@/lib/fmp";
 import { indexDisplayName } from "@/lib/indexes";
 import { decodeTicker } from "@/lib/listings";
@@ -12,23 +12,29 @@ export default async function ChartPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; adj?: string }>;
 }) {
   const { symbol } = await params;
-  const { range: rangeParam } = await searchParams;
+  const { range: rangeParam, adj: adjParam } = await searchParams;
   const ticker = decodeTicker(symbol);
+  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [chart, changes, quote] = await Promise.all([
-    loadQuoteChart(ticker, rangeParam),
+    loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
     getPriceChange(ticker),
     getQuoteSafe(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
+  const showAdjustedToggle = canDividendAdjust(range);
 
   return (
     <Container>
       <PageHeader
         title={`${indexDisplayName(ticker, quote?.name)} Chart`}
-        description="Interactive historical price chart with SMA 50/200, EMA 12/26, and RSI (14)."
+        description={
+          adjusted
+            ? "Dividend-adjusted closes from FMP, with SMA 50/200 computed on the adjusted series, plus EMA 12/26 and RSI (14)."
+            : "Interactive historical price chart with SMA 50/200, EMA 12/26, and RSI (14)."
+        }
       />
       <PriceChart
         points={points}
@@ -41,6 +47,9 @@ export default async function ChartPage({
         ema12Series={ema12Series}
         ema26Series={ema26Series}
         rsiSeries={rsiSeries}
+        adjusted={adjusted}
+        showAdjustedToggle={showAdjustedToggle}
+        query={wantAdjusted ? { adj: "1" } : undefined}
       />
       <ReturnsTable changes={changes} />
     </Container>

@@ -84,7 +84,7 @@ export default async function StockOverviewPage({
       getSecFilings(ticker, filingFrom, filingTo, 40),
       getShareFloat(ticker),
     ]);
-  const { range, points, ma50Series, ma200Series } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
   const fyRevenueGrowth = yearOverYear(latestYear?.revenue, priorYear?.revenue);
@@ -161,6 +161,9 @@ export default async function StockOverviewPage({
               ma200={quote?.priceAvg200}
               ma50Series={ma50Series}
               ma200Series={ma200Series}
+              ema12Series={ema12Series}
+              ema26Series={ema26Series}
+              rsiSeries={rsiSeries}
             />
           </Suspense>
           <ReturnsTable changes={priceChange} />

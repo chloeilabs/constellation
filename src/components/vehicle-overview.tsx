@@ -48,7 +48,7 @@ export async function VehicleOverview({
     getRatiosTtm(ticker),
     getProfile(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
 
   const rankedSectors = [...sectors].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
   const rankedCountries = [...countries]
@@ -82,6 +82,9 @@ export async function VehicleOverview({
           ma200={quote?.priceAvg200}
           ma50Series={ma50Series}
           ma200Series={ma200Series}
+          ema12Series={ema12Series}
+          ema26Series={ema26Series}
+          rsiSeries={rsiSeries}
         />
         <ReturnsTable changes={changes} />
       </div>

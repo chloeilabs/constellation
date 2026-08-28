@@ -21,7 +21,7 @@ const GROUPS = [
   {
     title: "Comparison Tools",
     links: [
-      ["/compare", "Stock Comparison", "Side-by-side quotes, valuation, and trailing financials."],
+      ["/compare", "Stock Comparison", "Side-by-side quotes, a normalized performance chart, and trailing financials."],
       ["/etf/compare", "ETF Comparison", "Compare expense ratios, returns, and overlapping holdings."],
     ],
   },
