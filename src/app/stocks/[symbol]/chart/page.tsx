@@ -2,8 +2,8 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
-import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
-import { getPriceChange, getQuoteSafe } from "@/lib/fmp";
+import { loadQuoteChart, loadVehiclePerformance, canDividendAdjust } from "@/lib/chart";
+import { getPriceChange, getQuoteSafe, getProfile } from "@/lib/fmp";
 import { indexDisplayName } from "@/lib/indexes";
 import { decodeTicker } from "@/lib/listings";
 
@@ -17,10 +17,11 @@ export default async function ChartPage({
   const { symbol } = await params;
   const { range: rangeParam, adj: adjParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const [chart, changes, quote] = await Promise.all([
+  const [chart, changes, quote, performance] = await Promise.all([
     loadQuoteChart(ticker, rangeParam, { adj: adjParam }),
     getPriceChange(ticker),
     getQuoteSafe(ticker),
+    getProfile(ticker).then((company) => loadVehiclePerformance(ticker, company?.ipoDate ?? "1970-01-01")),
   ]);
   const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, macdSeries, macdSignalSeries, macdHistogramSeries, adjusted } = chart;
   const showAdjustedToggle = canDividendAdjust(range);
@@ -53,7 +54,7 @@ export default async function ChartPage({
         showAdjustedToggle={showAdjustedToggle}
         query={showAdjustedToggle && !adjusted ? { adj: "0" } : undefined}
       />
-      <ReturnsTable changes={changes} />
+      <ReturnsTable changes={changes} performance={performance} />
     </Container>
   );
 }

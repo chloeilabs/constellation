@@ -6,7 +6,7 @@ import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
 import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPlausiblePe, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
-import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
+import { loadQuoteChart, loadVehiclePerformance, canDividendAdjust } from "@/lib/chart";
 import {
   getCompanyEarnings,
   getDividends,
@@ -60,10 +60,11 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
-  const [quote, profile, ttm, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, yearAgoCap, press, transcriptDates, filings, shareFloat] =
+  const profilePromise = getProfile(ticker);
+  const [quote, profile, ttm, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, yearAgoCap, press, transcriptDates, filings, shareFloat, performance] =
     await Promise.all([
       getQuote(ticker),
-      getProfile(ticker),
+      profilePromise,
       getIncomeTtm(ticker),
       getPriceTarget(ticker),
       getGradesConsensus(ticker),
@@ -82,6 +83,7 @@ export default async function StockOverviewPage({
       getTranscriptDates(ticker),
       getSecFilings(ticker, filingFrom, filingTo, 40),
       getShareFloat(ticker),
+      profilePromise.then((company) => loadVehiclePerformance(ticker, company?.ipoDate)),
     ]);
   const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
   const latestYear = annual[0];
@@ -180,7 +182,7 @@ export default async function StockOverviewPage({
               query={canDividendAdjust(range) && !adjusted ? { adj: "0" } : undefined}
             />
           </Suspense>
-          <ReturnsTable changes={priceChange} />
+          <ReturnsTable changes={priceChange} performance={performance} />
         </div>
         <QuoteStats
           symbol={ticker}

@@ -2,8 +2,8 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
-import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
-import { getPriceChange, getQuote } from "@/lib/fmp";
+import { loadQuoteChart, loadVehiclePerformance, canDividendAdjust } from "@/lib/chart";
+import { getPriceChange, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
@@ -19,13 +19,16 @@ export async function VehicleChart({
   kind: VehicleKind;
 }) {
   const ticker = decodeTicker(symbol);
-  const [chart, changes, quote] = await Promise.all([
+  const [chart, changes, quote, performance] = await Promise.all([
     loadQuoteChart(ticker, rangeParam, {
       adj: adjParam,
       fallbackRange: kind === "fund" ? "1Y" : undefined,
     }),
     getPriceChange(ticker),
     getQuote(ticker),
+    getProfile(ticker).then((company) =>
+      loadVehiclePerformance(ticker, company?.ipoDate ?? "1970-01-01"),
+    ),
   ]);
   const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, macdSeries, macdSignalSeries, macdHistogramSeries, adjusted } = chart;
 
@@ -58,7 +61,7 @@ export async function VehicleChart({
         showAdjustedToggle={canDividendAdjust(range)}
         query={canDividendAdjust(range) && !adjusted ? { adj: "0" } : undefined}
       />
-      <ReturnsTable changes={changes} />
+      <ReturnsTable changes={changes} performance={performance} />
     </Container>
   );
 }

@@ -437,6 +437,7 @@ export type VehiclePerformance = {
   ytd: number | null;
   oneYear: number | null;
   fiveYear: number | null;
+  fiveYearTotal: number | null;
   tenYear: number | null;
   inceptionTotal: number | null;
   inceptionCagr: number | null;
@@ -486,6 +487,9 @@ export async function loadVehiclePerformance(symbol: string, inception?: string 
     minDays: 365 * 5 - 40,
     annualize: true,
   });
+  const fiveYearTotal = periodReturn(points, isoDate(addDays(today, -365 * 5)), {
+    minDays: 365 * 5 - 40,
+  });
   const tenYear = periodReturn(points, isoDate(addDays(today, -365 * 10)), {
     minDays: 365 * 10 - 40,
     annualize: true,
@@ -502,5 +506,5 @@ export async function loadVehiclePerformance(symbol: string, inception?: string 
   ) {
     return null;
   }
-  return { oneMonth, ytd, oneYear, fiveYear, tenYear, inceptionTotal, inceptionCagr };
+  return { oneMonth, ytd, oneYear, fiveYear, fiveYearTotal, tenYear, inceptionTotal, inceptionCagr };
 }

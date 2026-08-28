@@ -102,7 +102,7 @@ export async function VehicleOverview({
           showAdjustedToggle={canDividendAdjust(range)}
           query={canDividendAdjust(range) && !adjusted ? { adj: "0" } : undefined}
         />
-        <ReturnsTable changes={changes} />
+        <ReturnsTable changes={changes} performance={performance} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
