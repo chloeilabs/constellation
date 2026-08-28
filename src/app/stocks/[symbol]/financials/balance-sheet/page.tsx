@@ -3,13 +3,16 @@ import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, StatementToolbar } from "@/components/page-header";
 import { StatementCharts } from "@/components/statement-charts";
 import { StatementTable } from "@/components/statement-table";
-import { getBalanceAsReported, getBalanceSheets, getBalanceSheetTtm } from "@/lib/fmp";
-import { formatMillions, reportingCurrency } from "@/lib/format";
+import { getBalanceAsReported, getBalanceSheets, getBalanceSheetTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import { formatMillions, reportingCurrency, yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
+  ADDITIONAL_BALANCE_ROWS,
   BALANCE_ROWS,
   asReportedColumns,
   asReportedStatementRows,
+  derivedBalanceMetrics,
+  mergeStatementValues,
   sourceFrom,
   spanFrom,
   statementChartItems,
@@ -17,6 +20,8 @@ import {
   statementToolbarHrefs,
   toStatementColumns,
   viewFrom,
+  withAdjacentGrowth,
+  withDerivedBalanceMetrics,
   withStatementHrefs,
   withTtmColumn,
 } from "@/lib/statements";
@@ -38,20 +43,55 @@ export default async function BalanceSheetPage({
   const view = source === "reported" ? "dollars" : viewFrom(viewParam);
   const limit = statementLimit(period, span);
   const base = stockPath(ticker, "/financials/balance-sheet");
-  const [rows, ttm, reported] = await Promise.all([
+  const [rows, ttm, reported, income, incomeTtm, quarterly] = await Promise.all([
     source === "standardized" ? getBalanceSheets(ticker, period, limit) : Promise.resolve([]),
     source === "standardized" ? getBalanceSheetTtm(ticker) : Promise.resolve(null),
     source === "reported" ? getBalanceAsReported(ticker, period, limit) : Promise.resolve([]),
+    source === "standardized" ? getIncomeStatements(ticker, period, limit) : Promise.resolve([]),
+    source === "standardized" ? getIncomeTtm(ticker) : Promise.resolve(null),
+    source === "standardized" && period === "annual"
+      ? getBalanceSheets(ticker, "quarter", 5)
+      : Promise.resolve([]),
   ]);
   const currency = reportingCurrency(
     rows[0]?.reportedCurrency,
     ttm?.reportedCurrency,
     reported[0]?.reportedCurrency,
   );
-  const columns =
+  let columns =
     source === "reported"
       ? asReportedColumns(reported, period)
       : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period));
+  if (source === "standardized") {
+    if (incomeTtm && columns[0]?.key === "ttm") {
+      columns = [
+        {
+          ...columns[0],
+          values: {
+            ...columns[0].values,
+            weightedAverageShsOutDil: incomeTtm.weightedAverageShsOutDil,
+            weightedAverageShsOut: incomeTtm.weightedAverageShsOut,
+          },
+        },
+        ...columns.slice(1),
+      ];
+    }
+    columns = mergeStatementValues(columns, income, ["weightedAverageShsOutDil", "weightedAverageShsOut"]);
+    columns = withDerivedBalanceMetrics(columns);
+    const ttmNetCash = ttm ? derivedBalanceMetrics(ttm as Record<string, unknown>).netCashPosition : null;
+    const yearAgoSheet = (period === "annual" ? quarterly[4] : rows[4]) as Record<string, unknown> | undefined;
+    const ttmNetCashGrowth = yearOverYear(
+      ttmNetCash,
+      yearAgoSheet ? derivedBalanceMetrics(yearAgoSheet).netCashPosition : null,
+    );
+    columns = withAdjacentGrowth(
+      columns,
+      "netCashPosition",
+      "netCashGrowth",
+      period === "quarter" ? 4 : 1,
+      ttmNetCashGrowth,
+    );
+  }
 
   return (
     <Container>
@@ -95,19 +135,34 @@ export default async function BalanceSheetPage({
           downloadName={`${ticker}-balance-as-reported-${period}-${span}`}
         />
       ) : (
-        <StatementTable
-          rows={withStatementHrefs(BALANCE_ROWS, ticker)}
-          columns={columns}
-          scale="millions"
-          currency={currency}
-          commonSizeBase={view === "common-size" ? "totalAssets" : undefined}
-          caption={
-            view === "common-size"
-              ? "Percent of total assets. Green/red year-over-year change is hidden in this view."
-              : `Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`
-          }
-          downloadName={`${ticker}-balance-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
-        />
+        <>
+          <StatementTable
+            rows={withStatementHrefs(BALANCE_ROWS, ticker)}
+            columns={columns}
+            scale="millions"
+            currency={currency}
+            commonSizeBase={view === "common-size" ? "totalAssets" : undefined}
+            caption={
+              view === "common-size"
+                ? "Percent of total assets. Green/red year-over-year change is hidden in this view."
+                : `Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`
+            }
+            downloadName={`${ticker}-balance-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
+          />
+          {view === "dollars" ? (
+            <section className="mt-10">
+              <h2 className="mb-3 text-lg font-semibold text-header">Additional Metrics</h2>
+              <StatementTable
+                rows={withStatementHrefs(ADDITIONAL_BALANCE_ROWS, ticker)}
+                columns={columns}
+                scale="millions"
+                currency={currency}
+                caption="Net cash is cash & investments minus total debt. Tangible book value subtracts goodwill and other intangibles."
+                downloadName={`${ticker}-balance-additional-${period}-${span}`}
+              />
+            </section>
+          ) : null}
+        </>
       )}
     </Container>
   );

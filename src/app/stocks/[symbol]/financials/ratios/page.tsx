@@ -2,9 +2,19 @@ import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
 import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
-import { getRatios, getRatiosTtm } from "@/lib/fmp";
+import { getKeyMetrics, getKeyMetricsTtm, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { RATIO_ROWS, spanFrom, statementHref, statementLimit, stripTtmSuffix, toStatementColumns, withTtmColumn } from "@/lib/statements";
+import {
+  RATIO_ROWS,
+  mergeStatementValues,
+  spanFrom,
+  statementHref,
+  statementLimit,
+  stripTtmSuffix,
+  toStatementColumns,
+  withStatementHrefs,
+  withTtmColumn,
+} from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 export default async function RatiosPage({
@@ -19,7 +29,27 @@ export default async function RatiosPage({
   const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const span = spanFrom(yearsParam);
-  const [rows, ttm] = await Promise.all([getRatios(ticker, period, statementLimit(period, span)), getRatiosTtm(ticker)]);
+  const [rows, ttm, metrics, metricsTtm] = await Promise.all([
+    getRatios(ticker, period, statementLimit(period, span)),
+    getRatiosTtm(ticker),
+    getKeyMetrics(ticker, period, statementLimit(period, span)),
+    getKeyMetricsTtm(ticker),
+  ]);
+  const metricKeys = [
+    "returnOnInvestedCapital",
+    "returnOnCapitalEmployed",
+    "earningsYield",
+    "freeCashFlowYield",
+    "netDebtToEBITDA",
+  ];
+  let columns = withTtmColumn(
+    {
+      ...stripTtmSuffix(ttm as Record<string, unknown> | null),
+      ...stripTtmSuffix(metricsTtm as Record<string, unknown> | null),
+    },
+    toStatementColumns(rows, period),
+  );
+  columns = mergeStatementValues(columns, metrics, metricKeys);
   const base = stockPath(ticker, "/financials/ratios");
 
   return (
@@ -45,9 +75,9 @@ export default async function RatiosPage({
       />
       <FinancialsNav symbol={ticker} />
       <StatementTable
-        rows={RATIO_ROWS}
-        columns={withTtmColumn(stripTtmSuffix(ttm as Record<string, unknown> | null), toStatementColumns(rows, period))}
-        caption="The TTM column uses trailing-twelve-month ratios. Green/red percentages are year-over-year change for dollar and share rows."
+        rows={withStatementHrefs(RATIO_ROWS, ticker)}
+        columns={columns}
+        caption="The TTM column uses trailing-twelve-month ratios from FMP. Return and yield rows come from key metrics."
         downloadName={`${ticker}-ratios-${period}-${span}`}
       />
     </Container>

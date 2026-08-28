@@ -1,6 +1,7 @@
 import { yearOverYear } from "@/lib/format";
 import { stockPath } from "@/lib/listings";
 import type { FmpRevenueSegment } from "@/lib/types";
+import { netCashPosition } from "@/lib/utils";
 
 export type StatementRow = {
   key: string;
@@ -98,6 +99,20 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   totalLiabilities: "liabilities",
   totalStockholdersEquity: "equity",
   totalDebt: "debt",
+  netCashPosition: "net-cash",
+  netCashPerShare: "net-cash",
+  workingCapital: "working-capital",
+  bookValuePerShare: "book-value",
+  tangibleBookValue: "tangible-book-value",
+  tangibleBookValuePerShare: "tangible-book-value",
+  weightedAverageShsOutDil: "shares",
+  assetTurnover: "asset-turnover",
+  inventoryTurnover: "inventory-turnover",
+  returnOnInvestedCapital: "roic",
+  returnOnCapitalEmployed: "roce",
+  earningsYield: "earnings-yield",
+  freeCashFlowYield: "fcf-yield",
+  netDebtToEBITDA: "net-debt-ebitda",
 };
 
 export function withStatementHrefs(rows: StatementRow[], symbol: string): StatementRow[] {
@@ -131,6 +146,19 @@ export const BALANCE_ROWS: StatementRow[] = [
   { key: "totalStockholdersEquity", label: "Shareholders' Equity", emphasize: true, format: "money" },
   { key: "totalDebt", label: "Total Debt", format: "money" },
   { key: "netDebt", label: "Net Debt", format: "money" },
+];
+
+/** Supplemental lines Stock Analysis shows under the balance sheet. */
+export const ADDITIONAL_BALANCE_ROWS: StatementRow[] = [
+  { key: "totalDebt", label: "Total Debt", format: "money" },
+  { key: "netCashPosition", label: "Net Cash (Debt)", format: "money" },
+  { key: "netCashGrowth", label: "Net Cash Growth", format: "percent" },
+  { key: "netCashPerShare", label: "Net Cash Per Share", format: "eps" },
+  { key: "weightedAverageShsOutDil", label: "Shares Outstanding (Diluted)", format: "share" },
+  { key: "workingCapital", label: "Working Capital", format: "money" },
+  { key: "bookValuePerShare", label: "Book Value Per Share", format: "eps" },
+  { key: "tangibleBookValue", label: "Tangible Book Value", format: "money" },
+  { key: "tangibleBookValuePerShare", label: "Tangible Book Value Per Share", format: "eps" },
 ];
 
 export const CASH_FLOW_ROWS: StatementRow[] = [
@@ -184,10 +212,17 @@ export const RATIO_ROWS: StatementRow[] = [
   { key: "currentRatio", label: "Current Ratio", format: "ratio" },
   { key: "quickRatio", label: "Quick Ratio", format: "ratio" },
   { key: "debtToEquityRatio", label: "Debt / Equity", format: "ratio" },
+  { key: "netDebtToEBITDA", label: "Net Debt / EBITDA", format: "ratio" },
+  { key: "assetTurnover", label: "Asset Turnover", format: "ratio" },
+  { key: "inventoryTurnover", label: "Inventory Turnover", format: "ratio" },
   { key: "priceToEarningsRatio", label: "PE Ratio", format: "ratio" },
   { key: "priceToBookRatio", label: "PB Ratio", format: "ratio" },
   { key: "priceToSalesRatio", label: "PS Ratio", format: "ratio" },
   { key: "priceToFreeCashFlowRatio", label: "P/FCF", format: "ratio" },
+  { key: "returnOnInvestedCapital", label: "Return on Invested Capital", format: "percent" },
+  { key: "returnOnCapitalEmployed", label: "Return on Capital Employed", format: "percent" },
+  { key: "earningsYield", label: "Earnings Yield", format: "percent" },
+  { key: "freeCashFlowYield", label: "FCF Yield", format: "percent" },
   { key: "dividendYield", label: "Dividend Yield", format: "percent" },
   { key: "dividendPayoutRatio", label: "Payout Ratio", format: "percent" },
 ];
@@ -379,6 +414,41 @@ export function withDerivedStatementMetrics(
   return columns.map((column) => ({
     ...column,
     values: { ...column.values, ...derivedStatementMetrics(column.values) },
+  }));
+}
+
+export function derivedBalanceMetrics(values: Record<string, unknown>) {
+  const n = (key: string) =>
+    typeof values[key] === "number" && Number.isFinite(values[key] as number) ? (values[key] as number) : null;
+  const netCash = netCashPosition({
+    cashAndShortTermInvestments: n("cashAndShortTermInvestments") ?? undefined,
+    longTermInvestments: n("longTermInvestments") ?? undefined,
+    totalDebt: n("totalDebt") ?? undefined,
+  });
+  const currentAssets = n("totalCurrentAssets");
+  const currentLiabilities = n("totalCurrentLiabilities");
+  const equity = n("totalStockholdersEquity");
+  const goodwill = n("goodwill") ?? 0;
+  const intangibles = n("intangibleAssets") ?? 0;
+  const tangible = equity != null ? equity - goodwill - intangibles : null;
+  const shares = n("weightedAverageShsOutDil") ?? n("weightedAverageShsOut");
+  return {
+    netCashPosition: netCash,
+    netCashPerShare: netCash != null && shares && shares > 0 ? netCash / shares : null,
+    workingCapital:
+      currentAssets != null && currentLiabilities != null ? currentAssets - currentLiabilities : null,
+    bookValuePerShare: equity != null && shares && shares > 0 ? equity / shares : null,
+    tangibleBookValue: tangible,
+    tangibleBookValuePerShare: tangible != null && shares && shares > 0 ? tangible / shares : null,
+  };
+}
+
+export function withDerivedBalanceMetrics(
+  columns: { key: string; label: string; values: Record<string, unknown> }[],
+) {
+  return columns.map((column) => ({
+    ...column,
+    values: { ...column.values, ...derivedBalanceMetrics(column.values) },
   }));
 }
 
