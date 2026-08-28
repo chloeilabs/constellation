@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { NEWS_NAV } from "@/lib/nav";
 import { formatDate, formatPrice } from "@/lib/format";
-import { getGradesLatestNews } from "@/lib/fmp";
+import { getGradesLatestNewsArchive } from "@/lib/fmp";
 import { gradeActionKind, gradeActionLabel } from "@/lib/grades";
 import { isForeignListingSymbol } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
@@ -27,11 +29,11 @@ type AnalystView = (typeof VIEWS)[number]["id"];
 export default async function AnalystsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; page?: string }>;
 }) {
-  const { view: viewParam } = await searchParams;
+  const { view: viewParam, page: pageParam } = await searchParams;
   const view: AnalystView = VIEWS.some((item) => item.id === viewParam) ? (viewParam as AnalystView) : "all";
-  const raw = await getGradesLatestNews(80);
+  const raw = await getGradesLatestNewsArchive();
   const seen = new Set<string>();
   const rows = raw.filter((row) => {
     if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
@@ -41,6 +43,8 @@ export default async function AnalystsPage({
     if (view !== "all" && gradeActionKind(row.action) !== view) return false;
     return true;
   });
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
+  const extra = { view: view === "all" ? undefined : view };
 
   return (
     <Container>
@@ -54,6 +58,7 @@ export default async function AnalystsPage({
           <Link
             key={item.id}
             href={item.href}
+            scroll={false}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
               item.id === view ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
@@ -63,7 +68,6 @@ export default async function AnalystsPage({
           </Link>
         ))}
       </div>
-      <p className="mb-3 text-sm text-muted">{rows.length} recent rating actions</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -79,14 +83,14 @@ export default async function AnalystsPage({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-muted">
                   No recent analyst actions.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              feed.rows.map((row) => (
                 <tr key={`${row.symbol}-${row.publishedDate}-${row.gradingCompany}-${row.action}`}>
                   <td>{formatDate(row.publishedDate)}</td>
                   <td className="symbol">
@@ -114,6 +118,14 @@ export default async function AnalystsPage({
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/analysts", feed.page, feed.pageCount, extra)}
+      />
     </Container>
   );
 }

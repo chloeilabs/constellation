@@ -1126,13 +1126,18 @@ export async function getInsiderTradesArchive(symbol: string) {
   return out;
 }
 
-export function searchInsiderTrades(params: { symbol?: string; reportingCik?: string; limit?: number }) {
+export function searchInsiderTrades(params: {
+  symbol?: string;
+  reportingCik?: string;
+  limit?: number;
+  page?: number;
+}) {
   return fmpList<FmpInsiderTrade>(
     "/insider-trading/search",
     {
       symbol: params.symbol ? decodeTicker(params.symbol) : undefined,
       reportingCik: params.reportingCik || undefined,
-      page: 0,
+      page: params.page ?? 0,
       limit: params.limit ?? 50,
     },
     { revalidate: 300 },
@@ -1155,20 +1160,53 @@ export function getInsiderStatistics(symbol: string) {
   );
 }
 
-export function getLatestInsiderTrades(limit = 50) {
+export function getLatestInsiderTrades(limit = 50, page = 0) {
   return fmpList<FmpInsiderTrade>(
     "/insider-trading/latest",
-    { page: 0, limit },
+    { page, limit },
     { revalidate: 120 },
   );
 }
 
-export function getSenateLatest(limit = 100) {
-  return fmpList<FmpCongressTrade>("/senate-latest", { page: 0, limit }, { revalidate: 300 });
+const FMP_HUB_PAGE_SIZE = 100;
+const FMP_HUB_MAX_PAGES = 4;
+
+export async function getLatestInsiderTradesArchive() {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getLatestInsiderTrades(FMP_HUB_PAGE_SIZE, page)),
+  );
+  return mergeInsiderPages(pages);
 }
 
-export function getHouseLatest(limit = 100) {
-  return fmpList<FmpCongressTrade>("/house-latest", { page: 0, limit }, { revalidate: 300 });
+export async function searchInsiderTradesArchive(reportingCik: string) {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) =>
+      searchInsiderTrades({ reportingCik, limit: FMP_HUB_PAGE_SIZE, page }),
+    ),
+  );
+  return mergeInsiderPages(pages);
+}
+
+function mergeInsiderPages(pages: FmpInsiderTrade[][]) {
+  const seen = new Set<string>();
+  const out: FmpInsiderTrade[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.filingDate}|${row.transactionDate}|${row.reportingCik}|${row.symbol}|${row.securitiesTransacted}|${row.price}|${row.transactionType}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
+}
+
+export function getSenateLatest(limit = 100, page = 0) {
+  return fmpList<FmpCongressTrade>("/senate-latest", { page, limit }, { revalidate: 300 });
+}
+
+export function getHouseLatest(limit = 100, page = 0) {
+  return fmpList<FmpCongressTrade>("/house-latest", { page, limit }, { revalidate: 300 });
 }
 
 export function getSenateTrades(symbol: string, limit = 50) {
@@ -1207,19 +1245,41 @@ export function getLatestFinancialStatements(page = 0, limit = 100) {
   );
 }
 
-export function getLatestSecFilings8k(from: string, to: string, limit = 100) {
+export function getLatestSecFilings8k(from: string, to: string, limit = 100, page = 0) {
   return fmpList<FmpSecFiling>(
     "/sec-filings-8k",
-    { from, to, page: 0, limit },
+    { from, to, page, limit },
     { revalidate: 120 },
   );
 }
 
-export function getLatestSecFilingsFinancials(from: string, to: string, limit = 100) {
+export function getLatestSecFilingsFinancials(from: string, to: string, limit = 100, page = 0) {
   return fmpList<FmpSecFiling>(
     "/sec-filings-financials",
-    { from, to, page: 0, limit },
+    { from, to, page, limit },
     { revalidate: 120 },
+  );
+}
+
+export async function getLatestSecFilingsArchive(from: string, to: string) {
+  const [eightKPages, financialPages] = await Promise.all([
+    Promise.all(Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getLatestSecFilings8k(from, to, FMP_HUB_PAGE_SIZE, page))),
+    Promise.all(
+      Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) =>
+        getLatestSecFilingsFinancials(from, to, FMP_HUB_PAGE_SIZE, page),
+      ),
+    ),
+  ]);
+  const seen = new Set<string>();
+  const rows: FmpSecFiling[] = [];
+  for (const row of [...eightKPages.flat(), ...financialPages.flat()]) {
+    const key = `${row.symbol}|${row.formType}|${row.acceptedDate || row.filingDate}|${row.link}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push(row);
+  }
+  return rows.sort((a, b) =>
+    (b.acceptedDate || b.filingDate || "").localeCompare(a.acceptedDate || a.filingDate || ""),
   );
 }
 
@@ -1347,12 +1407,29 @@ export function getTranscript(symbol: string, year: number, quarter: number) {
   );
 }
 
-export function getLatestTranscripts(limit = 30) {
+export function getLatestTranscripts(limit = 30, page = 0) {
   return fmpList<FmpTranscriptDate & { symbol: string; period?: string }>(
     "/earning-call-transcript-latest",
-    { limit, page: 0 },
+    { limit, page },
     { revalidate: 300 },
   );
+}
+
+export async function getLatestTranscriptsArchive() {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getLatestTranscripts(FMP_HUB_PAGE_SIZE, page)),
+  );
+  const seen = new Set<string>();
+  const out: Array<FmpTranscriptDate & { symbol: string; period?: string }> = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.symbol}|${row.fiscalYear}|${row.quarter ?? row.period}|${row.date}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 export function getEconomicCalendar(from: string, to: string, country = "US") {
@@ -1541,12 +1618,29 @@ export function getSectorPeSnapshot(date: string) {
   );
 }
 
-export function getGradesLatestNews(limit = 80) {
+export function getGradesLatestNews(limit = 80, page = 0) {
   return fmpList<FmpGradeNews>(
     "/grades-latest-news",
-    { page: 0, limit },
+    { page, limit },
     { revalidate: 120 },
   );
+}
+
+export async function getGradesLatestNewsArchive() {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getGradesLatestNews(FMP_HUB_PAGE_SIZE, page)),
+  );
+  const seen = new Set<string>();
+  const out: FmpGradeNews[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.symbol}|${row.publishedDate}|${row.gradingCompany}|${row.action}|${row.newsURL}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 export function getCommoditiesList() {

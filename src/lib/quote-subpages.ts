@@ -116,6 +116,7 @@ export const QUOTE_PATH_ALIASES: Record<string, string[]> = {
   ratios: ["financials", "ratios"],
   growth: ["financials", "growth"],
   reports: ["financials", "reports"],
+  executives: ["company", "executives"],
 };
 
 export function quoteSubpath(segment: string) {

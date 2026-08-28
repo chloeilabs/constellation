@@ -2,26 +2,27 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { NEWS_NAV } from "@/lib/nav";
 import { formatDate } from "@/lib/format";
-import { getLatestTranscripts } from "@/lib/fmp";
+import { getLatestTranscriptsArchive } from "@/lib/fmp";
 import { isForeignListingSymbol } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
 export const metadata = {
   title: "Earnings Transcripts",
   description: "Latest earnings call transcripts from Financial Modeling Prep.",
 };
 
-export default async function TranscriptsHubPage() {
-  const raw = await getLatestTranscripts(80);
-  const seen = new Set<string>();
-  const rows = raw.filter((row) => {
-    if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
-    const key = `${row.symbol}|${row.fiscalYear}|${row.quarter ?? row.period}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+export default async function TranscriptsHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const raw = await getLatestTranscriptsArchive();
+  const rows = raw.filter((row) => row.symbol && !isForeignListingSymbol(row.symbol));
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
 
   return (
     <Container>
@@ -30,7 +31,6 @@ export default async function TranscriptsHubPage() {
         description="Recently published earnings call transcripts, linked to the full text on each quote."
       />
       <SectionNav items={NEWS_NAV} />
-      <p className="mb-3 text-sm text-muted">{rows.length} recent transcripts</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -42,14 +42,14 @@ export default async function TranscriptsHubPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-muted">
                   No recent transcripts.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => {
+              feed.rows.map((row) => {
                 const quarter = row.quarter ?? (Number(String(row.period || "").replace(/\D/g, "")) || 1);
                 const href = `/stocks/${row.symbol}/transcripts?year=${row.fiscalYear}&quarter=${quarter}`;
                 return (
@@ -75,6 +75,14 @@ export default async function TranscriptsHubPage() {
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/news/transcripts", feed.page, feed.pageCount)}
+      />
     </Container>
   );
 }

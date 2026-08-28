@@ -62,14 +62,52 @@ export function sortCongressTrades(rows: CongressTradeRow[]) {
 }
 
 export async function loadCongressTrades(chamber: CongressChamber, limit = 80) {
+  const pages = Math.max(1, Math.ceil(limit / 100));
   if (chamber === "senate") {
-    return sortCongressTrades(withChamber(await getSenateLatest(limit), "Senate")).slice(0, limit);
+    return sortCongressTrades(await loadChamberPages(getSenateLatest, "Senate", pages)).slice(0, limit);
   }
   if (chamber === "house") {
-    return sortCongressTrades(withChamber(await getHouseLatest(limit), "House")).slice(0, limit);
+    return sortCongressTrades(await loadChamberPages(getHouseLatest, "House", pages)).slice(0, limit);
   }
-  const [senate, house] = await Promise.all([getSenateLatest(limit), getHouseLatest(limit)]);
-  return sortCongressTrades([...withChamber(senate, "Senate"), ...withChamber(house, "House")]).slice(0, limit);
+  const [senate, house] = await Promise.all([
+    loadChamberPages(getSenateLatest, "Senate", pages),
+    loadChamberPages(getHouseLatest, "House", pages),
+  ]);
+  return sortCongressTrades([...senate, ...house]).slice(0, limit);
+}
+
+export async function loadCongressTradesArchive(chamber: CongressChamber) {
+  const pages = 3;
+  if (chamber === "senate") {
+    return sortCongressTrades(await loadChamberPages(getSenateLatest, "Senate", pages));
+  }
+  if (chamber === "house") {
+    return sortCongressTrades(await loadChamberPages(getHouseLatest, "House", pages));
+  }
+  const [senate, house] = await Promise.all([
+    loadChamberPages(getSenateLatest, "Senate", pages),
+    loadChamberPages(getHouseLatest, "House", pages),
+  ]);
+  return sortCongressTrades([...senate, ...house]);
+}
+
+async function loadChamberPages(
+  load: (limit: number, page?: number) => Promise<FmpCongressTrade[]>,
+  chamber: "Senate" | "House",
+  pages: number,
+) {
+  const chunks = await Promise.all(Array.from({ length: pages }, (_, page) => load(100, page)));
+  const seen = new Set<string>();
+  const rows: FmpCongressTrade[] = [];
+  for (const chunk of chunks) {
+    for (const row of chunk) {
+      const key = `${row.transactionDate}|${row.disclosureDate}|${row.symbol}|${row.firstName}|${row.lastName}|${row.type}|${row.amount}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+  }
+  return withChamber(rows, chamber);
 }
 
 export async function loadSymbolCongressTrades(symbol: string, limit = 60) {

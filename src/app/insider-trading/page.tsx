@@ -3,10 +3,12 @@ import { Container } from "@/components/container";
 import { InsiderTable } from "@/components/insider-table";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { CONGRESS_NAV } from "@/lib/nav";
-import { getInsiderReportingNames, getLatestInsiderTrades, searchInsiderTrades } from "@/lib/fmp";
+import { getInsiderReportingNames, getLatestInsiderTradesArchive, searchInsiderTradesArchive } from "@/lib/fmp";
 import { padCik } from "@/lib/institutional";
 import { isForeignListingSymbol } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -37,9 +39,9 @@ export async function generateMetadata({
 export default async function InsiderTradingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ name?: string; cik?: string }>;
+  searchParams: Promise<{ name?: string; cik?: string; page?: string }>;
 }) {
-  const { name, cik } = await searchParams;
+  const { name, cik, page: pageParam } = await searchParams;
   const queryName = (name ?? "").trim();
   const queryCik = padCik(cik ?? "");
   const people = queryName ? await getInsiderReportingNames(queryName) : [];
@@ -50,11 +52,16 @@ export default async function InsiderTradingPage({
   const selectedPerson =
     uniquePeople.find((person) => padCik(person.reportingCik) === selectedCik) ?? uniquePeople[0] ?? null;
   const trades = selectedCik
-    ? await searchInsiderTrades({ reportingCik: selectedCik, limit: 100 })
-    : await getLatestInsiderTrades(100);
+    ? await searchInsiderTradesArchive(selectedCik)
+    : await getLatestInsiderTradesArchive();
   const rows = selectedCik ? trades : trades.filter((row) => !isForeignListingSymbol(row.symbol));
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
   const personName = selectedPerson?.reportingName || rows[0]?.reportingName || null;
   const searching = Boolean(queryName || queryCik);
+  const extra = {
+    name: queryName || undefined,
+    cik: selectedCik && searching ? selectedCik : undefined,
+  };
 
   return (
     <Container>
@@ -108,8 +115,16 @@ export default async function InsiderTradingPage({
         </div>
       ) : null}
       <InsiderTable
-        rows={rows.slice(0, 75)}
+        rows={feed.rows}
         empty={searching ? "No Form 4 filings found for this insider." : "No insider trades in this window."}
+      />
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/insider-trading", feed.page, feed.pageCount, extra)}
       />
     </Container>
   );

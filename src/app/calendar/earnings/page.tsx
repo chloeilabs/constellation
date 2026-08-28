@@ -7,7 +7,9 @@ import { CALENDAR_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
 import { getEarningsCalendar, getLatestFinancialStatements } from "@/lib/fmp";
 import { isPrimaryUsSymbol, quoteHref } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
+import { TablePager } from "@/components/table-pager";
 
 const VIEWS = [
   { id: "all", label: "All" },
@@ -32,7 +34,7 @@ function groupEarningsByDate<T extends { date: string; symbol: string }>(rows: T
 export default async function EarningsCalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; view?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; view?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const view: EarningsView =
@@ -63,8 +65,14 @@ export default async function EarningsCalendarPage({
     .filter((row) => isPrimaryUsSymbol(row.symbol))
     .filter((row, index, list) => list.findIndex((item) => item.symbol === row.symbol && item.period === row.period && item.date === row.date) === index)
     .slice(0, 25);
-  const grouped = groupEarningsByDate(rows.slice(0, 200));
+  const feed = paginate(rows, pageNumber(params.page), TABLE_PAGE_SIZE);
+  const grouped = groupEarningsByDate(feed.rows);
   if (view === "reported") grouped.reverse();
+  const extra = {
+    from: params.from,
+    to: params.to,
+    view: view === "all" ? undefined : view,
+  };
 
   return (
     <Container>
@@ -204,6 +212,14 @@ export default async function EarningsCalendarPage({
           ))}
         </div>
       )}
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/calendar/earnings", feed.page, feed.pageCount, extra)}
+      />
     </Container>
   );
 }

@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { formatDate } from "@/lib/format";
-import { getLatestSecFilings8k, getLatestSecFilingsFinancials } from "@/lib/fmp";
+import { getLatestSecFilingsArchive } from "@/lib/fmp";
 import { isPrimaryUsSymbol, quoteHref } from "@/lib/listings";
 import { NEWS_NAV } from "@/lib/nav";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
+import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpSecFiling } from "@/lib/types";
 
 export const metadata = {
@@ -14,62 +16,63 @@ export const metadata = {
   description: "Recent 8-K, 10-Q, and 10-K filings from U.S. companies.",
 };
 
-function dedupeFilings(rows: FmpSecFiling[]) {
-  const seen = new Set<string>();
-  return rows.filter((row) => {
-    if (!isPrimaryUsSymbol(row.symbol)) return false;
-    const key = `${row.symbol}|${row.formType}|${row.acceptedDate || row.filingDate}|${row.link}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+const VIEWS = [
+  { id: "all", label: "All" },
+  { id: "8k", label: "8-K" },
+  { id: "financials", label: "10-Q / 10-K" },
+] as const;
+
+type FilingsView = (typeof VIEWS)[number]["id"];
+
+function isEightK(row: FmpSecFiling) {
+  return row.formType === "8-K" || row.formType === "8-K/A";
 }
 
-export default async function LatestFilingsPage() {
+function isFinancial(row: FmpSecFiling) {
+  return /^10-[KQ]/i.test(row.formType);
+}
+
+export default async function LatestFilingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; type?: string }>;
+}) {
+  const { page: pageParam, type: typeParam } = await searchParams;
+  const view: FilingsView = VIEWS.some((item) => item.id === typeParam) ? (typeParam as FilingsView) : "all";
   const to = nyDateString();
-  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -3));
-  const [eightK, financials] = await Promise.all([
-    getLatestSecFilings8k(from, to, 100),
-    getLatestSecFilingsFinancials(from, to, 100),
-  ]);
-  const rows = dedupeFilings([...eightK, ...financials]).sort((a, b) =>
-    (b.acceptedDate || b.filingDate || "").localeCompare(a.acceptedDate || a.filingDate || ""),
-  );
-  const current = rows.filter((row) => row.formType === "8-K" || row.formType === "8-K/A");
-  const statements = rows.filter((row) => /^10-[KQ]/i.test(row.formType));
+  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -7));
+  const raw = await getLatestSecFilingsArchive(from, to);
+  const rows = raw.filter((row) => {
+    if (!isPrimaryUsSymbol(row.symbol)) return false;
+    if (view === "8k") return isEightK(row);
+    if (view === "financials") return isFinancial(row);
+    return isEightK(row) || isFinancial(row);
+  });
+  const feed = paginate(rows, pageNumber(pageParam), TABLE_PAGE_SIZE);
+  const extra = { type: view === "all" ? undefined : view };
 
   return (
     <Container>
       <PageHeader
         title="Latest SEC Filings"
-        description="8-K current reports and newly posted 10-Q / 10-K financials from the last few days."
+        description="8-K current reports and newly posted 10-Q / 10-K financials from the last week."
       />
       <SectionNav items={NEWS_NAV} />
-      <FilingTable title="Current Reports (8-K)" rows={current.slice(0, 40)} empty="No recent 8-K filings." />
-      <div className="mt-10">
-        <FilingTable
-          title="Financial Statements"
-          rows={statements.slice(0, 40)}
-          empty="No recent 10-Q or 10-K filings."
-        />
+      <div className="mb-5 flex flex-wrap gap-2">
+        {VIEWS.map((item) => (
+          <Link
+            key={item.id}
+            href={item.id === "all" ? "/news/filings" : `/news/filings?type=${item.id}`}
+            scroll={false}
+            className={cn(
+              "rounded-full px-3 py-1 text-sm font-medium",
+              item.id === view ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
-    </Container>
-  );
-}
-
-function FilingTable({
-  title,
-  rows,
-  empty,
-}: {
-  title: string;
-  rows: FmpSecFiling[];
-  empty: string;
-}) {
-  return (
-    <section>
-      <h2 className="mb-3 text-lg font-semibold text-header">{title}</h2>
-      <p className="mb-3 text-sm text-muted">{rows.length} filings</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -81,14 +84,14 @@ function FilingTable({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-muted">
-                  {empty}
+                  No recent filings in this window.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              feed.rows.map((row) => (
                 <tr key={`${row.symbol}-${row.formType}-${row.acceptedDate}-${row.link}`}>
                   <td>{formatDate(row.acceptedDate || row.filingDate)}</td>
                   <td className="symbol">
@@ -117,6 +120,14 @@ function FilingTable({
           </tbody>
         </table>
       </div>
-    </section>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/news/filings", feed.page, feed.pageCount, extra)}
+      />
+    </Container>
   );
 }

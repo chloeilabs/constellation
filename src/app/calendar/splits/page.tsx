@@ -2,16 +2,18 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { CALENDAR_NAV } from "@/lib/nav";
 import { formatDate } from "@/lib/format";
 import { getSplitsCalendar } from "@/lib/fmp";
 import { isForeignListingSymbol } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 export default async function SplitsCalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const today = nyDateString();
@@ -19,7 +21,9 @@ export default async function SplitsCalendarPage({
   const to = params.to || isoDate(addDays(new Date(`${today}T00:00:00Z`), 45));
   const rows = await getSplitsCalendar(from, to);
   const usRows = rows.filter((row) => !isForeignListingSymbol(row.symbol));
-  const visible = (usRows.length ? usRows : rows).slice(0, 200);
+  const source = usRows.length ? usRows : rows;
+  const feed = paginate(source, pageNumber(params.page), TABLE_PAGE_SIZE);
+  const extra = { from: params.from, to: params.to };
 
   return (
     <Container>
@@ -52,14 +56,14 @@ export default async function SplitsCalendarPage({
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-muted">
                   No splits in this date range.
                 </td>
               </tr>
             ) : (
-              visible.map((row) => (
+              feed.rows.map((row) => (
                 <tr key={`${row.symbol}-${row.date}-${row.numerator}-${row.denominator}`}>
                   <td>{formatDate(row.date)}</td>
                   <td className="symbol">
@@ -77,6 +81,14 @@ export default async function SplitsCalendarPage({
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/calendar/splits", feed.page, feed.pageCount, extra)}
+      />
     </Container>
   );
 }
