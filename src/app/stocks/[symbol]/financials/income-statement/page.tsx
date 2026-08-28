@@ -56,9 +56,10 @@ export default async function IncomeStatementPage({
   const view = source === "reported" ? "dollars" : viewFrom(viewParam);
   const trailing = viewPeriod === "trailing" && source === "standardized";
   const displayCount = trailing ? statementLimit("quarter", span) : statementLimit(period, span);
+  const incomeLimit = trailing ? displayCount + 4 : period === "annual" ? Math.max(displayCount + 12, 20) : displayCount;
   const base = stockPath(ticker, "/financials/income-statement");
   const [annual, quarterly, ttm, reported, annualCash, quarterlyCash, ttmCash, dividends] = await Promise.all([
-    source === "standardized" && !trailing ? getIncomeStatements(ticker, period, displayCount) : Promise.resolve([]),
+    source === "standardized" && !trailing ? getIncomeStatements(ticker, period, incomeLimit) : Promise.resolve([]),
     source === "standardized" && trailing
       ? getIncomeStatements(ticker, "quarter", displayCount + 4)
       : Promise.resolve([]),
@@ -84,7 +85,10 @@ export default async function IncomeStatementPage({
       ? asReportedColumns(reported, period)
       : trailing
         ? toTrailingColumns(quarterly, displayCount, INCOME_TRAILING_SUM_KEYS, INCOME_TRAILING_LATEST_KEYS)
-        : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(annual, period));
+        : withTtmColumn(
+            ttm as Record<string, unknown> | null,
+            toStatementColumns(annual.slice(0, displayCount), period),
+          );
 
   if (source === "standardized") {
     const cashColumns = trailing
@@ -96,10 +100,10 @@ export default async function IncomeStatementPage({
     ]);
     columns = columns.map((column) => {
       const year = String(column.values.fiscalYear ?? "");
-      const endDate = String(column.values.date ?? "");
+      const endDate = String(column.values.date ?? ttm?.date ?? "");
       const dividend =
         column.key === "ttm" || column.label === "TTM"
-          ? trailingDividendTotal(dividends)
+          ? trailingDividendThrough(dividends, endDate) ?? trailingDividendTotal(dividends)
           : trailing
             ? trailingDividendThrough(dividends, endDate)
             : (dividendByYear.get(year) ?? null);
