@@ -1,5 +1,6 @@
-import { DISTRIBUTION_TTM_LIMIT, trailingDividendWindow } from "@/lib/dividends";
-import { getDividends, getEtfCountryWeights, getEtfHoldings, getEtfInfo, getEtfSectors, getPriceChange, getProfile, getQuote } from "@/lib/fmp";
+import { loadVehiclePerformance } from "@/lib/chart";
+import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
+import { getDividends, getEtfCountryWeights, getEtfHoldings, getEtfInfo, getEtfSectors, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { nyDateString, parseWeightPercentage } from "@/lib/utils";
 
@@ -22,17 +23,22 @@ export async function loadEtfCompare(symbols: string[]) {
   const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))].slice(0, 4);
   return Promise.all(
     unique.map(async (symbol) => {
-      const [quote, info, profile, changes, dividends, holdings, sectors, countries] = await Promise.all([
+      const infoPromise = getEtfInfo(symbol);
+      const profilePromise = getProfile(symbol);
+      const [quote, info, profile, dividends, holdings, sectors, countries, performance] = await Promise.all([
         getQuote(symbol),
-        getEtfInfo(symbol),
-        getProfile(symbol),
-        getPriceChange(symbol),
+        infoPromise,
+        profilePromise,
         getDividends(symbol, DISTRIBUTION_TTM_LIMIT),
         getEtfHoldings(symbol),
         getEtfSectors(symbol),
         getEtfCountryWeights(symbol),
+        Promise.all([infoPromise, profilePromise]).then(([etfInfo, company]) =>
+          loadVehiclePerformance(symbol, etfInfo?.inceptionDate || company?.ipoDate),
+        ),
       ]);
       const ttmDividend = trailingDividendWindow(dividends, nyDateString());
+      const ttmYield = dividendYieldFromPrice(ttmDividend, quote?.price ?? profile?.price);
       const top = [...holdings].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0)).slice(0, 10);
       const rankedSectors = [...sectors]
         .map((row) => ({ name: row.sector, weight: row.weightPercentage ?? 0 }))
@@ -47,9 +53,10 @@ export async function loadEtfCompare(symbols: string[]) {
         quote,
         info,
         profile,
-        changes,
         latestDividend: dividends[0] ?? null,
         ttmDividend,
+        ttmYield,
+        performance,
         holdingsCount: holdings.length || info?.holdingsCount,
         topHoldings: top,
         sectors: rankedSectors,
@@ -60,6 +67,20 @@ export async function loadEtfCompare(symbols: string[]) {
 }
 
 export type EtfCompareRow = Awaited<ReturnType<typeof loadEtfCompare>>[number];
+
+export function compareTotalReturnBlurb(rows: EtfCompareRow[]) {
+  const scored = rows.filter((row) => row.performance?.oneYear != null);
+  if (scored.length < 2) return null;
+  const ranked = [...scored].sort((a, b) => (b.performance?.oneYear ?? 0) - (a.performance?.oneYear ?? 0));
+  const lead = ranked[0];
+  const trail = ranked[1];
+  return {
+    lead: lead.symbol,
+    leadReturn: lead.performance!.oneYear as number,
+    trail: trail.symbol,
+    trailReturn: trail.performance!.oneYear as number,
+  };
+}
 
 export function overlappingHoldings(rows: EtfCompareRow[]) {
   if (rows.length < 2) return [];

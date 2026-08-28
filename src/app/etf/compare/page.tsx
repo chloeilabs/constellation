@@ -7,7 +7,7 @@ import { ComparePerformanceChart } from "@/components/compare-performance-chart"
 import { ETF_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { compareChartFrom, compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
-import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS } from "@/lib/etf-compare";
+import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS, compareTotalReturnBlurb } from "@/lib/etf-compare";
 import { holdingQuoteHref, quoteHref } from "@/lib/listings";
 
 export const metadata = {
@@ -131,11 +131,7 @@ export default async function EtfComparePage({
             <MetricRow
               label="Dividend Yield"
               rows={rows}
-              render={(row) =>
-                row.latestDividend?.yield != null
-                  ? formatPercentPlain(row.latestDividend.yield, { alreadyPercent: true })
-                  : "—"
-              }
+              render={(row) => (row.ttmYield != null ? formatPercentPlain(row.ttmYield) : "—")}
             />
             <MetricRow label="TTM Dividend" rows={rows} render={(row) => (row.ttmDividend ? `$${formatPrice(row.ttmDividend)}` : "—")} />
             <MetricRow label="Issuer" rows={rows} render={(row) => row.info?.etfCompany || "—"} />
@@ -146,49 +142,11 @@ export default async function EtfComparePage({
               rows={rows}
               render={(row) => (row.quote ? `${formatPrice(row.quote.yearLow)} - ${formatPrice(row.quote.yearHigh)}` : "—")}
             />
-            <tr>
-              <td>YTD</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.ytd} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>1 Year</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.["1Y"]} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>3 Year</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.["3Y"]} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>5 Year</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.["5Y"]} />
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td>10 Year</td>
-              {rows.map((row) => (
-                <td key={row.symbol} className="num">
-                  <ChangePercent value={row.changes?.["10Y"]} />
-                </td>
-              ))}
-            </tr>
           </tbody>
         </table>
       </div>
+
+      <AverageReturnSection rows={rows} />
 
       {overlap.length > 0 ? (
         <section className="mt-10">
@@ -256,6 +214,61 @@ export default async function EtfComparePage({
         </div>
       </section>
     </Container>
+  );
+}
+
+function AverageReturnSection({ rows }: { rows: Awaited<ReturnType<typeof loadEtfCompare>> }) {
+  const blurb = compareTotalReturnBlurb(rows);
+  const periods = [
+    { key: "ytd", label: "Year-to-date" },
+    { key: "oneYear", label: "1 Year" },
+    { key: "fiveYear", label: "5 Years" },
+    { key: "tenYear", label: "10 Years" },
+    { key: "inceptionCagr", label: "Inception" },
+  ] as const;
+
+  return (
+    <section className="mt-10">
+      <h2 className="mb-2 text-xl font-semibold text-header">Average Return</h2>
+      {blurb ? (
+        <p className="mb-4 max-w-4xl text-sm leading-7 text-header/90">
+          In the past year, {blurb.lead} returned a total of {formatPercentPlain(blurb.leadReturn)}, including
+          dividends, compared with {blurb.trail}&apos;s {formatPercentPlain(blurb.trailReturn)}. Periods longer than one
+          year are annualized from FMP dividend-adjusted prices.
+        </p>
+      ) : (
+        <p className="mb-4 max-w-4xl text-sm text-muted">
+          Total return including dividends from FMP dividend-adjusted prices. Periods longer than one year are
+          annualized.
+        </p>
+      )}
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              {rows.map((row) => (
+                <th key={row.symbol} className="num">
+                  {row.symbol}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {periods.map((period) => (
+              <tr key={period.key}>
+                <td>{period.label}</td>
+                {rows.map((row) => (
+                  <td key={row.symbol} className="num">
+                    <ChangePercent value={row.performance?.[period.key] ?? null} alreadyPercent={false} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
