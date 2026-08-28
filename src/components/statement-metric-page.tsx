@@ -8,7 +8,13 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatPercentPlain, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getCashFlows, getCashFlowTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { derivedStatementMetrics, trailingDerivedMetric, ttmChange } from "@/lib/statements";
+import {
+  ANNUAL_FILING_LIMIT,
+  QUARTER_FILING_LIMIT,
+  derivedStatementMetrics,
+  trailingDerivedMetric,
+  ttmChange,
+} from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 function withDerivedIncome<T extends Record<string, unknown>>(row: T): T {
@@ -44,10 +50,10 @@ export async function StatementMetricPage({
   const path = stockPath(ticker, `/${slug}`);
   const [annual, quarterly, ttm] = await Promise.all(
     kind === "income"
-      ? [getIncomeStatements(ticker, "annual", 20), getIncomeStatements(ticker, "quarter", 12), getIncomeTtm(ticker)]
+      ? [getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT), getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT), getIncomeTtm(ticker)]
       : kind === "cash"
-        ? [getCashFlows(ticker, "annual", 20), getCashFlows(ticker, "quarter", 12), getCashFlowTtm(ticker)]
-        : [getBalanceSheets(ticker, "annual", 20), getBalanceSheets(ticker, "quarter", 12), Promise.resolve(null)],
+        ? [getCashFlows(ticker, "annual", ANNUAL_FILING_LIMIT), getCashFlows(ticker, "quarter", QUARTER_FILING_LIMIT), getCashFlowTtm(ticker)]
+        : [getBalanceSheets(ticker, "annual", ANNUAL_FILING_LIMIT), getBalanceSheets(ticker, "quarter", QUARTER_FILING_LIMIT), Promise.resolve(null)],
   );
   const annualRows = kind === "income" ? annual.map((row) => withDerivedIncome(row as Record<string, unknown>)) : annual;
   const quarterlyRows =

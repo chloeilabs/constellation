@@ -1293,6 +1293,11 @@ export function sourceFrom(value?: string): StatementSource {
   return value === "reported" || value === "as-reported" ? "reported" : "standardized";
 }
 
+/** FMP's annual archive (AAPL has 41 years from FY1985). */
+export const ANNUAL_FILING_LIMIT = 50;
+/** Ten years of quarters. */
+export const QUARTER_FILING_LIMIT = 40;
+
 export function spanFrom(value?: string): StatementSpan {
   if (value === "10" || value === "max") return value;
   return "5";
@@ -1309,8 +1314,8 @@ export function viewPeriodFrom(value?: string): StatementViewPeriod {
 }
 
 export function statementLimit(period: "annual" | "quarter", span: StatementSpan) {
-  if (period === "annual") return span === "max" ? 20 : span === "10" ? 10 : 5;
-  return span === "5" ? 20 : 40;
+  if (period === "annual") return span === "max" ? ANNUAL_FILING_LIMIT : span === "10" ? 10 : 5;
+  return span === "5" ? 20 : QUARTER_FILING_LIMIT;
 }
 
 export function statementHref(

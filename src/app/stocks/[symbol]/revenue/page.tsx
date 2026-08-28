@@ -15,7 +15,7 @@ import {
   getRevenueProductSegments,
 } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
-import { canonicalSegmentName, ttmChange, ttmSegmentMap } from "@/lib/statements";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT, canonicalSegmentName, ttmChange, ttmSegmentMap } from "@/lib/statements";
 
 function segmentItems(data: Record<string, number> | undefined) {
   if (!data) return [];
@@ -42,8 +42,8 @@ export default async function RevenuePage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, quote, employees, products, productQuarters, geos, geoQuarters] = await Promise.all([
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 8),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeTtm(ticker),
     getQuote(ticker),
     getHistoricalEmployeeCount(ticker, 5),

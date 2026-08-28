@@ -8,6 +8,7 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getIncomeStatements, getIncomeTtm, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 import { trailingPe } from "@/lib/valuation";
 
 export default async function NetIncomePage({
@@ -22,8 +23,8 @@ export default async function NetIncomePage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, quote] = await Promise.all([
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 12),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeTtm(ticker),
     getQuote(ticker),
   ]);

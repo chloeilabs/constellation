@@ -9,6 +9,7 @@ import { ChangePercent } from "@/components/change";
 import { formatCompact, formatCompactMoney, formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getIncomeGrowth, getIncomeStatements, getProfile, getQuote, getShareFloat } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 import { relativeChange } from "@/lib/utils";
 
 export default async function SharesPage({
@@ -27,8 +28,8 @@ export default async function SharesPage({
     getQuote(ticker),
     getProfile(ticker),
     getShareFloat(ticker),
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 12),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeGrowth(ticker, "annual", 1),
   ]);
   const history = period === "quarter" ? quarterly : annual;

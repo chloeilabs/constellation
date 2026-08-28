@@ -9,7 +9,7 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatMoney, formatPercent, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { ttmChange } from "@/lib/statements";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT, ttmChange } from "@/lib/statements";
 import { earningsSurprise, revenueSurprise, splitCompanyEarnings } from "@/lib/earnings";
 
 export default async function EarningsPage({
@@ -24,8 +24,8 @@ export default async function EarningsPage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, reported] = await Promise.all([
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 12),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeTtm(ticker),
     getCompanyEarnings(ticker, 16),
   ]);
