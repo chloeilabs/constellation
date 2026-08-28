@@ -319,21 +319,88 @@ function seriesCagr(points: ChartPoint[]) {
   return Math.pow(last.value / first.value, 365.25 / days) - 1;
 }
 
-/** Dividend-adjusted total return for ETF/fund overview copy (1Y and since inception). */
-export async function loadVehiclePerformance(symbol: string, inception?: string | null) {
+function pointOnOrBefore(points: ChartPoint[], date: string) {
+  for (let i = points.length - 1; i >= 0; i--) {
+    if (points[i].time.slice(0, 10) <= date) return points[i];
+  }
+  return null;
+}
+
+function calendarDays(from: string, to: string) {
+  return (Date.parse(to.slice(0, 10)) - Date.parse(from.slice(0, 10))) / 86_400_000;
+}
+
+/** Total or annualized return from the last close on/before `startDate` to the latest close. */
+function periodReturn(
+  points: ChartPoint[],
+  startDate: string,
+  { minDays, maxLag = 21, annualize = false }: { minDays: number; maxLag?: number; annualize?: boolean },
+) {
+  const last = points.at(-1);
+  const start = pointOnOrBefore(points, startDate);
+  if (!last || !start || !(start.value > 0) || !(last.value > 0)) return null;
+  const startDay = start.time.slice(0, 10);
+  const lastDay = last.time.slice(0, 10);
+  const lag = calendarDays(startDay, startDate);
+  if (lag < 0 || lag > maxLag) return null;
+  const span = calendarDays(startDay, lastDay);
+  if (span < minDays) return null;
+  if (annualize) return Math.pow(last.value / start.value, 365.25 / span) - 1;
+  return last.value / start.value - 1;
+}
+
+export type VehiclePerformance = {
+  oneMonth: number | null;
+  ytd: number | null;
+  oneYear: number | null;
+  fiveYear: number | null;
+  tenYear: number | null;
+  inceptionTotal: number | null;
+  inceptionCagr: number | null;
+};
+
+function sessionReturn(points: ChartPoint[], sessions: number) {
+  if (sessions < 1 || points.length <= sessions) return null;
+  const start = points[points.length - 1 - sessions];
+  const last = points.at(-1);
+  if (!start || !last || !(start.value > 0) || !(last.value > 0)) return null;
+  return last.value / start.value - 1;
+}
+
+/**
+ * Dividend-adjusted performance for ETF/fund overview.
+ * 1M is ~21 trading sessions; YTD / 1Y are total return; 5Y / 10Y / inception are annualized.
+ */
+export async function loadVehiclePerformance(symbol: string, inception?: string | null): Promise<VehiclePerformance | null> {
   const asOf = nyDateString();
-  const yearAgo = isoDate(addDays(new Date(`${asOf}T00:00:00Z`), -365));
-  const from = inception && inception <= yearAgo ? inception : yearAgo;
+  const today = new Date(`${asOf}T00:00:00Z`);
+  const tenYearsAgo = isoDate(addDays(today, -365 * 10 - 15));
+  const from = inception && inception > tenYearsAgo ? inception : tenYearsAgo;
   const points = toAdjustedPoints(await getDividendAdjustedChart(symbol, from));
   if (points.length < 2) return null;
-  const yearPoints = points.filter((point) => point.time.slice(0, 10) >= yearAgo);
-  const yearStart = yearPoints[0]?.time.slice(0, 10);
-  const hasFullYear = Boolean(
-    yearStart && yearStart <= isoDate(addDays(new Date(`${asOf}T00:00:00Z`), -300)),
-  );
-  const oneYear = hasFullYear ? seriesReturn(yearPoints) : null;
+
+  const oneMonth = sessionReturn(points, 21);
+  const ytd = periodReturn(points, `${today.getUTCFullYear()}-01-01`, { minDays: 1, maxLag: 10 });
+  const oneYear = periodReturn(points, isoDate(addDays(today, -365)), { minDays: 300 });
+  const fiveYear = periodReturn(points, isoDate(addDays(today, -365 * 5)), {
+    minDays: 365 * 5 - 40,
+    annualize: true,
+  });
+  const tenYear = periodReturn(points, isoDate(addDays(today, -365 * 10)), {
+    minDays: 365 * 10 - 40,
+    annualize: true,
+  });
   const inceptionTotal = seriesReturn(points);
   const inceptionCagr = seriesCagr(points);
-  if (oneYear == null && inceptionTotal == null) return null;
-  return { oneYear, inceptionTotal, inceptionCagr };
+  if (
+    oneMonth == null &&
+    ytd == null &&
+    oneYear == null &&
+    fiveYear == null &&
+    tenYear == null &&
+    inceptionTotal == null
+  ) {
+    return null;
+  }
+  return { oneMonth, ytd, oneYear, fiveYear, tenYear, inceptionTotal, inceptionCagr };
 }

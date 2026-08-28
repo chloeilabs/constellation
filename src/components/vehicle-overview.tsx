@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
+import { ChangePercent } from "@/components/change";
+import { HistoryBars } from "@/components/history-bars";
 import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
-import { loadQuoteChart, loadVehiclePerformance, canDividendAdjust } from "@/lib/chart";
+import { loadQuoteChart, loadVehiclePerformance, canDividendAdjust, type VehiclePerformance } from "@/lib/chart";
 import {
   getDividends,
   getEtfCountryWeights,
@@ -124,6 +126,13 @@ export async function VehicleOverview({
             },
             { label: "Ex-Dividend Date", value: latestDividend?.date || "—" },
             { label: "Payout Frequency", value: payoutFrequencyLabel(latestDividend?.frequency) || "—" },
+            {
+              label: "Payout Ratio",
+              value:
+                ttmDividend && quote?.eps && quote.eps > 0 && ttmDividend / quote.eps < 50
+                  ? formatPercentPlain(ttmDividend / quote.eps)
+                  : "—",
+            },
           ]}
         />
         <StatGrid
@@ -151,7 +160,7 @@ export async function VehicleOverview({
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">About {ticker}</h2>
           <p className="max-w-4xl text-sm leading-7 text-header/90">{about}</p>
-          <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+          <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <dt className="text-muted">Asset Class</dt>
               <dd>{info?.assetClass || profile?.sector || "—"}</dd>
@@ -159,6 +168,18 @@ export async function VehicleOverview({
             <div>
               <dt className="text-muted">Category</dt>
               <dd>{profile?.industry || info?.assetClass || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Stock Exchange</dt>
+              <dd>{quote?.exchange || profile?.exchange || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Ticker Symbol</dt>
+              <dd>{ticker}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">ETF Provider</dt>
+              <dd>{info?.etfCompany || "—"}</dd>
             </div>
             <div>
               <dt className="text-muted">Website</dt>
@@ -314,24 +335,7 @@ export async function VehicleOverview({
         </section>
       ) : null}
 
-      {performance?.oneYear != null || performance?.inceptionCagr != null || performance?.inceptionTotal != null ? (
-        <section className="mt-10">
-          <h2 className="mb-2 text-xl font-semibold text-header">Performance</h2>
-          <p className="max-w-4xl text-sm leading-7 text-header/90">
-            {performance.oneYear != null
-              ? `${ticker} had a total return of ${formatPercentPlain(performance.oneYear)} in the past year, including dividends.`
-              : null}
-            {performance.oneYear != null && (performance.inceptionCagr != null || performance.inceptionTotal != null)
-              ? " "
-              : null}
-            {performance.inceptionCagr != null
-              ? `Since the ${noun}'s inception, the average annual return has been ${formatPercentPlain(performance.inceptionCagr)}.`
-              : performance.inceptionTotal != null && performance.oneYear == null
-                ? `Since inception, ${ticker} has returned ${formatPercentPlain(performance.inceptionTotal)}, including dividends.`
-                : null}
-          </p>
-        </section>
-      ) : null}
+      {performance ? <VehiclePerformanceSection ticker={ticker} noun={noun} performance={performance} /> : null}
 
       <QuoteNewsTabs
         symbol={ticker}
@@ -340,5 +344,63 @@ export async function VehicleOverview({
         moreHref={{ all: newsHref, press: newsHref }}
       />
     </Container>
+  );
+}
+
+const PERFORMANCE_PERIODS: { key: keyof VehiclePerformance; label: string }[] = [
+  { key: "oneMonth", label: "1 Month" },
+  { key: "ytd", label: "YTD" },
+  { key: "oneYear", label: "1 Year" },
+  { key: "fiveYear", label: "5 Years" },
+  { key: "tenYear", label: "10 Years" },
+  { key: "inceptionCagr", label: "Inception" },
+];
+
+function VehiclePerformanceSection({
+  ticker,
+  noun,
+  performance,
+}: {
+  ticker: string;
+  noun: string;
+  performance: VehiclePerformance;
+}) {
+  const bars = PERFORMANCE_PERIODS.flatMap((period) => {
+    const value = performance[period.key];
+    return typeof value === "number" ? [{ label: period.label, value: value * 100 }] : [];
+  });
+
+  return (
+    <section className="mt-10">
+      <h2 className="mb-2 text-xl font-semibold text-header">Performance</h2>
+      <p className="max-w-4xl text-sm leading-7 text-header/90">
+        {performance.oneYear != null
+          ? `${ticker} had a total return of ${formatPercentPlain(performance.oneYear)} in the past year, including dividends.`
+          : null}
+        {performance.oneYear != null && (performance.inceptionCagr != null || performance.inceptionTotal != null)
+          ? " "
+          : null}
+        {performance.inceptionCagr != null
+          ? `Since the ${noun}'s inception, the average annual return has been ${formatPercentPlain(performance.inceptionCagr)}.`
+          : performance.inceptionTotal != null && performance.oneYear == null
+            ? `Since inception, ${ticker} has returned ${formatPercentPlain(performance.inceptionTotal)}, including dividends.`
+            : null}
+      </p>
+      {bars.length > 0 ? (
+        <div className="mt-4">
+          <HistoryBars items={bars} formatValue={(value) => formatPercentPlain(value, { alreadyPercent: true })} />
+        </div>
+      ) : null}
+      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {PERFORMANCE_PERIODS.map((period) => (
+          <div key={period.key} className="rounded-lg border border-border px-3 py-2">
+            <dt className="text-xs text-muted">{period.label}</dt>
+            <dd className="mt-1 text-sm">
+              <ChangePercent value={performance[period.key]} alreadyPercent={false} />
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
