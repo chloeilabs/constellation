@@ -81,6 +81,7 @@ export function QuoteStats({
   forwardPe,
   dcf,
   marketCapYoy,
+  sharesOutstanding,
   sharesYoy,
   ttmYoy,
   ratings,
@@ -106,6 +107,7 @@ export function QuoteStats({
   forwardPe?: number | null;
   dcf?: number | null;
   marketCapYoy?: number | null;
+  sharesOutstanding?: number | null;
   sharesYoy?: number | null;
   ratings?: FmpRatings | null;
   scores?: FmpScores | null;
@@ -151,7 +153,7 @@ export function QuoteStats({
         { label: "Operating Income (ttm)", href: `${base}/operating-income`, value: withYoy(money(ttm?.operatingIncome), ttmYoy?.operatingIncome) },
         { label: "EBITDA (ttm)", href: `${base}/ebitda`, value: money(ttm?.ebitda) },
         { label: "Net Income (ttm)", href: `${base}/net-income`, value: withYoy(money(ttm?.netIncome), ttmYoy?.netIncome ?? growth?.growthNetIncome) },
-        { label: "Shares Out", href: `${base}/shares`, value: withYoy(formatCompactMoney(ttm?.weightedAverageShsOutDil, "USD").replace("$", ""), sharesYoy) },
+        { label: "Shares Out", href: `${base}/shares`, value: withYoy(formatCompactMoney(sharesOutstanding ?? ttm?.weightedAverageShsOutDil, "USD").replace("$", ""), sharesYoy) },
         { label: "EPS (ttm)", href: `${base}/earnings`, value: withYoy(formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency), ttmYoy?.eps ?? growth?.growthEPSDiluted ?? growth?.growthEPS) },
         { label: "PE Ratio", href: `${base}/pe-ratio`, value: formatRatio(pe) },
         { label: "PEG Ratio", href: `${base}/peg-ratio`, value: formatRatio(peg) },

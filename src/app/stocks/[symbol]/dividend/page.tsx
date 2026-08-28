@@ -3,19 +3,21 @@ import { Container } from "@/components/container";
 import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
-import { getDividends, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getCashFlowTtm, getDividends, getIncomeStatements, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
-import { consecutiveDividendGrowthYears, dividendTtmGrowth } from "@/lib/dividends";
-import { indicatedAnnualDividend, nyDateString } from "@/lib/utils";
+import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
+import { cashOutlay, indicatedAnnualDividend, nyDateString } from "@/lib/utils";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [profile, dividends, quote, ratios] = await Promise.all([
+  const [profile, dividends, quote, ratios, annual, cash] = await Promise.all([
     getProfile(ticker),
     getDividends(ticker, 80),
     getQuote(ticker),
     getRatiosTtm(ticker),
+    getIncomeStatements(ticker, "annual", 20),
+    getCashFlowTtm(ticker),
   ]);
   const latest = dividends[0];
   const annualized = indicatedAnnualDividend(latest, profile?.lastDividend);
@@ -30,22 +32,22 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
       : null;
 
   const ttmGrowth = dividendTtmGrowth(dividends);
-  const byYear = new Map<string, number>();
-  for (const row of dividends) {
-    const year = String(row.date).slice(0, 4);
-    const amount = row.adjDividend || row.dividend || 0;
-    byYear.set(year, (byYear.get(year) ?? 0) + amount);
-  }
+  const byYear = dividendsByFiscalYear(dividends, annual);
   const years = [...byYear.keys()].sort();
-  const thisYear = nyDateString().slice(0, 4);
-  const complete = years.filter((year) => year < thisYear);
-  const bars = years.map((year) => ({ label: year, value: byYear.get(year) ?? 0 }));
+  const lastCompleteFy = annual[0]?.fiscalYear != null ? String(annual[0].fiscalYear) : null;
+  const complete = years.filter((year) => !lastCompleteFy || year <= lastCompleteFy);
+  const bars = years.map((year) => ({ label: `FY ${year}`, value: byYear.get(year) ?? 0 }));
   const five = (complete.length >= 2 ? complete : years).slice(-6);
   const first = five[0] ? byYear.get(five[0]) : null;
   const last = five.at(-1) ? byYear.get(five.at(-1)!) : null;
   const span = five.length - 1;
   const cagr = first && last && first > 0 && span > 0 ? Math.pow(last / first, 1 / span) - 1 : null;
   const growthYears = consecutiveDividendGrowthYears(byYear, complete);
+  const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
+  const ttmBuybacks = cashOutlay(cash?.commonStockRepurchased);
+  const buybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
+  const shareholderYield =
+    buybackYield != null || ttmYield != null ? (buybackYield ?? 0) + (ttmYield ?? 0) : null;
   const currency = profile?.currency || "USD";
   const px = (value: number | null | undefined) => formatMoney(value, currency);
   const today = nyDateString();
@@ -143,10 +145,26 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
           <div className="text-sm text-muted">Years of Dividend Growth</div>
           <div className="mt-1 text-2xl font-semibold tabular">{growthYears > 0 ? growthYears : "—"}</div>
         </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/buybacks`} className="text-link hover:underline">
+              Buyback Yield
+            </Link>
+          </div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(buybackYield)}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/buybacks`} className="text-link hover:underline">
+              Shareholder Yield
+            </Link>
+          </div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(shareholderYield)}</div>
+        </div>
       </div>
       {bars.length > 1 ? (
         <div className="mt-8">
-          <h2 className="mb-3 text-lg font-semibold text-header">Annual Dividends Per Share</h2>
+          <h2 className="mb-3 text-lg font-semibold text-header">Annual Dividends Per Share (Fiscal Year)</h2>
           <HistoryBars items={bars} formatValue={(value) => px(value)} />
         </div>
       ) : null}

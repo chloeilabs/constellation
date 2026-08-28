@@ -28,6 +28,7 @@ import {
   getRatiosTtm,
   getScores,
   getSecFilings,
+  getShareFloat,
   getSymbolNews,
   getTranscriptDates,
   getYearAgoMarketCap,
@@ -47,7 +48,7 @@ import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { overviewSecFilings } from "@/lib/filings";
 import { addDays, cashOutlay, isoDate, nyDateString, relativeChange } from "@/lib/utils";
 import { dividendTtmGrowth } from "@/lib/dividends";
-import { ttmChange } from "@/lib/statements";
+import { derivedStatementMetrics, ttmChange } from "@/lib/statements";
 
 export default async function StockOverviewPage({
   params,
@@ -65,7 +66,7 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
-  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings, ratings, scores, cash] =
+  const [quote, profile, ttm, ratios, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, dcf, yearAgoCap, press, transcriptDates, filings, ratings, scores, cash, shareFloat] =
     await Promise.all([
       getQuote(ticker),
       getProfile(ticker),
@@ -91,7 +92,13 @@ export default async function StockOverviewPage({
       getRatings(ticker),
       getScores(ticker),
       getCashFlowTtm(ticker),
+      getShareFloat(ticker),
     ]);
+  const derivedTtm = (() => {
+    if (!ttm) return null;
+    const derived = derivedStatementMetrics(ttm as unknown as Record<string, unknown>);
+    return typeof derived.ebitda === "number" ? { ...ttm, ebitda: derived.ebitda } : ttm;
+  })();
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
@@ -186,7 +193,7 @@ export default async function StockOverviewPage({
           symbol={ticker}
           quote={quote}
           profile={profile}
-          ttm={ttm}
+          ttm={derivedTtm ?? ttm}
           ratios={ratios}
           target={target}
           grades={grades}
@@ -198,6 +205,7 @@ export default async function StockOverviewPage({
           forwardPe={forwardPeFromEstimates(quote?.price, estimates)}
           dcf={dcf?.dcf}
           marketCapYoy={marketCapYoy}
+          sharesOutstanding={shareFloat?.outstandingShares ?? quote?.sharesOutstanding}
           sharesYoy={sharesYoy}
           ttmYoy={ttmYoy}
           ratings={ratings}

@@ -45,7 +45,8 @@ import { decodeTicker } from "@/lib/listings";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
 import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString, relativeChange } from "@/lib/utils";
-import { consecutiveDividendGrowthYears, dividendTtmGrowth } from "@/lib/dividends";
+import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
+import { derivedStatementMetrics } from "@/lib/statements";
 import { estimatedWacc } from "@/lib/wacc";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
 import { ChangePercent } from "@/components/change";
@@ -87,6 +88,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     yearAgoCap,
     institutional,
     treasury,
+    annualIncome,
   ] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
@@ -116,6 +118,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getYearAgoMarketCap(ticker),
     getLatestInstitutionalOwnership(ticker, 0),
     getTreasuryRates(isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -30)), nyDateString()),
+    getIncomeStatements(ticker, "annual", 16),
   ]);
   const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
 
@@ -158,16 +161,14 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const buybackYield =
     marketCap && marketCap > 0 && repurchase != null && repurchase !== 0 ? Math.abs(repurchase) / marketCap : null;
   const dividendYield = num(ratios?.dividendYieldTTM);
+  const derivedTtm = ttm ? derivedStatementMetrics(ttm as unknown as Record<string, unknown>) : null;
   const dpsGrowth = dividendTtmGrowth(dividends);
-  const dividendsByCalendarYear = new Map<string, number>();
-  for (const row of dividends) {
-    const year = String(row.date).slice(0, 4);
-    dividendsByCalendarYear.set(year, (dividendsByCalendarYear.get(year) ?? 0) + (row.adjDividend || row.dividend || 0));
-  }
-  const completeDividendYears = [...dividendsByCalendarYear.keys()]
-    .filter((year) => year < nyDateString().slice(0, 4))
+  const dividendsByYear = dividendsByFiscalYear(dividends, annualIncome);
+  const lastCompleteFy = annualIncome[0]?.fiscalYear != null ? String(annualIncome[0].fiscalYear) : null;
+  const completeDividendYears = [...dividendsByYear.keys()]
+    .filter((year) => !lastCompleteFy || year <= lastCompleteFy)
     .sort();
-  const dividendGrowthYears = consecutiveDividendGrowthYears(dividendsByCalendarYear, completeDividendYears);
+  const dividendGrowthYears = consecutiveDividendGrowthYears(dividendsByYear, completeDividendYears);
   const debtFcf =
     totalDebt != null && num(cash?.freeCashFlow) != null && cash!.freeCashFlow !== 0
       ? totalDebt / cash!.freeCashFlow
@@ -365,7 +366,9 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
                 label: "Debt / EBITDA",
                 href: `/stocks/${ticker}/debt-ebitda`,
                 value: formatRatio(
-                  totalDebt != null && num(ttm?.ebitda) != null && ttm!.ebitda !== 0 ? totalDebt / ttm!.ebitda : null,
+                  totalDebt != null && num(derivedTtm?.ebitda ?? ttm?.ebitda) != null && (derivedTtm?.ebitda ?? ttm?.ebitda) !== 0
+                    ? totalDebt / (derivedTtm?.ebitda ?? ttm!.ebitda)
+                    : null,
                 ),
               },
               {
@@ -435,10 +438,10 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "SG&A", href: `/stocks/${ticker}/sga`, value: money(ttm?.sellingGeneralAndAdministrativeExpenses) },
               { label: "Operating Expenses", href: `/stocks/${ticker}/operating-expenses`, value: money(ttm?.operatingExpenses) },
               { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: money(ttm?.operatingIncome) },
-              { label: "EBIT", href: `/stocks/${ticker}/ebit`, value: money(ttm?.ebit) },
+              { label: "EBIT", href: `/stocks/${ticker}/ebit`, value: money(derivedTtm?.ebit ?? ttm?.operatingIncome ?? ttm?.ebit) },
               { label: "Pretax Income", href: `/stocks/${ticker}/pretax-income`, value: money(ttm?.incomeBeforeTax) },
               { label: "Net Income", href: `/stocks/${ticker}/net-income`, value: money(ttm?.netIncome) },
-              { label: "EBITDA", href: `/stocks/${ticker}/ebitda`, value: money(ttm?.ebitda) },
+              { label: "EBITDA", href: `/stocks/${ticker}/ebitda`, value: money(derivedTtm?.ebitda ?? ttm?.ebitda) },
               { label: "EPS", href: `/stocks/${ticker}/earnings`, value: formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency) },
             ]}
           />
@@ -465,7 +468,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Operating Margin", href: `/stocks/${ticker}/operating-margin`, value: formatPercentPlain(num(ratios?.operatingProfitMarginTTM)) },
               { label: "Pretax Margin", href: `/stocks/${ticker}/pretax-margin`, value: formatPercentPlain(pretaxMargin) },
               { label: "Profit Margin", href: `/stocks/${ticker}/profit-margin`, value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
-              { label: "EBITDA Margin", href: `/stocks/${ticker}/ebitda-margin`, value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
+              { label: "EBITDA Margin", href: `/stocks/${ticker}/ebitda-margin`, value: formatPercentPlain(derivedTtm?.ebitdaMargin ?? num(ratios?.ebitdaMarginTTM)) },
               { label: "EBIT Margin", href: `/stocks/${ticker}/ebit-margin`, value: formatPercentPlain(ebitMargin) },
               { label: "FCF Margin", href: `/stocks/${ticker}/fcf-margin`, value: formatPercentPlain(fcfMargin) },
             ]}
