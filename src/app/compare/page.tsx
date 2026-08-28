@@ -17,7 +17,6 @@ import { compareTotalReturnBlurb } from "@/lib/chart";
 import {
   getProfilesAndQuotes,
   POPULAR_STOCK_COMPARISONS,
-  compareChartFrom,
   compareChartSpan,
   getNormalizedCompareSeries,
 } from "@/lib/compare";
@@ -78,9 +77,8 @@ export default async function ComparePage({
   const span = compareChartSpan(chartParam);
   const [rows, series] = await Promise.all([
     getProfilesAndQuotes(symbols),
-    getNormalizedCompareSeries(symbols, compareChartFrom(span)),
+    getNormalizedCompareSeries(symbols, span),
   ]);
-  const listQuery = `symbols=${encodeURIComponent(symbols.join(","))}`;
 
   return (
     <Container>
@@ -90,7 +88,7 @@ export default async function ComparePage({
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <form method="get" className="flex gap-2">
-            {span === "5Y" ? <input type="hidden" name="chart" value="5Y" /> : null}
+            {span !== "1Y" ? <input type="hidden" name="chart" value={span} /> : null}
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
@@ -111,8 +109,8 @@ export default async function ComparePage({
         <ComparePerformanceChart
           series={series}
           span={span}
-          oneHref={`/compare?${listQuery}`}
-          fiveHref={`/compare?${listQuery}&chart=5Y`}
+          pathname="/compare"
+          symbols={symbols}
         />
       </div>
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -141,6 +139,9 @@ export default async function ComparePage({
             </MetricRow>
             <MetricRow label="Change" rows={rows}>
               {(row) => <ChangePercent value={row.quote?.changePercentage} />}
+            </MetricRow>
+            <MetricRow label="Volume" rows={rows}>
+              {(row) => formatInteger(row.quote?.volume)}
             </MetricRow>
             <MetricRow label="Market Cap" rows={rows}>
               {(row) => formatCompactUsd(row.quote?.marketCap ?? row.profile?.marketCap)}
@@ -270,6 +271,7 @@ export default async function ComparePage({
 function AverageReturnSection({ rows }: { rows: CompareRow[] }) {
   const blurb = compareTotalReturnBlurb(rows);
   const periods = [
+    { key: "oneMonth", label: "1 Month" },
     { key: "ytd", label: "Year-to-date" },
     { key: "oneYear", label: "1 Year" },
     { key: "fiveYear", label: "5 Years" },

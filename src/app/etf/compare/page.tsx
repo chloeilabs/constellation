@@ -6,7 +6,7 @@ import { ChangePercent } from "@/components/change";
 import { ComparePerformanceChart } from "@/components/compare-performance-chart";
 import { ETF_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { compareChartFrom, compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
+import { compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
 import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS, compareTotalReturnBlurb, ETF_COMPARE_TOP_HOLDINGS } from "@/lib/etf-compare";
 import { holdingQuoteHref, quoteHref } from "@/lib/listings";
 
@@ -29,10 +29,9 @@ export default async function EtfComparePage({
   const span = compareChartSpan(chartParam);
   const [rows, series] = await Promise.all([
     loadEtfCompare(symbols),
-    getNormalizedCompareSeries(symbols, compareChartFrom(span)),
+    getNormalizedCompareSeries(symbols, span),
   ]);
   const overlap = overlappingHoldings(rows);
-  const listQuery = `symbols=${encodeURIComponent(symbols.join(","))}`;
 
   return (
     <Container>
@@ -41,7 +40,7 @@ export default async function EtfComparePage({
         description="Live quotes, a dividend-adjusted total-return chart, assets, expense ratios, average returns, sector weights, and top-holding overlap from Financial Modeling Prep."
         actions={
           <form method="get" className="flex gap-2">
-            {span === "5Y" ? <input type="hidden" name="chart" value="5Y" /> : null}
+            {span !== "1Y" ? <input type="hidden" name="chart" value={span} /> : null}
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
@@ -60,8 +59,8 @@ export default async function EtfComparePage({
         <ComparePerformanceChart
           series={series}
           span={span}
-          oneHref={`/etf/compare?${listQuery}`}
-          fiveHref={`/etf/compare?${listQuery}&chart=5Y`}
+          pathname="/etf/compare"
+          symbols={symbols}
         />
       </div>
 
@@ -97,6 +96,7 @@ export default async function EtfComparePage({
                 </td>
               ))}
             </tr>
+            <MetricRow label="Volume" rows={rows} render={(row) => formatInteger(row.quote?.volume)} />
             <MetricRow
               label="Assets"
               rows={rows}
@@ -222,6 +222,7 @@ export default async function EtfComparePage({
 function AverageReturnSection({ rows }: { rows: Awaited<ReturnType<typeof loadEtfCompare>> }) {
   const blurb = compareTotalReturnBlurb(rows);
   const periods = [
+    { key: "oneMonth", label: "1 Month" },
     { key: "ytd", label: "Year-to-date" },
     { key: "oneYear", label: "1 Year" },
     { key: "fiveYear", label: "5 Years" },

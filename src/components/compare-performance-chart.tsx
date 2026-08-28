@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatNumber } from "@/lib/format";
+import { COMPARE_CHART_SPANS, compareChartHref, type CompareChartSpan } from "@/lib/compare-chart";
 import { quoteHref } from "@/lib/listings";
 import type { ChartPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -16,13 +17,13 @@ function stamp(time: string) {
 export function ComparePerformanceChart({
   series,
   span,
-  oneHref,
-  fiveHref,
+  pathname,
+  symbols,
 }: {
   series: { symbol: string; points: ChartPoint[] }[];
-  span: "1Y" | "5Y";
-  oneHref: string;
-  fiveHref: string;
+  span: CompareChartSpan;
+  pathname: string;
+  symbols: string[];
 }) {
   const lines = series
     .map((row, index) => ({ ...row, color: COLORS[index % COLORS.length] }))
@@ -53,27 +54,20 @@ export function ComparePerformanceChart({
             Dividend-adjusted closes from FMP. Each series starts at 100 on the first overlapping close in this window.
           </p>
         </div>
-        <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Chart range">
-          <Link
-            href={oneHref}
-            scroll={false}
-            className={cn(
-              "rounded px-3 py-1.5 font-medium",
-              span === "1Y" ? "bg-header text-on-header" : "text-muted hover:text-header",
-            )}
-          >
-            1Y
-          </Link>
-          <Link
-            href={fiveHref}
-            scroll={false}
-            className={cn(
-              "rounded px-3 py-1.5 font-medium",
-              span === "5Y" ? "bg-header text-on-header" : "text-muted hover:text-header",
-            )}
-          >
-            5Y
-          </Link>
+        <div className="inline-flex flex-wrap rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Chart range">
+          {COMPARE_CHART_SPANS.map((range) => (
+            <Link
+              key={range}
+              href={compareChartHref(pathname, symbols, range)}
+              scroll={false}
+              className={cn(
+                "rounded px-2 py-1.5 font-medium",
+                span === range ? "bg-header text-on-header" : "text-muted hover:text-header",
+              )}
+            >
+              {range}
+            </Link>
+          ))}
         </div>
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[280px] w-full">
