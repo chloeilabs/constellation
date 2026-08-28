@@ -125,7 +125,6 @@ const nextConfig: NextConfig = {
       { source: "/list/london-stock-exchange", destination: "/list/london-stocks", permanent: false },
       { source: "/list/tokyo-stock-exchange", destination: "/list/japan-stocks", permanent: false },
       { source: "/list/fixed-income-etfs", destination: "/list/bond-etfs", permanent: false },
-      { source: "/list/covered-call-etfs", destination: "/list/income-etfs", permanent: false },
       { source: "/list/mutual-funds", destination: "/funds", permanent: false },
       { source: "/list/frankfurt-stock-exchange", destination: "/list/frankfurt-stocks", permanent: false },
       { source: "/list/clean-energy-stocks", destination: "/list/clean-energy", permanent: false },
@@ -178,6 +177,11 @@ const nextConfig: NextConfig = {
       { source: "/list/monthly-dividend-etf", destination: "/list/monthly-dividend-etfs", permanent: false },
       { source: "/list/weekly-etfs", destination: "/list/weekly-dividend-etfs", permanent: false },
       { source: "/list/weekly-dividend-etf", destination: "/list/weekly-dividend-etfs", permanent: false },
+      { source: "/list/etn", destination: "/list/exchange-traded-notes", permanent: false },
+      { source: "/list/etns", destination: "/list/exchange-traded-notes", permanent: false },
+      { source: "/list/exchange-traded-note", destination: "/list/exchange-traded-notes", permanent: false },
+      { source: "/list/covered-call", destination: "/list/covered-call-etfs", permanent: false },
+      { source: "/list/buywrite-etfs", destination: "/list/covered-call-etfs", permanent: false },
     ];
   },
   images: {

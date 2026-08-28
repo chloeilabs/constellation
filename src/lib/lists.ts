@@ -1,4 +1,4 @@
-import { getDividendCalendar, getEtfSymbolSet, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getRatings, getScreener, getScreenerPages } from "@/lib/fmp";
+import { getDividendCalendar, getEtfList, getEtfSymbolSet, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getRatings, getScreener, getScreenerPages } from "@/lib/fmp";
 import { isForeignListingSymbol, isListedUsVenue, looksLikeFund, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
@@ -83,6 +83,18 @@ type EtfIssuerList = {
   hrefBase: "/etf";
 };
 
+type EtfNameList = {
+  title: string;
+  description: string;
+  category: ListCategory;
+  source: "etf-name";
+  namePattern: string;
+  excludeNamePattern?: string;
+  hrefBase: "/etf";
+  limit?: number;
+  capMax?: number;
+};
+
 type WeekRangeList = {
   title: string;
   description: string;
@@ -128,6 +140,7 @@ type StockList =
   | ForeignList
   | SymbolsList
   | EtfIssuerList
+  | EtfNameList
   | WeekRangeList
   | IndustryMatchList
   | FundamentalsRankList
@@ -423,6 +436,27 @@ export const STOCK_LISTS = {
     listing: "primary",
     hrefBase: "/etf",
     yieldMax: 0.15,
+  },
+  "covered-call-etfs": {
+    title: "Covered Call ETFs",
+    description: "U.S. listed ETFs whose FMP names describe covered-call, buy-write, or option-income strategies, ranked by market value.",
+    category: "etf",
+    source: "etf-name",
+    namePattern:
+      "covered call|buywrite|buy-write|buy write|option income|0dte|equity premium income|premium income",
+    hrefBase: "/etf",
+    limit: 150,
+    capMax: 80_000_000_000,
+  },
+  "exchange-traded-notes": {
+    title: "Exchange-Traded Notes",
+    description: "U.S. listed ETNs from FMP’s ETF catalog (names tagged ETN or ETRACS), ranked by market value.",
+    category: "etf",
+    source: "etf-name",
+    namePattern: "\\bETNs?\\b|ETRACS|exchange[- ]traded notes?",
+    hrefBase: "/etf",
+    limit: 100,
+    capMax: 50_000_000_000,
   },
   "crypto-etfs": {
     title: "Crypto ETFs",
@@ -1814,7 +1848,6 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   "business-development-companies": "bdc-stocks",
   "electric-vehicles": "ev-stocks",
   "gaming-stocks": "video-game-stocks",
-  "covered-call-etfs": "income-etfs",
   "fixed-income-etfs": "bond-etfs",
   "monthly-etfs": "monthly-dividend-etfs",
   "monthly-dividend-etf": "monthly-dividend-etfs",
@@ -1896,6 +1929,12 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   "buenos-aires-stock-exchange": "argentina-stocks",
   byma: "argentina-stocks",
   "nasdaq-iceland": "iceland-stocks",
+  etn: "exchange-traded-notes",
+  etns: "exchange-traded-notes",
+  "exchange-traded-note": "exchange-traded-notes",
+  "covered-call": "covered-call-etfs",
+  "covered-calls": "covered-call-etfs",
+  "buywrite-etfs": "covered-call-etfs",
 };
 
 /** Stock Analysis list URLs that resolve to a country page, funds hub, or exchanges directory. */
@@ -2014,6 +2053,10 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
 
   if (list.source === "etf-issuer") {
     return loadEtfIssuerList(list.namePattern);
+  }
+
+  if (list.source === "etf-name") {
+    return loadEtfNameList(list);
   }
 
   if (list.source === "oldest") {
@@ -2306,6 +2349,42 @@ async function loadEtfIssuerList(namePattern: string): Promise<SymbolTableRow[]>
     .filter((row) => (row.marketCap ?? 0) > 0)
     .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
     .slice(0, 50);
+}
+
+async function loadEtfNameList(list: EtfNameList): Promise<SymbolTableRow[]> {
+  const matcher = new RegExp(list.namePattern, "i");
+  const exclude = list.excludeNamePattern ? new RegExp(list.excludeNamePattern, "i") : null;
+  const catalog = await getEtfList();
+  const matched = uniqueBySymbol(
+    catalog.filter((row) => {
+      if (!row.symbol || isForeignListingSymbol(row.symbol)) return false;
+      if (!matcher.test(row.name || "")) return false;
+      if (exclude?.test(row.name || "")) return false;
+      return true;
+    }),
+  );
+  const quotes = await getQuotes(matched.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol.toUpperCase(), quote]));
+  const capMax = list.capMax ?? 80_000_000_000;
+  return matched
+    .map((row) => {
+      const quote = bySymbol.get(row.symbol.toUpperCase());
+      return {
+        symbol: row.symbol,
+        name: quote?.name || row.name,
+        marketCap: quote?.marketCap ?? null,
+        price: quote?.price ?? null,
+        changePercentage: quote?.changePercentage ?? null,
+        volume: quote?.volume ?? null,
+      };
+    })
+    .filter((row) => {
+      if (!(row.price && row.price > 0)) return false;
+      if (!(row.marketCap && row.marketCap > 0 && row.marketCap < capMax)) return false;
+      return isListedUsVenue(bySymbol.get(row.symbol.toUpperCase())?.exchange);
+    })
+    .sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0))
+    .slice(0, list.limit ?? 100);
 }
 
 async function loadOldestSp500(): Promise<SymbolTableRow[]> {

@@ -98,6 +98,8 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/weekly-dividend-etfs", label: "Weekly ETFs" },
   { href: "/list/bond-etfs", label: "Bond ETFs" },
   { href: "/list/income-etfs", label: "Equity Income" },
+  { href: "/list/covered-call-etfs", label: "Covered Call" },
+  { href: "/list/exchange-traded-notes", label: "ETNs" },
   { href: "/list/crypto-etfs", label: "Crypto ETFs" },
   { href: "/list/bitcoin-etfs", label: "Bitcoin ETFs" },
   { href: "/list/ethereum-etfs", label: "Ethereum ETFs" },

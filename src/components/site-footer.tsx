@@ -105,6 +105,8 @@ const columns = [
       ["/list/weekly-dividend-etfs", "Weekly Dividend ETFs"],
       ["/list/bond-etfs", "Bond ETFs"],
       ["/list/income-etfs", "Equity Income ETFs"],
+      ["/list/covered-call-etfs", "Covered Call ETFs"],
+      ["/list/exchange-traded-notes", "Exchange-Traded Notes"],
       ["/list/crypto-etfs", "Crypto ETFs"],
       ["/list/bitcoin-etfs", "Bitcoin ETFs"],
       ["/list/ethereum-etfs", "Ethereum ETFs"],
