@@ -1,5 +1,5 @@
 import { Container } from "@/components/container";
-import { PageHeader, PeriodToggle } from "@/components/page-header";
+import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { StatementTable } from "@/components/statement-table";
 import { getProfile, getRevenueGeographicSegments } from "@/lib/fmp";
@@ -11,6 +11,9 @@ import {
   priorTtmSegmentMap,
   segmentStatementColumns,
   segmentStatementRows,
+  spanFrom,
+  statementHref,
+  statementLimit,
   topSegmentNames,
   ttmSegmentMap,
 } from "@/lib/statements";
@@ -20,12 +23,14 @@ export default async function RevenueByGeographyPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; years?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, years: yearsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
+  const span = spanFrom(yearsParam);
+  const displayCount = statementLimit(period, span);
   const base = stockPath(ticker, "/metrics/revenue-by-geography");
   const [profile, geos, geoQuarters] = await Promise.all([
     getProfile(ticker),
@@ -41,7 +46,7 @@ export default async function RevenueByGeographyPage({
     geoNames,
     period,
     period === "annual" ? geoTtm : null,
-    period === "quarter" ? 16 : 12,
+    displayCount,
     period === "annual" ? geoPriorTtm : null,
     geoQuarters[0]?.date,
   );
@@ -53,7 +58,19 @@ export default async function RevenueByGeographyPage({
         title={`${shortName} Revenue by Geography`}
         description="Geographic revenue from company filings."
         actions={
-          <PeriodToggle period={period} annualHref={base} quarterHref={`${base}?period=quarter`} />
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodToggle
+              period={period}
+              annualHref={statementHref(base, "annual", "standardized", span)}
+              quarterHref={statementHref(base, "quarter", "standardized", span)}
+            />
+            <YearToggle
+              span={span}
+              fiveHref={statementHref(base, period, "standardized", "5")}
+              tenHref={statementHref(base, period, "standardized", "10")}
+              maxHref={statementHref(base, period, "standardized", "max")}
+            />
+          </div>
         }
       />
       <SectionNav items={metricsNav(ticker)} />
@@ -64,7 +81,7 @@ export default async function RevenueByGeographyPage({
           scale="millions"
           currency={currency}
           caption={`Values in millions of ${currency}.`}
-          downloadName={`${ticker}-revenue-by-geography-${period}`}
+          downloadName={`${ticker}-revenue-by-geography-${period}-${span}`}
           inlineYoy={false}
         />
       ) : (

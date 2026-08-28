@@ -1277,12 +1277,35 @@ export function getDividendAdjustedChart(symbol: string, from?: string, to?: str
   );
 }
 
-export function getSecFilings(symbol: string, from: string, to: string, limit = 50) {
+export function getSecFilings(symbol: string, from: string, to: string, limit = 50, page = 0) {
   return fmpList<FmpSecFiling>(
     "/sec-filings-search/symbol",
-    { symbol: decodeTicker(symbol), from, to, page: 0, limit },
+    { symbol: decodeTicker(symbol), from, to, page, limit },
     { revalidate: 600 },
   );
+}
+
+const FMP_SEC_PAGE_SIZE = 100;
+const FMP_SEC_MAX_PAGES = 8;
+
+/** Newest-first SEC search is Form-4 heavy; page until the window or cap. */
+export async function getSecFilingsArchive(symbol: string, from: string, to: string) {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_SEC_MAX_PAGES }, (_, page) =>
+      getSecFilings(symbol, from, to, FMP_SEC_PAGE_SIZE, page),
+    ),
+  );
+  const seen = new Set<string>();
+  const out: FmpSecFiling[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.formType}|${row.acceptedDate}|${row.link}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 export function getTranscriptDates(symbol: string) {

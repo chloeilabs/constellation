@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
 import { formatDate } from "@/lib/format";
-import { getProfile, getSecFilings } from "@/lib/fmp";
+import { getProfile, getSecFilingsArchive } from "@/lib/fmp";
 import { secFormCategory, secFormTitle, sortSecFilings, type SecFilingCategory } from "@/lib/filings";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
+import { pageHref, pageNumber, paginate } from "@/lib/paging";
 import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
 
 const FILING_FILTERS: { id: SecFilingCategory; label: string }[] = [
@@ -27,27 +29,29 @@ export default async function StockFilingsPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; page?: string }>;
 }) {
   const { symbol } = await params;
-  const { type: typeParam } = await searchParams;
+  const { type: typeParam, page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const filter = filingFilter(typeParam);
   const to = nyDateString();
-  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -540));
-  const [rows, profile] = await Promise.all([getSecFilings(ticker, from, to, 80), getProfile(ticker)]);
+  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -365 * 15));
+  const [rows, profile] = await Promise.all([getSecFilingsArchive(ticker, from, to), getProfile(ticker)]);
   const ordered = sortSecFilings(rows);
   const filtered =
     filter === "all" ? ordered : ordered.filter((row) => secFormCategory(row.formType) === filter);
-  const shown = filtered.slice(0, 60);
+  const page = paginate(filtered, pageNumber(pageParam));
   const shortName = displayCompanyName(profile?.companyName) || ticker;
   const base = stockPath(ticker, "/filings");
+  const typeQuery = filter === "all" ? undefined : filter;
+  const filingsPageHref = (nextPage: number) => pageHref(base, nextPage, { type: typeQuery });
 
   return (
     <Container>
       <PageHeader
         title={`${shortName} Filings`}
-        description="Recent EDGAR filings including annual reports, quarterly reports, current reports, and proxy statements."
+        description="EDGAR filings from FMP, including annual reports, quarterly reports, current reports, and proxy statements. Form 4s are listed after the primary forms."
       />
       <SectionNav items={quoteNewsNav(ticker)} />
       <p className="mb-4 text-sm text-muted">
@@ -90,14 +94,14 @@ export default async function StockFilingsPage({
             </tr>
           </thead>
           <tbody>
-            {shown.length === 0 ? (
+            {page.rows.length === 0 ? (
               <tr>
                 <td colSpan={3} className="text-muted">
-                  No SEC filings in this category for the last 18 months.
+                  No SEC filings in this category.
                 </td>
               </tr>
             ) : (
-              shown.map((row) => (
+              page.rows.map((row) => (
                 <tr key={`${row.formType}-${row.acceptedDate}-${row.link}`}>
                   <td>{formatDate(row.filingDate)}</td>
                   <td className="font-medium">{row.formType}</td>
@@ -117,6 +121,17 @@ export default async function StockFilingsPage({
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={page.from}
+        to={page.to}
+        total={page.total}
+        page={page.page}
+        pageCount={page.pageCount}
+        firstHref={page.page > 1 ? filingsPageHref(1) : undefined}
+        prevHref={page.page > 1 ? filingsPageHref(page.page - 1) : undefined}
+        nextHref={page.page < page.pageCount ? filingsPageHref(page.page + 1) : undefined}
+        lastHref={page.page < page.pageCount ? filingsPageHref(page.pageCount) : undefined}
+      />
     </Container>
   );
 }

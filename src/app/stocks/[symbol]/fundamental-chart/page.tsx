@@ -21,9 +21,9 @@ import {
   toCloseSeries,
 } from "@/lib/fundamental-chart";
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
-import { historyLabel, loadPeriodValuationHistory } from "@/lib/period-valuation";
-import { derivedBalanceMetrics, derivedStatementMetrics, STATEMENT_METRIC_HREFS } from "@/lib/statements";
-import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
+import { historyLabel, loadPeriodValuationHistory, priceFromForFilings } from "@/lib/period-valuation";
+import { derivedBalanceMetrics, derivedStatementMetrics, filingLimit, STATEMENT_METRIC_HREFS } from "@/lib/statements";
+import { cn } from "@/lib/utils";
 
 export default async function FundamentalChartPage({
   params,
@@ -38,8 +38,8 @@ export default async function FundamentalChartPage({
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const metric = resolveFundamentalMetric(metricParam);
   const base = stockPath(ticker, "/fundamental-chart");
-  const limit = period === "quarter" ? 16 : 12;
-  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * 16));
+  const limit = filingLimit(period);
+  const priceFrom = priceFromForFilings(period, limit);
   const usesFilings = metric.source === "ratios" || metric.source === "metrics";
   const [profile, rows, candles] = await Promise.all([
     getProfile(ticker),

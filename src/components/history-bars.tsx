@@ -1,4 +1,4 @@
-function axisLabel(items: { label: string }[], index: number) {
+export function sparseAxisLabel(items: { label: string }[], index: number) {
   const count = items.length;
   if (count <= 18) return items[index].label;
   const step = Math.max(1, Math.round((count - 1) / 10));
@@ -29,7 +29,7 @@ export function HistoryBars({
               style={{ height: `${Math.max(4, (item.value / peak) * 100)}%` }}
               title={formatValue ? `${item.label}: ${formatValue(item.value)}` : item.label}
             />
-            <div className="mt-1 truncate text-center text-[10px] text-muted">{axisLabel(items, index)}</div>
+            <div className="mt-1 truncate text-center text-[10px] text-muted">{sparseAxisLabel(items, index)}</div>
           </div>
         ))}
       </div>
@@ -74,7 +74,7 @@ export function HistoryBars({
       <div className="mt-1 flex gap-1">
         {items.map((item, index) => (
           <div key={`${item.label}-${index}`} className="min-w-0 flex-1 truncate text-center text-[10px] text-muted">
-            {axisLabel(items, index)}
+            {sparseAxisLabel(items, index)}
           </div>
         ))}
       </div>

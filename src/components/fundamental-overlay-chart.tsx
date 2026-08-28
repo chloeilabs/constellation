@@ -1,4 +1,5 @@
 import { formatUsd } from "@/lib/format";
+import { sparseAxisLabel } from "@/components/history-bars";
 
 export type FundamentalChartItem = {
   label: string;
@@ -96,7 +97,7 @@ export function FundamentalOverlayChart({
           const h = Math.max(2, Math.abs(yMetric(item.metric) - zeroY));
           return (
             <rect
-              key={item.label}
+              key={`${item.label}-${index}`}
               x={x}
               y={y}
               width={barW}
@@ -110,18 +111,22 @@ export function FundamentalOverlayChart({
           );
         })}
         {pricePath ? <path d={pricePath} fill="none" stroke="#4f46e5" strokeWidth="2" /> : null}
-        {items.map((item, index) => (
-          <text
-            key={`label-${item.label}`}
-            x={padL + slot * index + slot / 2}
-            y={height - 10}
-            textAnchor="middle"
-            className="fill-[#94a3b8]"
-            fontSize="9"
-          >
-            {item.label}
-          </text>
-        ))}
+        {items.map((item, index) => {
+          const label = sparseAxisLabel(items, index);
+          if (!label) return null;
+          return (
+            <text
+              key={`label-${item.label}-${index}`}
+              x={padL + slot * index + slot / 2}
+              y={height - 10}
+              textAnchor="middle"
+              className="fill-[#94a3b8]"
+              fontSize="9"
+            >
+              {label}
+            </text>
+          );
+        })}
       </svg>
       <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">
