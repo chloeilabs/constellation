@@ -1,66 +1,86 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
-import { FinancialsNav } from "@/components/financials-nav";
-import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
+import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
-import { getKeyMetrics, getKeyMetricsTtm, getRevenueGeographicSegments, getRevenueProductSegments } from "@/lib/fmp";
-import { reportingCurrency } from "@/lib/format";
-import { decodeTicker, stockPath } from "@/lib/listings";
 import {
-  KEY_METRIC_ROWS,
+  getIncomeStatements,
+  getIncomeTtm,
+  getProfile,
+  getRevenueGeographicSegments,
+  getRevenueProductSegments,
+} from "@/lib/fmp";
+import { reportingCurrency } from "@/lib/format";
+import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
+import {
+  INCOME_ROWS,
   orderedGeoNames,
   orderedProductNames,
   priorTtmSegmentMap,
   productMetricRows,
   segmentStatementColumns,
   segmentStatementRows,
-  spanFrom,
-  statementHref,
-  statementLimit,
-  stripTtmSuffix,
   toStatementColumns,
   topSegmentNames,
   ttmSegmentMap,
+  withStatementHrefs,
   withTtmColumn,
 } from "@/lib/statements";
-import type { StatementPeriod } from "@/lib/types";
 
-export default async function MetricsPage({
+const OPEX_KEYS = new Set([
+  "researchAndDevelopmentExpenses",
+  "sellingGeneralAndAdministrativeExpenses",
+  "operatingExpenses",
+]);
+
+export default async function OperatingMetricsPage({
   params,
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string; years?: string }>;
+  searchParams: Promise<{ period?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam, years: yearsParam } = await searchParams;
+  const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
-  const span = spanFrom(yearsParam);
-  const yearCount = statementLimit("annual", span);
-  const quarterCount = statementLimit("quarter", span);
-  const base = stockPath(ticker, "/financials/metrics");
-  const [rows, ttm, products, productQuarters, geos, geoQuarters] = await Promise.all([
-    getKeyMetrics(ticker, period, statementLimit(period, span)),
-    getKeyMetricsTtm(ticker),
+  const period = periodParam === "quarter" ? "quarter" : "annual";
+  const base = stockPath(ticker, "/metrics");
+  const [
+    profile,
+    annualIncome,
+    quarterlyIncome,
+    ttmIncome,
+    products,
+    productQuarters,
+    geos,
+    geoQuarters,
+  ] = await Promise.all([
+    getProfile(ticker),
+    getIncomeStatements(ticker, "annual", 8),
+    getIncomeStatements(ticker, "quarter", 8),
+    getIncomeTtm(ticker),
     getRevenueProductSegments(ticker, "annual"),
     getRevenueProductSegments(ticker, "quarter"),
     getRevenueGeographicSegments(ticker, "annual"),
     getRevenueGeographicSegments(ticker, "quarter"),
   ]);
-  const currency = reportingCurrency(rows[0]?.reportedCurrency, products[0]?.reportedCurrency);
+  const currency = reportingCurrency(
+    ttmIncome?.reportedCurrency,
+    annualIncome[0]?.reportedCurrency,
+    products[0]?.reportedCurrency,
+  );
   const productTtm = ttmSegmentMap(productQuarters);
   const productPriorTtm = priorTtmSegmentMap(productQuarters);
   const geoTtm = ttmSegmentMap(geoQuarters);
   const geoPriorTtm = priorTtmSegmentMap(geoQuarters);
   const productNames = orderedProductNames(topSegmentNames(products, productTtm));
   const geoNames = orderedGeoNames(topSegmentNames(geos, geoTtm));
+  const income = period === "quarter" ? quarterlyIncome : annualIncome;
   const productColumns = segmentStatementColumns(
     period === "quarter" ? productQuarters : products,
     productNames,
     period,
     period === "annual" ? productTtm : null,
-    period === "quarter" ? quarterCount : yearCount,
+    6,
     period === "annual" ? productPriorTtm : null,
     productQuarters[0]?.date,
     { productRollup: true },
@@ -70,36 +90,39 @@ export default async function MetricsPage({
     geoNames,
     period,
     period === "annual" ? geoTtm : null,
-    period === "quarter" ? quarterCount : yearCount,
+    6,
     period === "annual" ? geoPriorTtm : null,
     geoQuarters[0]?.date,
   );
+  const opexColumns = withTtmColumn(
+    ttmIncome as Record<string, unknown> | null,
+    toStatementColumns(income, period).slice(0, 6),
+  );
+  const shortName = displayCompanyName(profile?.companyName) || ticker;
 
   return (
     <Container>
       <PageHeader
-        title={`${ticker} Business Metrics`}
-        description="Product and geographic revenue from company filings. Products is the hardware total; Services is reported separately."
+        title={`${shortName} Operating Metrics`}
+        description="Product and geographic revenue from company filings, plus operating-expense breakdown. Gross profit by product is omitted because FMP segments are revenue-only."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <PeriodToggle
-              period={period}
-              annualHref={statementHref(base, "annual", "standardized", span)}
-              quarterHref={statementHref(base, "quarter", "standardized", span)}
-            />
-            <YearToggle
-              span={span}
-              fiveHref={statementHref(base, period, "standardized", "5")}
-              tenHref={statementHref(base, period, "standardized", "10")}
-              maxHref={statementHref(base, period, "standardized", "max")}
-            />
-          </div>
+          <PeriodToggle
+            period={period}
+            annualHref={base}
+            quarterHref={`${base}?period=quarter`}
+          />
         }
       />
-      <FinancialsNav symbol={ticker} />
+      <p className="mb-6 text-sm text-muted">
+        Full valuation metrics and longer history live on{" "}
+        <Link href={stockPath(ticker, "/financials/metrics")} className="text-link hover:underline">
+          Financials → Metrics
+        </Link>
+        .
+      </p>
 
       {productNames.length > 0 ? (
-        <section className="mt-2">
+        <section>
           <div className="mb-3 flex items-end justify-between gap-3">
             <h2 className="text-lg font-semibold text-header">Revenue by Segment</h2>
             <Link href={stockPath(ticker, "/revenue")} className="text-sm text-link hover:underline">
@@ -111,8 +134,8 @@ export default async function MetricsPage({
             columns={productColumns}
             scale="millions"
             currency={currency}
-            caption={`Values in millions of ${currency}. Segment names follow the company's reported product lines.`}
-            downloadName={`${ticker}-product-revenue-${period}-${span}`}
+            caption={`Values in millions of ${currency}. Products is the hardware total; Services is reported separately.`}
+            downloadName={`${ticker}-metrics-product-${period}`}
             inlineYoy={false}
           />
         </section>
@@ -134,20 +157,28 @@ export default async function MetricsPage({
             scale="millions"
             currency={currency}
             caption={`Values in millions of ${currency}.`}
-            downloadName={`${ticker}-geographic-revenue-${period}-${span}`}
+            downloadName={`${ticker}-metrics-geo-${period}`}
             inlineYoy={false}
           />
         </section>
       ) : null}
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Valuation & Efficiency</h2>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <h2 className="text-lg font-semibold text-header">Operating Expense Breakdown</h2>
+          <Link href={stockPath(ticker, "/operating-expenses")} className="text-sm text-link hover:underline">
+            Operating expenses
+          </Link>
+        </div>
         <StatementTable
-          rows={KEY_METRIC_ROWS}
-          columns={withTtmColumn(stripTtmSuffix(ttm as Record<string, unknown> | null), toStatementColumns(rows, period))}
+          rows={withStatementHrefs(
+            INCOME_ROWS.filter((row) => OPEX_KEYS.has(row.key)),
+            ticker,
+          )}
+          columns={opexColumns}
           currency={currency}
-          caption={`Amounts are shown in ${currency}. The TTM column uses trailing-twelve-month metrics.`}
-          downloadName={`${ticker}-key-metrics-${period}-${span}`}
+          caption={`Amounts are shown in ${currency}. The TTM column uses trailing-twelve-month income-statement lines.`}
+          downloadName={`${ticker}-metrics-opex-${period}`}
         />
       </section>
     </Container>

@@ -10,6 +10,7 @@ const STOCK_TABS = [
   { href: "", label: "Overview" },
   { href: "/financials", label: "Financials" },
   { href: "/statistics", label: "Statistics" },
+  { href: "/metrics", label: "Metrics" },
   { href: "/forecast", label: "Forecast" },
   { href: "/ratings", label: "Ratings" },
   { href: "/earnings", label: "Earnings" },
