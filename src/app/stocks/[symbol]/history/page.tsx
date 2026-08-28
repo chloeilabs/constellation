@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
+import { DailyPriceTable } from "@/components/daily-price-table";
 import { DownloadCsvLink } from "@/components/download-csv-link";
 import { PageHeader, RangeToggle } from "@/components/page-header";
 import { TablePager } from "@/components/table-pager";
-import { ChangePercent } from "@/components/change";
-import { compactMoneyFn, formatDate, formatInteger, formatMoney, formatPrice } from "@/lib/format";
-import { getDividendAdjustedChart, getFullDailyChart, getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
-import { historyCapLimit, historyFrom, historyRange, historyRangeSlug, withSessionChange } from "@/lib/history";
+import { compactMoneyFn, formatDate, formatMoney, formatPrice } from "@/lib/format";
+import { getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
+import { historyCapLimit, historyFrom, historyRange } from "@/lib/history";
 import { indexDisplayName, isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { pageHref, pageNumber, paginate } from "@/lib/paging";
+import { pageNumber, paginate, pagerLinks } from "@/lib/paging";
+import { loadDailyPriceHistory } from "@/lib/price-history";
 import { nyDateString } from "@/lib/utils";
 
 export default async function StockHistoryPage({
@@ -27,36 +28,25 @@ export default async function StockHistoryPage({
   const today = nyDateString();
   const from = historyFrom(range, today);
   const base = stockPath(ticker, "/history");
-  const [prices, adjusted, marketCaps, splits, profile] = await Promise.all([
-    getFullDailyChart(ticker, from, today),
-    index ? Promise.resolve([]) : getDividendAdjustedChart(ticker, from, today),
+  const [{ daily, yearsQuery, rangeSlug }, marketCaps, splits, profile] = await Promise.all([
+    loadDailyPriceHistory(ticker, yearsParam, { adjusted: !index }),
     index ? Promise.resolve([]) : getHistoricalMarketCap(ticker, historyCapLimit(range), from, today),
     index ? Promise.resolve([]) : getSplits(ticker, 20),
     index ? Promise.resolve(null) : getProfile(ticker),
   ]);
   const money = compactMoneyFn(profile?.currency);
   const px = (value: number | null | undefined) => (index ? formatPrice(value) : formatMoney(value, profile?.currency));
-  const adjCloseByDate = new Map(
-    adjusted
-      .map((row) => [row.date, Number.isFinite(row.adjClose) ? row.adjClose : null] as const)
-      .filter((entry): entry is readonly [string, number] => entry[1] != null),
-  );
-  const daily = withSessionChange(prices, index ? undefined : adjCloseByDate);
   const caps = [...marketCaps].sort((a, b) => b.date.localeCompare(a.date));
   const pricePage = paginate(daily, pageNumber(pageParam));
   const capPage = paginate(caps, pageNumber(pageParam));
-  const shown = pricePage.rows;
-  const shownCaps = capPage.rows;
-  const showAdjClose = !index;
-  const yearsQuery = range === "6" ? undefined : range;
-  const historyPageHref = (page: number) => pageHref(base, page, { years: yearsQuery });
+  const extra = { years: yearsQuery };
+  const capLinks = pagerLinks(base, capPage.page, capPage.pageCount, extra);
   const csvQuery = new URLSearchParams();
   if (yearsQuery) csvQuery.set("years", yearsQuery);
   const pricesCsvHref = csvQuery.size ? `${base}/csv?${csvQuery}` : `${base}/csv`;
   const capCsv = new URLSearchParams(csvQuery);
   capCsv.set("table", "market-cap");
   const marketCapCsvHref = `${base}/csv?${capCsv}`;
-  const rangeSlug = historyRangeSlug(range);
 
   return (
     <Container>
@@ -87,69 +77,20 @@ export default async function StockHistoryPage({
         }
       />
 
-      <section>
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-lg font-semibold text-header">Daily Prices</h2>
-          {daily.length ? <DownloadCsvLink href={pricesCsvHref} /> : null}
-        </div>
-        <p className="mb-2 text-xs text-muted">
-          {showAdjClose
-            ? "Adj. Close is FMP dividend-adjusted. Change is versus the previous session close."
-            : "Change is versus the previous session close."}{" "}
-          Download CSV for the full {rangeSlug} window.
-        </p>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="sa-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th className="num">Open</th>
-                <th className="num">High</th>
-                <th className="num">Low</th>
-                <th className="num">Close</th>
-                {showAdjClose ? <th className="num">Adj. Close</th> : null}
-                <th className="num">Change</th>
-                <th className="num">Volume</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.length === 0 ? (
-                <tr>
-                  <td colSpan={showAdjClose ? 8 : 7} className="text-muted">
-                    No price history available.
-                  </td>
-                </tr>
-              ) : (
-                shown.map((row) => (
-                  <tr key={row.date}>
-                    <td>{formatDate(row.date)}</td>
-                    <td className="num">{px(row.open)}</td>
-                    <td className="num">{px(row.high)}</td>
-                    <td className="num">{px(row.low)}</td>
-                    <td className="num">{px(row.close)}</td>
-                    {showAdjClose ? <td className="num">{px(row.adjClose)}</td> : null}
-                    <td className="num">
-                      <ChangePercent value={row.closeChangePercent} />
-                    </td>
-                    <td className="num">{formatInteger(row.volume)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <TablePager
-          from={pricePage.from}
-          to={pricePage.to}
-          total={pricePage.total}
-          page={pricePage.page}
-          pageCount={pricePage.pageCount}
-          firstHref={pricePage.page > 1 ? historyPageHref(1) : undefined}
-          prevHref={pricePage.page > 1 ? historyPageHref(pricePage.page - 1) : undefined}
-          nextHref={pricePage.page < pricePage.pageCount ? historyPageHref(pricePage.page + 1) : undefined}
-          lastHref={pricePage.page < pricePage.pageCount ? historyPageHref(pricePage.pageCount) : undefined}
-        />
-      </section>
+      <DailyPriceTable
+        rows={pricePage.rows}
+        from={pricePage.from}
+        to={pricePage.to}
+        total={pricePage.total}
+        page={pricePage.page}
+        pageCount={pricePage.pageCount}
+        path={base}
+        extra={extra}
+        csvHref={daily.length ? pricesCsvHref : undefined}
+        rangeSlug={rangeSlug}
+        formatPrice={px}
+        showAdjClose={!index}
+      />
 
       {index ? null : (
         <>
@@ -173,14 +114,14 @@ export default async function StockHistoryPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {shownCaps.length === 0 ? (
+                  {capPage.rows.length === 0 ? (
                     <tr>
                       <td colSpan={2} className="text-muted">
                         No market cap history available.
                       </td>
                     </tr>
                   ) : (
-                    shownCaps.map((row) => (
+                    capPage.rows.map((row) => (
                       <tr key={row.date}>
                         <td>{formatDate(row.date)}</td>
                         <td className="num">{money(row.marketCap)}</td>
@@ -196,10 +137,7 @@ export default async function StockHistoryPage({
               total={capPage.total}
               page={capPage.page}
               pageCount={capPage.pageCount}
-              firstHref={capPage.page > 1 ? historyPageHref(1) : undefined}
-              prevHref={capPage.page > 1 ? historyPageHref(capPage.page - 1) : undefined}
-              nextHref={capPage.page < capPage.pageCount ? historyPageHref(capPage.page + 1) : undefined}
-              lastHref={capPage.page < capPage.pageCount ? historyPageHref(capPage.pageCount) : undefined}
+              {...capLinks}
             />
           </section>
 

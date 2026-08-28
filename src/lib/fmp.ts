@@ -1095,12 +1095,35 @@ export function getSplitsCalendar(from: string, to: string) {
   return fmpList<FmpSplit>("/splits-calendar", { from, to }, { revalidate: 600 });
 }
 
-export function getInsiderTrades(symbol: string, limit = 50) {
+export function getInsiderTrades(symbol: string, limit = 50, page = 0) {
   return fmpList<FmpInsiderTrade>(
     "/insider-trading/search",
-    { symbol: decodeTicker(symbol), page: 0, limit },
+    { symbol: decodeTicker(symbol), page, limit },
     { revalidate: 300 },
   );
+}
+
+const FMP_INSIDER_PAGE_SIZE = 100;
+const FMP_INSIDER_MAX_PAGES = 4;
+
+/** Newest-first Form 4 search, several FMP pages so the quote table covers more than one year. */
+export async function getInsiderTradesArchive(symbol: string) {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_INSIDER_MAX_PAGES }, (_, page) =>
+      getInsiderTrades(symbol, FMP_INSIDER_PAGE_SIZE, page),
+    ),
+  );
+  const seen = new Set<string>();
+  const out: FmpInsiderTrade[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.filingDate}|${row.transactionDate}|${row.reportingCik}|${row.securitiesTransacted}|${row.price}|${row.transactionType}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out;
 }
 
 export function searchInsiderTrades(params: { symbol?: string; reportingCik?: string; limit?: number }) {
@@ -1397,19 +1420,45 @@ export async function getInstitutionalOwnershipHistory(symbol: string, quarters 
     .map((item) => ({ year: item.period.year, quarter: item.period.quarter, row: item.row }));
 }
 
-export async function getLatestInstitutionalOwnership(symbol: string, holderLimit = 40) {
-  const ticker = decodeTicker(symbol);
-  const latest = await findLatestInstitutionalSummary(ticker);
-  if (!latest.summary || holderLimit <= 0 || latest.year == null || latest.quarter == null) {
-    return { ...latest, holders: [] as FmpInstitutionalHolder[] };
-  }
+const FMP_HOLDER_PAGE_SIZE = 100;
 
-  const holders = await fmpList<FmpInstitutionalHolder>(
+export async function getInstitutionalHoldersPage(
+  symbol: string,
+  year: number,
+  quarter: number,
+  page = 1,
+  pageSize = 50,
+) {
+  const ticker = decodeTicker(symbol);
+  const start = Math.max(0, (page - 1) * pageSize);
+  const fmpPage = Math.floor(start / FMP_HOLDER_PAGE_SIZE);
+  const offset = start % FMP_HOLDER_PAGE_SIZE;
+  const rows = await fmpList<FmpInstitutionalHolder>(
     "/institutional-ownership/extract-analytics/holder",
-    { symbol: ticker, year: latest.year, quarter: latest.quarter, page: 0, limit: holderLimit },
+    { symbol: ticker, year, quarter, page: fmpPage, limit: FMP_HOLDER_PAGE_SIZE },
     { revalidate: 3600 },
   );
-  return { ...latest, holders };
+  return rows.slice(offset, offset + pageSize);
+}
+
+export async function getLatestInstitutionalOwnership(
+  symbol: string,
+  options: { holders?: boolean; page?: number; pageSize?: number } | number = {},
+) {
+  const ticker = decodeTicker(symbol);
+  const latest = await findLatestInstitutionalSummary(ticker);
+  const includeHolders = typeof options === "number" ? options > 0 : options.holders !== false;
+  const requestedPage = typeof options === "number" ? 1 : (options.page ?? 1);
+  const pageSize =
+    typeof options === "number" ? (options > 0 ? options : 50) : (options.pageSize ?? 50);
+  const holderTotal = latest.summary?.investorsHolding ?? 0;
+  if (!latest.summary || !includeHolders || latest.year == null || latest.quarter == null || holderTotal === 0) {
+    return { ...latest, holders: [] as FmpInstitutionalHolder[], holderTotal };
+  }
+  const pageCount = Math.max(1, Math.ceil(holderTotal / pageSize) || 1);
+  const page = Math.min(Math.max(requestedPage, 1), pageCount);
+  const holders = await getInstitutionalHoldersPage(ticker, latest.year, latest.quarter, page, pageSize);
+  return { ...latest, holders, holderTotal };
 }
 
 export function getEmployeeCount(symbol: string, limit = 8) {

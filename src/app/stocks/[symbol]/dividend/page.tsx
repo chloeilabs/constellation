@@ -4,7 +4,8 @@ import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getCashFlowTtm, getDividends, getIncomeStatements, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
-import { decodeTicker, displayCompanyName } from "@/lib/listings";
+import { DividendHistoryTable } from "@/components/dividend-history-table";
+import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
 import {
   consecutiveDividendGrowthYears,
   DISTRIBUTION_HISTORY_LIMIT,
@@ -15,11 +16,19 @@ import {
   trailingDividendWindow,
 } from "@/lib/dividends";
 import { ANNUAL_FILING_LIMIT } from "@/lib/statements";
+import { pageNumber, paginate } from "@/lib/paging";
 import { cashOutlay, indicatedAnnualDividend, nyDateString, payoutFrequencyLabel, payoutFrequencyProse, relativeChange } from "@/lib/utils";
 import { buybackYieldFromShareChange } from "@/lib/valuation";
 
-export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function DividendPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { symbol } = await params;
+  const { page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const [profile, dividends, quote, annual, cash, ttm] = await Promise.all([
     getProfile(ticker),
@@ -58,6 +67,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
     buybackYield != null || indicatedYield != null ? (buybackYield ?? 0) + (indicatedYield ?? 0) : null;
   const currency = profile?.currency || "USD";
   const px = (value: number | null | undefined) => formatMoney(value, currency);
+  const payments = paginate(dividends, pageNumber(pageParam));
   const upcoming = [...dividends]
     .filter((row) => (row.date || "") >= today)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -196,38 +206,16 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
           <HistoryBars items={bars} formatValue={(value) => px(value)} />
         </div>
       ) : null}
-      <div className="mt-8 overflow-x-auto rounded-lg border border-border">
-        <table className="sa-table">
-          <thead>
-            <tr>
-              <th>Ex-Dividend</th>
-              <th>Record</th>
-              <th>Payment</th>
-              <th className="num">Amount</th>
-              <th className="num">Yield</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dividends.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-muted">
-                  No dividend history found.
-                </td>
-              </tr>
-            ) : (
-              dividends.map((row, index) => (
-                <tr key={`${row.date}-${row.paymentDate}-${row.dividend}-${index}`}>
-                  <td>{formatDate(row.date)}</td>
-                  <td>{formatDate(row.recordDate)}</td>
-                  <td>{formatDate(row.paymentDate)}</td>
-                  <td className="num">{px(row.dividend)}</td>
-                  <td className="num">{row.yield != null ? `${Number(row.yield).toFixed(2)}%` : "—"}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DividendHistoryTable
+        rows={payments.rows}
+        from={payments.from}
+        to={payments.to}
+        total={payments.total}
+        page={payments.page}
+        pageCount={payments.pageCount}
+        path={stockPath(ticker, "/dividend")}
+        formatAmount={px}
+      />
     </Container>
   );
 }

@@ -7,26 +7,38 @@ import { HistoryBars } from "@/components/history-bars";
 import { MetricCards } from "@/components/metric-cards";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain } from "@/lib/format";
+import { TablePager } from "@/components/table-pager";
 import { getBeneficialOwnership, getInstitutionalOwnershipHistory, getLatestInstitutionalOwnership } from "@/lib/fmp";
 import { institutionalHref } from "@/lib/institutional";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   latestBeneficialOwners,
   parseBeneficialPercent,
   parseBeneficialShares,
   reportingPersonType,
 } from "@/lib/markets";
+import { pageNumber, pageWindow, pagerLinks } from "@/lib/paging";
 
-export default async function OwnershipPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function OwnershipPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { symbol } = await params;
+  const { page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const [{ summary, year, quarter, holders }, history, beneficial] = await Promise.all([
-    getLatestInstitutionalOwnership(ticker, 40),
+  const requestedPage = pageNumber(pageParam);
+  const [{ summary, year, quarter, holders, holderTotal }, history, beneficial] = await Promise.all([
+    getLatestInstitutionalOwnership(ticker, { page: requestedPage }),
     getInstitutionalOwnershipHistory(ticker, 8),
     getBeneficialOwnership(ticker),
   ]);
-  const ranked = [...holders].sort((a, b) => (b.marketValue || 0) - (a.marketValue || 0));
+  const holdersPage = pageWindow(holderTotal, requestedPage);
   const owners = latestBeneficialOwners(beneficial).slice(0, 25);
+  const base = stockPath(ticker, "/ownership");
+  const holderLinks = pagerLinks(base, holdersPage.page, holdersPage.pageCount);
 
   return (
     <Container>
@@ -124,11 +136,15 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
       ) : null}
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Top Institutional Holders</h2>
+        <h2 className="mb-3 text-lg font-semibold text-header">Institutional Holders</h2>
+        <p className="mb-3 text-sm text-muted">
+          13F positions for Q{quarter} {year}, in the order Financial Modeling Prep returns them.
+        </p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>Holder</th>
                 <th className="num">Shares</th>
                 <th className="num">Change</th>
@@ -138,15 +154,16 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
               </tr>
             </thead>
             <tbody>
-              {ranked.length === 0 ? (
+              {holders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-muted">
+                  <td colSpan={7} className="text-muted">
                     No 13F holder details for this period.
                   </td>
                 </tr>
               ) : (
-                ranked.map((row) => (
-                  <tr key={`${row.cik}-${row.investorName}`}>
+                holders.map((row, index) => (
+                  <tr key={`${row.cik}-${row.investorName}-${holdersPage.from + index}`}>
+                    <td className="text-muted">{holdersPage.from + index}</td>
                     <td className="max-w-[280px] truncate font-medium">
                       {row.cik ? (
                         <Link href={institutionalHref(row.cik)} className="text-link hover:underline">
@@ -170,6 +187,14 @@ export default async function OwnershipPage({ params }: { params: Promise<{ symb
             </tbody>
           </table>
         </div>
+        <TablePager
+          from={holders.length ? holdersPage.from : 0}
+          to={holders.length ? holdersPage.from + holders.length - 1 : 0}
+          total={holdersPage.total}
+          page={holdersPage.page}
+          pageCount={holdersPage.pageCount}
+          {...holderLinks}
+        />
       </section>
 
       <section className="mt-10">

@@ -141,6 +141,7 @@ export function etfQuoteNav(symbol: string): NavItem[] {
     { href: `/etf/${symbol}/holdings`, label: "Holdings" },
     { href: `/etf/${symbol}/dividend`, label: "Dividend" },
     { href: `/etf/${symbol}/chart`, label: "Chart" },
+    { href: `/etf/${symbol}/history`, label: "History" },
     { href: `/etf/${symbol}/news`, label: "News" },
   ];
 }
@@ -152,6 +153,7 @@ export function fundQuoteNav(symbol: string): NavItem[] {
     { href: `/funds/${ticker}/holdings`, label: "Holdings" },
     { href: `/funds/${ticker}/dividend`, label: "Dividend" },
     { href: `/funds/${ticker}/chart`, label: "Chart" },
+    { href: `/funds/${ticker}/history`, label: "History" },
     { href: `/funds/${ticker}/news`, label: "News" },
   ];
 }

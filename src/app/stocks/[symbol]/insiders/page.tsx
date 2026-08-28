@@ -4,8 +4,10 @@ import { InsiderTable } from "@/components/insider-table";
 import { MetricCards } from "@/components/metric-cards";
 import { PageHeader } from "@/components/page-header";
 import { formatCompact, formatInteger, formatNumber } from "@/lib/format";
-import { getInsiderStatistics, getInsiderTrades } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { TablePager } from "@/components/table-pager";
+import { getInsiderStatistics, getInsiderTradesArchive } from "@/lib/fmp";
+import { decodeTicker, stockPath } from "@/lib/listings";
+import { pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 function netShares(acquired: number | null | undefined, disposed: number | null | undefined) {
@@ -19,10 +21,18 @@ function signedShares(value: number) {
   return text;
 }
 
-export default async function StockInsidersPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function StockInsidersPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { symbol } = await params;
+  const { page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const [rows, stats] = await Promise.all([getInsiderTrades(ticker, 75), getInsiderStatistics(ticker)]);
+  const [rows, stats] = await Promise.all([getInsiderTradesArchive(ticker), getInsiderStatistics(ticker)]);
+  const filings = paginate(rows, pageNumber(pageParam));
   const recent = [...stats].sort((a, b) => b.year - a.year || b.quarter - a.quarter).slice(0, 12);
   const latest = recent[0] ?? null;
   const trailing4 = recent.slice(0, 4);
@@ -121,7 +131,15 @@ export default async function StockInsidersPage({ params }: { params: Promise<{ 
       ) : null}
       <div className="mt-8">
         <h2 className="mb-3 text-lg font-semibold text-header">Recent Form 4 Filings</h2>
-        <InsiderTable rows={rows} showSymbol={false} empty={`No recent insider trades for ${ticker}.`} />
+        <InsiderTable rows={filings.rows} showSymbol={false} empty={`No recent insider trades for ${ticker}.`} />
+        <TablePager
+          from={filings.from}
+          to={filings.to}
+          total={filings.total}
+          page={filings.page}
+          pageCount={filings.pageCount}
+          {...pagerLinks(stockPath(ticker, "/insiders"), filings.page, filings.pageCount)}
+        />
       </div>
     </Container>
   );
