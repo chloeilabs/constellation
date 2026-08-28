@@ -629,17 +629,18 @@ async function fetchEodPages<T extends { date: string }>(
   for (let page = 0; page < FMP_EOD_MAX_PAGES; page++) {
     const rows = await fetchPage(pageTo);
     if (!rows.length) break;
+    const sizeBefore = byDate.size;
     for (const row of rows) {
       const day = row.date?.slice(0, 10);
       if (day) byDate.set(day, row);
     }
-    const earliest = [...rows]
-      .map((row) => row.date?.slice(0, 10))
-      .filter((day): day is string => Boolean(day))
-      .sort()[0];
+    if (byDate.size === sizeBefore) break;
+    const earliest = [...byDate.keys()].sort()[0];
     if (!earliest) break;
     if (from && earliest <= from) break;
-    if (rows.length < FMP_EOD_ROW_CAP) break;
+    // FMP sometimes returns just under the 5,000-row cap. When a `from` bound
+    // is still older than this page, keep walking `to=` slices.
+    if (!from && rows.length < FMP_EOD_ROW_CAP) break;
     const nextTo = isoDate(addDays(new Date(`${earliest}T00:00:00Z`), -1));
     if (pageTo === nextTo) break;
     pageTo = nextTo;
