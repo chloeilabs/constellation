@@ -64,7 +64,7 @@ export function EtfHeader({
                   label: "Expense Ratio",
                   value: info?.expenseRatio != null ? formatPercentPlain(info.expenseRatio, { alreadyPercent: true }) : "—",
                 },
-                { label: "Holdings", value: formatInteger(holdingsCount ?? info?.holdingsCount) },
+                { label: "Holdings", value: formatInteger(holdingsCount || info?.holdingsCount || null) },
                 { label: "Volume", value: formatInteger(quote?.volume ?? info?.avgVolume) },
               ]}
             />

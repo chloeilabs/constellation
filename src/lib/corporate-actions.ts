@@ -102,8 +102,12 @@ export async function loadCorporateActions() {
   for (const row of mergers) {
     const symbol = row.targetedSymbol || row.symbol;
     if (!usTicker(symbol) || !inWindow(row.transactionDate, from, to)) continue;
-    pushUnique({
-      date: row.transactionDate.slice(0, 10),
+    const date = row.transactionDate.slice(0, 10);
+    const key = `${date}|${symbol}|Acquisition`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push({
+      date,
       symbol,
       type: "Acquisition",
       action: acquisitionAction(row),
