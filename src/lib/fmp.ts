@@ -615,11 +615,49 @@ export async function listedUsEtfHolders(rows: FmpEtfExposure[]) {
   return usEtfHolders(rows).filter((row) => etfs.has(decodeTicker(row.symbol)));
 }
 
+/** FMP historical EOD endpoints cap each response at 5,000 rows (newest first). */
+const FMP_EOD_ROW_CAP = 5000;
+const FMP_EOD_MAX_PAGES = 8;
+
+async function fetchEodPages<T extends { date: string }>(
+  fetchPage: (pageTo?: string) => Promise<T[]>,
+  from?: string,
+  to?: string,
+) {
+  const byDate = new Map<string, T>();
+  let pageTo = to;
+  for (let page = 0; page < FMP_EOD_MAX_PAGES; page++) {
+    const rows = await fetchPage(pageTo);
+    if (!rows.length) break;
+    for (const row of rows) {
+      const day = row.date?.slice(0, 10);
+      if (day) byDate.set(day, row);
+    }
+    const earliest = [...rows]
+      .map((row) => row.date?.slice(0, 10))
+      .filter((day): day is string => Boolean(day))
+      .sort()[0];
+    if (!earliest) break;
+    if (from && earliest <= from) break;
+    if (rows.length < FMP_EOD_ROW_CAP) break;
+    const nextTo = isoDate(addDays(new Date(`${earliest}T00:00:00Z`), -1));
+    if (pageTo === nextTo) break;
+    pageTo = nextTo;
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function getDailyChart(symbol: string, from?: string, to?: string) {
-  return fmpList<FmpLightCandle>(
-    "/historical-price-eod/light",
-    { symbol: decodeTicker(symbol), from, to },
-    { revalidate: 300 },
+  const ticker = decodeTicker(symbol);
+  return fetchEodPages(
+    (pageTo) =>
+      fmpList<FmpLightCandle>(
+        "/historical-price-eod/light",
+        { symbol: ticker, from, to: pageTo },
+        { revalidate: 300 },
+      ),
+    from,
+    to,
   );
 }
 
@@ -1204,48 +1242,31 @@ export function getIncomeGrowth(symbol: string, period: StatementPeriod = "annua
 }
 
 export function getFullDailyChart(symbol: string, from?: string, to?: string) {
-  return fmpList<FmpFullCandle>(
-    "/historical-price-eod/full",
-    { symbol: decodeTicker(symbol), from, to },
-    { revalidate: 300 },
+  const ticker = decodeTicker(symbol);
+  return fetchEodPages(
+    (pageTo) =>
+      fmpList<FmpFullCandle>(
+        "/historical-price-eod/full",
+        { symbol: ticker, from, to: pageTo },
+        { revalidate: 300 },
+      ),
+    from,
+    to,
   );
 }
 
-/** FMP historical EOD endpoints cap each response at 5,000 rows (newest first). */
-const FMP_EOD_ROW_CAP = 5000;
-const FMP_EOD_MAX_PAGES = 8;
-
-export async function getDividendAdjustedChart(symbol: string, from?: string, to?: string) {
+export function getDividendAdjustedChart(symbol: string, from?: string, to?: string) {
   const ticker = decodeTicker(symbol);
-  const fetchPage = (pageTo?: string) =>
-    fmpList<FmpAdjustedCandle>(
-      "/historical-price-eod/dividend-adjusted",
-      { symbol: ticker, from, to: pageTo },
-      { revalidate: 300 },
-    );
-
-  // A single unpaged call is enough when the caller did not ask for a start date.
-  if (!from) return fetchPage(to);
-
-  const byDate = new Map<string, FmpAdjustedCandle>();
-  let pageTo = to;
-  for (let page = 0; page < FMP_EOD_MAX_PAGES; page++) {
-    const rows = await fetchPage(pageTo);
-    if (!rows.length) break;
-    for (const row of rows) {
-      const day = row.date?.slice(0, 10);
-      if (day) byDate.set(day, row);
-    }
-    const earliest = [...rows]
-      .map((row) => row.date?.slice(0, 10))
-      .filter((day): day is string => Boolean(day))
-      .sort()[0];
-    if (!earliest || earliest <= from || rows.length < FMP_EOD_ROW_CAP) break;
-    const nextTo = isoDate(addDays(new Date(`${earliest}T00:00:00Z`), -1));
-    if (pageTo === nextTo) break;
-    pageTo = nextTo;
-  }
-  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return fetchEodPages(
+    (pageTo) =>
+      fmpList<FmpAdjustedCandle>(
+        "/historical-price-eod/dividend-adjusted",
+        { symbol: ticker, from, to: pageTo },
+        { revalidate: 300 },
+      ),
+    from,
+    to,
+  );
 }
 
 export function getSecFilings(symbol: string, from: string, to: string, limit = 50) {

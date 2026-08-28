@@ -19,6 +19,8 @@ export const POPULAR_ETF_COMPARISONS = [
   ["FXAIX", "VFIAX"],
 ] as const;
 
+export const ETF_COMPARE_TOP_HOLDINGS = 25;
+
 export async function loadEtfCompare(symbols: string[]) {
   const unique = [...new Set(symbols.map((symbol) => decodeTicker(symbol)).filter(Boolean))].slice(0, 4);
   return Promise.all(
@@ -39,7 +41,9 @@ export async function loadEtfCompare(symbols: string[]) {
       ]);
       const ttmDividend = trailingDividendWindow(dividends, nyDateString());
       const ttmYield = dividendYieldFromPrice(ttmDividend, quote?.price ?? profile?.price);
-      const top = [...holdings].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0)).slice(0, 10);
+      const top = [...holdings]
+        .sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0))
+        .slice(0, ETF_COMPARE_TOP_HOLDINGS);
       const rankedSectors = [...sectors]
         .map((row) => ({ name: row.sector, weight: row.weightPercentage ?? 0 }))
         .filter((row) => row.name && row.weight > 0)

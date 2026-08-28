@@ -7,12 +7,12 @@ import { ComparePerformanceChart } from "@/components/compare-performance-chart"
 import { ETF_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { compareChartFrom, compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
-import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS, compareTotalReturnBlurb } from "@/lib/etf-compare";
+import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS, compareTotalReturnBlurb, ETF_COMPARE_TOP_HOLDINGS } from "@/lib/etf-compare";
 import { holdingQuoteHref, quoteHref } from "@/lib/listings";
 
 export const metadata = {
   title: "Compare ETFs",
-  description: "Side-by-side ETF and mutual fund quotes, a normalized price chart, expense ratios, returns, and top holdings from live FMP data.",
+  description: "Side-by-side ETF and mutual fund quotes, a dividend-adjusted total-return chart, expense ratios, returns, and top holdings from live FMP data.",
 };
 
 export default async function EtfComparePage({
@@ -148,11 +148,13 @@ export default async function EtfComparePage({
 
       <AverageReturnSection rows={rows} />
 
+      <TopHoldingsSection rows={rows} />
+
       {overlap.length > 0 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">Shared Top Holdings</h2>
           <p className="mb-3 text-sm text-muted">
-            Names that appear in every fund&apos;s top 10 holdings from FMP.
+            Names that appear in every fund&apos;s top {ETF_COMPARE_TOP_HOLDINGS} holdings from FMP.
           </p>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">
@@ -267,6 +269,88 @@ function AverageReturnSection({ rows }: { rows: Awaited<ReturnType<typeof loadEt
             ))}
           </tbody>
         </table>
+      </div>
+    </section>
+  );
+}
+
+function TopHoldingsSection({ rows }: { rows: Awaited<ReturnType<typeof loadEtfCompare>> }) {
+  if (rows.every((row) => row.topHoldings.length === 0)) return null;
+  return (
+    <section className="mt-10">
+      <h2 className="mb-2 text-xl font-semibold text-header">Top {ETF_COMPARE_TOP_HOLDINGS} Holdings</h2>
+      <p className="mb-4 text-sm text-muted">
+        Largest positions from FMP, ranked by portfolio weight. Weights can lag the live holdings count.
+      </p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {rows.map((row) => {
+          const holdingsHref = `${quoteHref(row.symbol, {
+            name: row.info?.name ?? row.profile?.companyName,
+            isEtf: row.profile?.isEtf ?? true,
+            isFund: row.profile?.isFund,
+          })}/holdings`;
+          return (
+            <div key={row.symbol} className="overflow-x-auto rounded-lg border border-border">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th colSpan={3}>
+                      {row.symbol}
+                      {row.info?.name || row.profile?.companyName
+                        ? ` — ${row.info?.name ?? row.profile?.companyName}`
+                        : ""}
+                    </th>
+                  </tr>
+                  <tr>
+                    <th>No.</th>
+                    <th>Symbol</th>
+                    <th className="num">Weight</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {row.topHoldings.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-muted">
+                        Holdings are unavailable.
+                      </td>
+                    </tr>
+                  ) : (
+                    row.topHoldings.map((holding, index) => {
+                      const href = holdingQuoteHref(holding.asset, holding.name);
+                      return (
+                        <tr key={`${holding.asset}-${index}`}>
+                          <td className="text-muted">{index + 1}</td>
+                          <td>
+                            {href ? (
+                              <Link href={href} className="text-link hover:underline">
+                                {holding.asset}
+                              </Link>
+                            ) : (
+                              holding.asset || "—"
+                            )}
+                            {holding.name ? (
+                              <span className="mt-0.5 block max-w-[280px] truncate text-xs text-muted">
+                                {holding.name}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="num">
+                            {formatPercentPlain(holding.weightPercentage, { alreadyPercent: true })}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+              <p className="border-t border-border px-3 py-2 text-sm">
+                <Link href={holdingsHref} className="text-link hover:underline">
+                  View {row.symbol} holdings
+                </Link>
+              </p>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
