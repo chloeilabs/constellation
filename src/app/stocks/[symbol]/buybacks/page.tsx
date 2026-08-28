@@ -7,9 +7,10 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatPercentPlain, reportingCurrency, yearOverYear } from "@/lib/format";
-import { getCashFlows, getCashFlowTtm, getIncomeGrowth, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getCashFlows, getCashFlowTtm, getDividends, getIncomeGrowth, getQuote } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { cashOutlay } from "@/lib/utils";
+import { dividendYieldFromPrice } from "@/lib/dividends";
+import { cashOutlay, indicatedAnnualDividend } from "@/lib/utils";
 import { buybackYieldFromShareChange } from "@/lib/valuation";
 
 export default async function BuybacksPage({
@@ -24,12 +25,12 @@ export default async function BuybacksPage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const base = stockPath(ticker, "/buybacks");
-  const [annual, quarterly, ttm, quote, ratios, growthRows] = await Promise.all([
+  const [annual, quarterly, ttm, quote, dividends, growthRows] = await Promise.all([
     getCashFlows(ticker, "annual", 20),
     getCashFlows(ticker, "quarter", 12),
     getCashFlowTtm(ticker),
     getQuote(ticker),
-    getRatiosTtm(ticker),
+    getDividends(ticker, 4),
     getIncomeGrowth(ticker, "annual", 1),
   ]);
   const history = period === "quarter" ? quarterly : annual;
@@ -45,7 +46,10 @@ export default async function BuybacksPage({
       ? growthRows[0].growthWeightedAverageShsOutDil
       : null;
   const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
-  const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
+  const dividendYield = dividendYieldFromPrice(
+    indicatedAnnualDividend(dividends[0], null),
+    quote?.price,
+  );
   const shareholderYield =
     buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
   const tenYear = annual.slice(0, 10).reduce((sum, row) => sum + (cashOutlay(row.commonStockRepurchased) ?? 0), 0);
@@ -116,7 +120,7 @@ export default async function BuybacksPage({
         Buybacks are the absolute value of <span className="text-header">commonStockRepurchased</span> from FMP cash flow
         statements (reported as a financing outflow). Buyback yield / dilution is the inverse of diluted share-count
         change, matching Stock Analysis. Cash yield is trailing repurchases divided by market cap. Shareholder yield adds
-        the trailing dividend yield.
+        the indicated dividend yield (latest payment × frequency ÷ price).
       </p>
     </Container>
   );
