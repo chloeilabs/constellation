@@ -1,5 +1,6 @@
 import { isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
 export type NavItem = { href: string; label: string; match?: "exact" | "prefix" };
 
@@ -155,6 +156,14 @@ export function fundQuoteNav(symbol: string): NavItem[] {
     { href: `/funds/${ticker}/chart`, label: "Chart" },
     { href: `/funds/${ticker}/history`, label: "History" },
     { href: `/funds/${ticker}/news`, label: "News" },
+  ];
+}
+
+export function vehicleNewsNav(kind: VehicleKind, symbol: string): NavItem[] {
+  const ticker = decodeTicker(symbol);
+  return [
+    { href: vehiclePath(kind, ticker, "/news"), label: "All News", match: "exact" },
+    { href: vehiclePath(kind, ticker, "/news/press-releases"), label: "Press Releases" },
   ];
 }
 

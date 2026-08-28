@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { FundHeader } from "@/components/fund-header";
-import { getEtfHoldings, getEtfInfo, getProfile, getQuote, hasFmpKey } from "@/lib/fmp";
+import { getEtfInfo, getProfile, getQuote, hasFmpKey } from "@/lib/fmp";
 import { decodeTicker, marketAssetHref } from "@/lib/listings";
 
 export async function generateMetadata({ params }: { params: Promise<{ symbol: string }> }) {
@@ -30,12 +30,7 @@ export default async function FundLayout({
   const ticker = decodeTicker(symbol);
   const market = marketAssetHref(ticker);
   if (market) redirect(market);
-  const [quote, profile, info, holdings] = await Promise.all([
-    getQuote(ticker),
-    getProfile(ticker),
-    getEtfInfo(ticker),
-    getEtfHoldings(ticker),
-  ]);
+  const [quote, profile, info] = await Promise.all([getQuote(ticker), getProfile(ticker), getEtfInfo(ticker)]);
 
   if (!quote && !profile && !info) {
     if (!hasFmpKey()) {
@@ -56,7 +51,7 @@ export default async function FundLayout({
         quote={quote}
         profile={profile}
         info={info}
-        holdingsCount={holdings.length || info?.holdingsCount}
+        holdingsCount={info?.holdingsCount || null}
       />
       {children}
     </>

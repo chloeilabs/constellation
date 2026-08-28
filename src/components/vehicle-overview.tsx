@@ -336,7 +336,7 @@ export async function VehicleOverview({
         symbol={ticker}
         news={news}
         press={press}
-        moreHref={{ all: newsHref, press: newsHref }}
+        moreHref={{ all: newsHref, press: vehiclePath(kind, ticker, "/news/press-releases") }}
       />
     </Container>
   );

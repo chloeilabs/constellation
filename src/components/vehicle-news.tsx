@@ -1,33 +1,56 @@
 import { Container } from "@/components/container";
+import { NewsList } from "@/components/news-list";
 import { PageHeader } from "@/components/page-header";
-import { QuoteNewsTabs } from "@/components/quote-news-tabs";
-import { getPressReleases, getSecFilings, getSymbolNews } from "@/lib/fmp";
-import { overviewSecFilings } from "@/lib/filings";
+import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
+import { getPressReleases, getSymbolNews } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import { vehicleNewsNav } from "@/lib/nav";
+import { mergeNews, PRESS_RELEASE_LIMIT, SYMBOL_NEWS_LIMIT } from "@/lib/news";
+import { NEWS_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { vehicleNoun, vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
-export async function VehicleNews({ symbol, kind }: { symbol: string; kind: VehicleKind }) {
+export async function VehicleNews({
+  symbol,
+  kind,
+  page: pageParam,
+  feed = "all",
+}: {
+  symbol: string;
+  kind: VehicleKind;
+  page?: string;
+  feed?: "all" | "press";
+}) {
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
-  const to = nyDateString();
-  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -540));
-  const newsHref = vehiclePath(kind, ticker, "/news");
-  const [news, press, filings] = await Promise.all([
-    getSymbolNews(ticker, 30),
-    getPressReleases(ticker, 20),
-    getSecFilings(ticker, from, to, 20),
+  const page = pageNumber(pageParam);
+  const [news, press] = await Promise.all([
+    feed === "press" ? Promise.resolve([]) : getSymbolNews(ticker, SYMBOL_NEWS_LIMIT),
+    getPressReleases(ticker, PRESS_RELEASE_LIMIT),
   ]);
+  const items = feed === "press" ? press : mergeNews(news, press);
+  const window = paginate(items, page, NEWS_PAGE_SIZE);
+  const path = vehiclePath(kind, ticker, feed === "press" ? "/news/press-releases" : "/news");
 
   return (
     <Container>
-      <PageHeader title={`${ticker} News`} description={`Headlines, press releases, and filings for this ${noun}.`} />
-      <QuoteNewsTabs
-        symbol={ticker}
-        news={news}
-        press={press}
-        filings={overviewSecFilings(filings, 12)}
-        moreHref={{ all: newsHref, press: newsHref, filings: newsHref }}
+      <PageHeader
+        title={feed === "press" ? `${ticker} Press Releases` : `${ticker} News`}
+        description={
+          feed === "press"
+            ? `Company press releases for this ${noun}.`
+            : `Headlines and press releases for this ${noun}. FMP returns the most recent articles.`
+        }
+      />
+      <SectionNav items={vehicleNewsNav(kind, ticker)} />
+      <NewsList items={window.rows} showSymbol={false} />
+      <TablePager
+        from={window.from}
+        to={window.to}
+        total={window.total}
+        page={window.page}
+        pageCount={window.pageCount}
+        {...pagerLinks(path, window.page, window.pageCount)}
       />
     </Container>
   );

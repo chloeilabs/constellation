@@ -1573,10 +1573,10 @@ export function getForexQuotes() {
   return fmpList<FmpCommodityQuote>("/batch-forex-quotes", {}, { revalidate: 60 });
 }
 
-export function getLatestMergers(limit = 50) {
+export function getLatestMergers(limit = 50, page = 0) {
   return fmpList<FmpMerger>(
     "/mergers-acquisitions-latest",
-    { page: 0, limit },
+    { page, limit },
     { revalidate: 300 },
   );
 }

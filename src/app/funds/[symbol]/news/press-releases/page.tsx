@@ -1,6 +1,6 @@
 import { VehicleNews } from "@/components/vehicle-news";
 
-export default async function FundNewsPage({
+export default async function FundPressReleasesPage({
   params,
   searchParams,
 }: {
@@ -9,5 +9,5 @@ export default async function FundNewsPage({
 }) {
   const { symbol } = await params;
   const { page } = await searchParams;
-  return <VehicleNews symbol={symbol} kind="fund" page={page} />;
+  return <VehicleNews symbol={symbol} kind="fund" page={page} feed="press" />;
 }
