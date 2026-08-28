@@ -227,6 +227,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "KR",
     exchange: "KSC",
     symbolPattern: "^[0-9]+\\.KS$",
+    listSlug: "korea-stocks",
   },
   {
     code: "tw",
@@ -399,6 +400,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "CN",
     exchange: "SHH",
     symbolPattern: "^[A-Z0-9]+\\.SS$",
+    listSlug: "shanghai-stocks",
   },
   {
     code: "id",
@@ -491,6 +493,9 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   AMEX: "/list/nyse-american-stocks",
   OTC: "/list/otc-stocks",
   FSX: "/list/frankfurt-stocks",
+  CNQ: "/list/canadian-securities-exchange",
+  NEO: "/list/cboe-canada",
+  TWO: "/list/taipei-exchange",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {

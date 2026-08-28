@@ -110,8 +110,6 @@ const nextConfig: NextConfig = {
       { source: "/indexes", destination: "/markets/indexes", permanent: false },
       { source: "/market-indexes", destination: "/markets/indexes", permanent: false },
       { source: "/stocks/countries", destination: "/stocks/country", permanent: false },
-      { source: "/list/korea-stocks", destination: "/stocks/country/kr", permanent: false },
-      { source: "/list/south-korea-stocks", destination: "/stocks/country/kr", permanent: false },
       { source: "/list/taiwan-stocks", destination: "/stocks/country/tw", permanent: false },
       { source: "/list/switzerland-stocks", destination: "/stocks/country/ch", permanent: false },
       { source: "/list/swiss-stocks", destination: "/stocks/country/ch", permanent: false },
@@ -154,6 +152,12 @@ const nextConfig: NextConfig = {
       { source: "/list/australia-etfs", destination: "/list/australian-etfs", permanent: false },
       { source: "/list/canada-etfs", destination: "/list/canadian-etfs", permanent: false },
       { source: "/list/online-gambling-stocks", destination: "/list/online-gambling", permanent: false },
+      { source: "/list/shanghai-stock-exchange", destination: "/list/shanghai-stocks", permanent: false },
+      { source: "/list/korea-stock-exchange", destination: "/list/korea-stocks", permanent: false },
+      { source: "/list/south-korea-stocks", destination: "/list/korea-stocks", permanent: false },
+      { source: "/list/cse-stocks", destination: "/list/canadian-securities-exchange", permanent: false },
+      { source: "/list/neo-exchange", destination: "/list/cboe-canada", permanent: false },
+      { source: "/list/taipei-stocks", destination: "/list/taipei-exchange", permanent: false },
     ];
   },
   images: {

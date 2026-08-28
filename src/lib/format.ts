@@ -181,6 +181,9 @@ const SUFFIX_CURRENCY: Record<string, string> = {
   KQ: "KRW",
   BO: "INR",
   V: "CAD",
+  CN: "CAD",
+  NE: "CAD",
+  TWO: "TWD",
 };
 
 export function currencyForCountry(country?: string | null) {
