@@ -22,7 +22,7 @@ import {
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
 import { yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { dividendYieldFromPrice, dividendsByFiscalYear, trailingDividendThrough } from "@/lib/dividends";
+import { dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trailingDividendThrough } from "@/lib/dividends";
 import {
   RATIO_SECTIONS,
   derivedBalanceMetrics,
@@ -33,6 +33,7 @@ import {
   statementLimit,
   stripTtmSuffix,
   toStatementColumns,
+  trailingSum,
   withAdjacentGrowth,
   withStatementHrefs,
 } from "@/lib/statements";
@@ -292,7 +293,15 @@ export default async function RatiosPage({
         : periodDate
           ? trailingDividendThrough(dividends, periodDate, 4)
           : null;
-    return overlayRatioColumn(column, {
+    const periodEps = isCurrent
+      ? num(incomeTtm?.epsDiluted) ?? num(incomeTtm?.eps)
+      : period === "annual"
+        ? num(income?.epsDiluted) ?? num(income?.eps)
+        : incomeIndex >= 0
+          ? trailingSum(incomeRows as unknown as Array<Record<string, unknown>>, "epsDiluted", incomeIndex, 4) ??
+            trailingSum(incomeRows as unknown as Array<Record<string, unknown>>, "eps", incomeIndex, 4)
+          : null;
+    const overlaid = overlayRatioColumn(column, {
       income: isCurrent ? currentIncome : income,
       balance: isCurrent ? latestSheet : matchRow(balanceRows, column, period),
       cash: isCurrent ? cashTtm : matchRow(cashRows, column, period),
@@ -311,6 +320,13 @@ export default async function RatiosPage({
       dividendYield: dividendYieldFromPrice(periodDps, periodPrice),
       date: isCurrent ? nyDateString() : undefined,
     });
+    return {
+      ...overlaid,
+      values: {
+        ...overlaid.values,
+        dividendPayoutRatio: payoutRatioFromDps(periodDps, periodEps),
+      },
+    };
   });
   columns = columns.map((column) => {
     if (column.key === "ttm") return column;
@@ -331,7 +347,7 @@ export default async function RatiosPage({
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth. Dividend yield is indicated or fiscal dividends divided by the same close."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth. Dividend yield is indicated or fiscal dividends divided by the same close. Payout is those dividends divided by diluted EPS."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle

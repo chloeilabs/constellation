@@ -1,6 +1,11 @@
 import { yearOverYear } from "@/lib/format";
 import type { FmpDividend } from "@/lib/types";
 
+export function payoutRatioFromDps(dps: number | null | undefined, eps: number | null | undefined) {
+  if (typeof dps !== "number" || !Number.isFinite(dps) || typeof eps !== "number" || !(eps > 0)) return null;
+  return dps / eps;
+}
+
 export function dividendYieldFromPrice(dps: number | null | undefined, price: number | null | undefined) {
   if (typeof dps !== "number" || !Number.isFinite(dps) || typeof price !== "number" || !(price > 0)) return null;
   return dps / price;

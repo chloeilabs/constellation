@@ -45,7 +45,7 @@ import { decodeTicker } from "@/lib/listings";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
 import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString, relativeChange } from "@/lib/utils";
-import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
+import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
 import { derivedStatementMetrics } from "@/lib/statements";
 import { estimatedWacc } from "@/lib/wacc";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
@@ -528,7 +528,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Dividend Yield", href: `/stocks/${ticker}/dividend-yield`, value: formatPercentPlain(dividendYield) },
               { label: "Dividend Growth (1Y)", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(dpsGrowth) },
               { label: "Years of Dividend Growth", href: `/stocks/${ticker}/dividend`, value: dividendGrowthYears > 0 ? formatNumber(dividendGrowthYears, 0) : "—" },
-              { label: "Payout Ratio", href: `/stocks/${ticker}/payout-ratio`, value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
+              { label: "Payout Ratio", href: `/stocks/${ticker}/payout-ratio`, value: formatPercentPlain(payoutRatioFromDps(indicatedDividend, ttmEps) ?? num(ratios?.dividendPayoutRatioTTM)) },
               { label: "Buyback Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(buybackYield) },
               { label: "Shareholder Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(shareholderYield) },
               { label: "Earnings Yield", href: `/stocks/${ticker}/earnings-yield`, value: formatPercentPlain(peValue && peValue > 0 ? 1 / peValue : num(metrics?.earningsYieldTTM)) },
