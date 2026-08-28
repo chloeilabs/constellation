@@ -101,6 +101,8 @@ const columns = [
       ["/list/invesco-etfs", "Invesco ETFs"],
       ["/list/schwab-etfs", "Schwab ETFs"],
       ["/list/dividend-etfs", "Dividend ETFs"],
+      ["/list/monthly-dividend-etfs", "Monthly Dividend ETFs"],
+      ["/list/weekly-dividend-etfs", "Weekly Dividend ETFs"],
       ["/list/bond-etfs", "Bond ETFs"],
       ["/list/income-etfs", "Equity Income ETFs"],
       ["/list/crypto-etfs", "Crypto ETFs"],

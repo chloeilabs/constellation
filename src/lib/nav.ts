@@ -94,6 +94,8 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/invesco-etfs", label: "Invesco" },
   { href: "/list/schwab-etfs", label: "Schwab" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
+  { href: "/list/monthly-dividend-etfs", label: "Monthly ETFs" },
+  { href: "/list/weekly-dividend-etfs", label: "Weekly ETFs" },
   { href: "/list/bond-etfs", label: "Bond ETFs" },
   { href: "/list/income-etfs", label: "Equity Income" },
   { href: "/list/crypto-etfs", label: "Crypto ETFs" },

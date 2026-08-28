@@ -146,6 +146,13 @@ export function isUsVenue(exchange?: string | null) {
   return Boolean(exchange && US_VENUE.test(exchange.toUpperCase()));
 }
 
+/** NYSE, Nasdaq, NYSE American, Arca, BATS, or Cboe — not OTC/pink sheets. */
+export function isListedUsVenue(exchange?: string | null) {
+  if (!exchange) return false;
+  const value = exchange.toUpperCase();
+  return US_EXCHANGE.test(value) || value.includes("CBOE");
+}
+
 /** First four-digit year in FMP `founded` values such as `1806`, `1975/1977`, or `2005-06-23`. */
 export function parseFoundedYear(value: string | null | undefined) {
   if (!value) return null;

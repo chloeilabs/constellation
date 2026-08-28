@@ -122,6 +122,8 @@ export function netCashPosition(sheet?: {
 
 export function annualDividendPayments(frequency: string | null | undefined) {
   const value = (frequency || "").toLowerCase();
+  if (value.includes("bi-week") || value.includes("biweek") || value.includes("bi week")) return 26;
+  if (value.includes("week")) return 52;
   if (value.includes("month")) return 12;
   if (value.includes("quarter")) return 4;
   if (value.includes("semi")) return 2;
@@ -132,6 +134,8 @@ export function annualDividendPayments(frequency: string | null | undefined) {
 export function payoutFrequencyLabel(frequency: string | null | undefined) {
   if (!frequency) return null;
   const count = annualDividendPayments(frequency);
+  if (count === 52) return "Weekly";
+  if (count === 26) return "Bi-Weekly";
   if (count === 12) return "Monthly";
   if (count === 4) return "Quarterly";
   if (count === 2) return "Semi-Annual";
@@ -142,6 +146,8 @@ export function payoutFrequencyLabel(frequency: string | null | undefined) {
 export function payoutFrequencyProse(frequency: string | null | undefined) {
   const count = annualDividendPayments(frequency);
   if (!frequency) return null;
+  if (count === 52) return "every week";
+  if (count === 26) return "every two weeks";
   if (count === 12) return "every month";
   if (count === 4) return "every three months";
   if (count === 2) return "twice a year";

@@ -174,6 +174,10 @@ const nextConfig: NextConfig = {
       { source: "/list/dubai-financial-market", destination: "/list/dubai-stocks", permanent: false },
       { source: "/list/buenos-aires-stock-exchange", destination: "/list/argentina-stocks", permanent: false },
       { source: "/list/nasdaq-iceland", destination: "/list/iceland-stocks", permanent: false },
+      { source: "/list/monthly-etfs", destination: "/list/monthly-dividend-etfs", permanent: false },
+      { source: "/list/monthly-dividend-etf", destination: "/list/monthly-dividend-etfs", permanent: false },
+      { source: "/list/weekly-etfs", destination: "/list/weekly-dividend-etfs", permanent: false },
+      { source: "/list/weekly-dividend-etf", destination: "/list/weekly-dividend-etfs", permanent: false },
     ];
   },
   images: {

@@ -27,7 +27,7 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
   const noun = hrefBase === "/etf" ? "ETFs" : hrefBase === "/funds" ? "funds" : "stocks";
   const showYield =
     ("sort" in list && list.sort === "dividendYield") ||
-    resolved === "monthly-dividend-stocks" ||
+    list.source === "dividend-frequency" ||
     resolved === "bond-etfs" ||
     resolved === "dividend-etfs" ||
     resolved === "dividend-aristocrats" ||

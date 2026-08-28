@@ -1,8 +1,8 @@
-import { getDividendCalendar, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getRatings, getScreener, getScreenerPages } from "@/lib/fmp";
-import { isForeignListingSymbol, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
+import { getDividendCalendar, getEtfSymbolSet, getIndexConstituents, getIncomeTtm, getProfile, getQuotes, getRatings, getScreener, getScreenerPages } from "@/lib/fmp";
+import { isForeignListingSymbol, isListedUsVenue, looksLikeFund, parseFoundedYear, preferPrimaryListings, uniqueBySymbol } from "@/lib/listings";
 import { addDays, annualDividendPayments, isoDate, nyDateString } from "@/lib/utils";
 import type { SymbolTableRow } from "@/components/symbol-table";
-import type { FmpScreenerRow } from "@/lib/types";
+import type { FmpDividend, FmpScreenerRow } from "@/lib/types";
 import type { FmpIndexKey } from "@/lib/indexes";
 
 type ListCategory = "popular" | "index" | "exchange" | "market-cap" | "etf" | "international";
@@ -37,7 +37,10 @@ type CalendarList = {
   title: string;
   description: string;
   category: ListCategory;
-  source: "monthly-dividends";
+  source: "dividend-frequency";
+  frequency: "monthly" | "weekly";
+  vehicle: "stock" | "etf";
+  hrefBase?: "/stocks" | "/etf" | "/funds";
 };
 
 type OldestList = {
@@ -227,7 +230,9 @@ export const STOCK_LISTS = {
     title: "Monthly Dividend Stocks",
     description: "U.S. stocks that currently pay a monthly dividend, ranked by indicated yield.",
     category: "popular",
-    source: "monthly-dividends",
+    source: "dividend-frequency",
+    frequency: "monthly",
+    vehicle: "stock",
   },
   "foreign-stocks": {
     title: "Foreign Stocks on U.S. Exchanges",
@@ -377,6 +382,24 @@ export const STOCK_LISTS = {
     listing: "primary",
     hrefBase: "/etf",
     yieldMax: 0.15,
+  },
+  "monthly-dividend-etfs": {
+    title: "Monthly Dividend ETFs",
+    description: "U.S. ETFs that currently pay a monthly dividend, ranked by indicated yield from the FMP dividend calendar.",
+    category: "etf",
+    source: "dividend-frequency",
+    frequency: "monthly",
+    vehicle: "etf",
+    hrefBase: "/etf",
+  },
+  "weekly-dividend-etfs": {
+    title: "Weekly Dividend ETFs",
+    description: "U.S. ETFs that currently pay a weekly dividend, ranked by indicated yield from the FMP dividend calendar.",
+    category: "etf",
+    source: "dividend-frequency",
+    frequency: "weekly",
+    vehicle: "etf",
+    hrefBase: "/etf",
   },
   "bond-etfs": {
     title: "Bond ETFs",
@@ -1686,6 +1709,8 @@ export const LIST_NAV = [
   { href: "/list/semiconductor-stocks", label: "Chips" },
   { href: "/list/highest-volume", label: "Volume" },
   { href: "/list/dividend-etfs", label: "Dividend ETFs" },
+  { href: "/list/monthly-dividend-etfs", label: "Monthly ETFs" },
+  { href: "/list/weekly-dividend-etfs", label: "Weekly ETFs" },
 ];
 
 export function listHrefBase(slug: StockListSlug) {
@@ -1791,8 +1816,10 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   "gaming-stocks": "video-game-stocks",
   "covered-call-etfs": "income-etfs",
   "fixed-income-etfs": "bond-etfs",
-  "monthly-dividend-etfs": "dividend-etfs",
-  "weekly-dividend-etfs": "dividend-etfs",
+  "monthly-etfs": "monthly-dividend-etfs",
+  "monthly-dividend-etf": "monthly-dividend-etfs",
+  "weekly-etfs": "weekly-dividend-etfs",
+  "weekly-dividend-etf": "weekly-dividend-etfs",
   "london-stock-exchange": "london-stocks",
   "toronto-stock-exchange": "tsx-stocks",
   "tokyo-stock-exchange": "japan-stocks",
@@ -1950,8 +1977,8 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     return rows;
   }
 
-  if (list.source === "monthly-dividends") {
-    return loadMonthlyDividendStocks();
+  if (list.source === "dividend-frequency") {
+    return loadDividendFrequencyList(list.frequency, list.vehicle);
   }
 
   if (list.source === "symbols") {
@@ -2337,19 +2364,59 @@ async function loadForeignUsStocks(originCountry?: string): Promise<SymbolTableR
   return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
 }
 
-async function loadMonthlyDividendStocks(): Promise<SymbolTableRow[]> {
+function matchesPayoutFrequency(value: string | null | undefined, wanted: "monthly" | "weekly") {
+  const frequency = (value || "").toLowerCase();
+  if (frequency.includes("bi")) return false;
+  if (wanted === "monthly") return frequency.includes("month");
+  return frequency.includes("week");
+}
+
+function latestDividendBySymbol(rows: FmpDividend[]) {
+  const bySymbol = new Map<string, FmpDividend>();
+  for (const row of rows) {
+    if (!row.symbol) continue;
+    const key = row.symbol.toUpperCase();
+    const previous = bySymbol.get(key);
+    if (!previous || (row.date || "") > (previous.date || "")) {
+      bySymbol.set(key, row);
+    }
+  }
+  return [...bySymbol.values()];
+}
+
+/** FMP `/dividends-calendar` caps each response at 4,000 rows, so long windows drop monthly/weekly names. */
+async function getSlicedDividendCalendar() {
   const today = nyDateString();
-  const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -7));
-  const to = isoDate(addDays(new Date(`${today}T00:00:00Z`), 45));
-  const calendar = await getDividendCalendar(from, to);
-  const monthly = uniqueBySymbol(
-    calendar.filter((row) => /month/i.test(row.frequency || "") && !isForeignListingSymbol(row.symbol)),
-  );
-  const quotes = await getQuotes(monthly.map((row) => row.symbol));
-  const bySymbol = new Map(quotes.map((quote) => [quote.symbol, quote]));
-  return monthly
+  const origin = new Date(`${today}T00:00:00Z`);
+  const from = addDays(origin, -32);
+  const end = addDays(origin, 28);
+  const requests: Promise<FmpDividend[]>[] = [];
+  for (let cursor = from; cursor <= end; ) {
+    const sliceEnd = addDays(cursor, 11);
+    const to = sliceEnd < end ? sliceEnd : end;
+    requests.push(getDividendCalendar(isoDate(cursor), isoDate(to)));
+    cursor = addDays(to, 1);
+  }
+  return latestDividendBySymbol((await Promise.all(requests)).flat());
+}
+
+async function loadDividendFrequencyList(
+  frequency: "monthly" | "weekly",
+  vehicle: "stock" | "etf",
+): Promise<SymbolTableRow[]> {
+  const [calendar, etfSymbols] = await Promise.all([getSlicedDividendCalendar(), getEtfSymbolSet()]);
+  const matched = calendar.filter((row) => {
+    if (!matchesPayoutFrequency(row.frequency, frequency)) return false;
+    if (isForeignListingSymbol(row.symbol)) return false;
+    const isEtf = etfSymbols.has(row.symbol.toUpperCase());
+    return vehicle === "etf" ? isEtf : !isEtf;
+  });
+  const quotes = await getQuotes(matched.map((row) => row.symbol));
+  const bySymbol = new Map(quotes.map((quote) => [quote.symbol.toUpperCase(), quote]));
+  const yieldMax = vehicle === "etf" ? 8 : 0.4;
+  return matched
     .map((row) => {
-      const quote = bySymbol.get(row.symbol);
+      const quote = bySymbol.get(row.symbol.toUpperCase());
       const price = quote?.price ?? null;
       const payments = annualDividendPayments(row.frequency);
       const dividendYield = price && row.dividend ? (row.dividend * payments) / price : null;
@@ -2361,9 +2428,16 @@ async function loadMonthlyDividendStocks(): Promise<SymbolTableRow[]> {
         changePercentage: quote?.changePercentage ?? null,
         volume: quote?.volume ?? null,
         dividendYield,
+        exchange: quote?.exchange ?? null,
       };
     })
-    .filter((row) => row.price && row.price > 0 && (row.dividendYield ?? 0) > 0 && (row.dividendYield ?? 0) < 0.4)
+    .filter((row) => {
+      if (!(row.price && row.price > 0)) return false;
+      if (!(row.dividendYield && row.dividendYield > 0 && row.dividendYield < yieldMax)) return false;
+      if (vehicle === "etf") return isListedUsVenue(row.exchange);
+      if (looksLikeFund(row.name)) return false;
+      return true;
+    })
     .sort((a, b) => (b.dividendYield ?? 0) - (a.dividendYield ?? 0))
-    .slice(0, 100);
+    .slice(0, vehicle === "etf" ? 200 : 100);
 }
