@@ -24,6 +24,7 @@ const STOCK_TABS = [
   { href: "/filings", label: "Filings" },
   { href: "/transcripts", label: "Transcripts" },
   { href: "/chart", label: "Chart" },
+  { href: "/fundamental-chart", label: "Fund. Chart" },
 ];
 
 export function StockSubnav({ symbol }: { symbol: string }) {

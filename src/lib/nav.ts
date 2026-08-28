@@ -157,6 +157,7 @@ export function companyNav(symbol: string): NavItem[] {
 export function quoteFundamentalsNav(symbol: string) {
   const base = stockPath(symbol);
   return [
+    { href: `${base}/fundamental-chart`, label: "Fund. Chart" },
     { href: `${base}/market-cap`, label: "Market Cap" },
     { href: `${base}/shares`, label: "Shares" },
     { href: `${base}/buybacks`, label: "Buybacks" },

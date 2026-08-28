@@ -134,6 +134,7 @@ const columns = [
       ["/tools", "All Tools"],
       ["/watchlist", "Watchlist"],
       ["/compare", "Compare Stocks"],
+      ["/stocks/AAPL/fundamental-chart", "Fundamental Chart"],
       ["/compare/aapl-vs-msft", "AAPL vs MSFT"],
       ["/etf/compare", "Compare ETFs"],
       ["/screener", "Screener"],

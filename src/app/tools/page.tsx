@@ -22,6 +22,7 @@ const GROUPS = [
     title: "Comparison Tools",
     links: [
       ["/compare", "Stock Comparison", "Side-by-side quotes, a normalized performance chart, and trailing financials."],
+      ["/stocks/AAPL/fundamental-chart", "Fundamental Chart", "Plot live FMP income, cash-flow, and valuation history with a period-end price overlay."],
       ["/etf/compare", "ETF Comparison", "Compare expense ratios, returns, and overlapping holdings."],
     ],
   },
