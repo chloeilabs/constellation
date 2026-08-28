@@ -11,7 +11,7 @@ import {
   getIncomeStatements,
   getIncomeTtm,
 } from "@/lib/fmp";
-import { formatMillions, formatPrice, reportingCurrency } from "@/lib/format";
+import { formatMillions, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { dividendsByFiscalYear, dividendTtmGrowth, trailingDividendThrough, trailingDividendTotal } from "@/lib/dividends";
 import {
@@ -116,13 +116,27 @@ export default async function IncomeStatementPage({
       };
     });
     columns = withDerivedStatementMetrics(columns);
-    columns = withAdjacentGrowth(
-      columns,
-      "dividendPerShare",
-      "dividendGrowth",
-      trailing ? 4 : 1,
-      dividendTtmGrowth(dividends),
-    );
+    if (trailing) {
+      columns = withAdjacentGrowth(columns, "dividendPerShare", "dividendGrowth", 4);
+    } else {
+      columns = columns.map((column) => {
+        if (column.key === "ttm" || column.label === "TTM") {
+          return {
+            ...column,
+            values: { ...column.values, dividendGrowth: dividendTtmGrowth(dividends) },
+          };
+        }
+        const year = Number(column.values.fiscalYear);
+        const prior = Number.isFinite(year) ? dividendByYear.get(String(year - 1)) : null;
+        return {
+          ...column,
+          values: {
+            ...column.values,
+            dividendGrowth: yearOverYear(column.values.dividendPerShare, prior),
+          },
+        };
+      });
+    }
   }
 
   const hrefRows = withStatementHrefs(INCOME_ROWS, ticker);
