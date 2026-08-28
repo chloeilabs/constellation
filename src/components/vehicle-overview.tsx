@@ -5,7 +5,7 @@ import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
-import { loadQuoteChart } from "@/lib/chart";
+import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
 import {
   getDividends,
   getEtfCountryWeights,
@@ -26,14 +26,17 @@ import { vehicleNoun, vehiclePath, type VehicleKind } from "@/lib/vehicle";
 export async function VehicleOverview({
   symbol,
   range: rangeParam,
+  adj: adjParam,
   kind,
 }: {
   symbol: string;
   range?: string;
+  adj?: string;
   kind: VehicleKind;
 }) {
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
+  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, ratios, profile] = await Promise.all([
     getEtfInfo(ticker),
     getEtfHoldings(ticker),
@@ -44,11 +47,11 @@ export async function VehicleOverview({
     getPressReleases(ticker, 8),
     getDividends(ticker, 8),
     getPriceChange(ticker),
-    loadQuoteChart(ticker, rangeParam),
+    loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
     getRatiosTtm(ticker),
     getProfile(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
 
   const rankedSectors = [...sectors].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
   const rankedCountries = [...countries]
@@ -85,6 +88,9 @@ export async function VehicleOverview({
           ema12Series={ema12Series}
           ema26Series={ema26Series}
           rsiSeries={rsiSeries}
+          adjusted={adjusted}
+          showAdjustedToggle={canDividendAdjust(range)}
+          query={wantAdjusted ? { adj: "1" } : undefined}
         />
         <ReturnsTable changes={changes} />
       </div>

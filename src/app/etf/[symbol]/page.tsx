@@ -5,9 +5,9 @@ export default async function EtfPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; adj?: string }>;
 }) {
   const { symbol } = await params;
-  const { range } = await searchParams;
-  return <VehicleOverview symbol={symbol} range={range} kind="etf" />;
+  const { range, adj } = await searchParams;
+  return <VehicleOverview symbol={symbol} range={range} adj={adj} kind="etf" />;
 }

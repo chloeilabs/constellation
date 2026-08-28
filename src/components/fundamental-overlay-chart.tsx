@@ -1,4 +1,4 @@
-import { formatPrice } from "@/lib/format";
+import { formatUsd } from "@/lib/format";
 
 export type FundamentalChartItem = {
   label: string;
@@ -6,12 +6,21 @@ export type FundamentalChartItem = {
   price: number | null;
 };
 
+function axisTicks(min: number, max: number, count = 4) {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
+  if (max === min) return [min];
+  const step = (max - min) / (count - 1);
+  return Array.from({ length: count }, (_, index) => min + step * index);
+}
+
 export function FundamentalOverlayChart({
   items,
   formatMetric,
+  formatPrice = formatUsd,
 }: {
   items: FundamentalChartItem[];
   formatMetric: (value: number) => string;
+  formatPrice?: (value: number) => string;
 }) {
   const values = items.map((item) => item.metric).filter((value): value is number => value != null && Number.isFinite(value));
   const prices = items.map((item) => item.price).filter((value): value is number => value != null && Number.isFinite(value));
@@ -21,8 +30,8 @@ export function FundamentalOverlayChart({
 
   const width = 720;
   const height = 280;
-  const padL = 8;
-  const padR = 8;
+  const padL = prices.length > 0 ? 56 : 8;
+  const padR = prices.length > 0 ? 56 : 8;
   const padT = 16;
   const padB = 36;
   const plotW = width - padL - padR;
@@ -49,11 +58,37 @@ export function FundamentalOverlayChart({
     })
     .filter((point): point is { x: number; y: number } => point != null);
   const pricePath = coords.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
+  const metricTicks = axisTicks(mMin, mMax);
+  const priceTicks = prices.length > 0 ? axisTicks(pLo, pHi) : [];
 
   return (
     <div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[280px] w-full">
         <line x1={padL} x2={width - padR} y1={zeroY} y2={zeroY} stroke="#94a3b8" strokeWidth="1" />
+        {metricTicks.map((tick) => (
+          <text
+            key={`m-${tick}`}
+            x={padL - 6}
+            y={yMetric(tick) + 3}
+            textAnchor="end"
+            className="fill-[#64748b]"
+            fontSize="9"
+          >
+            {formatMetric(tick)}
+          </text>
+        ))}
+        {priceTicks.map((tick) => (
+          <text
+            key={`p-${tick}`}
+            x={width - padR + 6}
+            y={yPrice(tick) + 3}
+            textAnchor="start"
+            className="fill-[#4f46e5]"
+            fontSize="9"
+          >
+            {formatPrice(tick)}
+          </text>
+        ))}
         {items.map((item, index) => {
           if (item.metric == null) return null;
           const x = padL + slot * index + slot / 2 - barW / 2;

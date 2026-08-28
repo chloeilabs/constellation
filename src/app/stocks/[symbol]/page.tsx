@@ -6,7 +6,7 @@ import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { QuoteStats } from "@/components/quote-stats";
 import { SectionNav } from "@/components/section-nav";
 import { compactMoneyFn, currencyForSymbol, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPlausiblePe, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
-import { loadQuoteChart } from "@/lib/chart";
+import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
 import {
   getCompanyEarnings,
   getDividends,
@@ -50,10 +50,10 @@ export default async function StockOverviewPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; adj?: string }>;
 }) {
   const { symbol } = await params;
-  const { range: rangeParam } = await searchParams;
+  const { range: rangeParam, adj: adjParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   if (isIndexTicker(ticker)) {
     return <IndexQuote ticker={ticker} range={rangeParam} />;
@@ -61,6 +61,7 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
+  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [quote, profile, ttm, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, yearAgoCap, press, transcriptDates, filings, shareFloat] =
     await Promise.all([
       getQuote(ticker),
@@ -71,7 +72,7 @@ export default async function StockOverviewPage({
       getDividends(ticker, 8),
       getSymbolNews(ticker, 12),
       getPeers(ticker),
-      loadQuoteChart(ticker, rangeParam),
+      loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
       getIncomeStatements(ticker, "annual", 2),
       getIncomeStatements(ticker, "quarter", 8),
       getCompanyEarnings(ticker, 12),
@@ -84,7 +85,7 @@ export default async function StockOverviewPage({
       getSecFilings(ticker, filingFrom, filingTo, 40),
       getShareFloat(ticker),
     ]);
-  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
   const fyRevenueGrowth = yearOverYear(latestYear?.revenue, priorYear?.revenue);
@@ -164,6 +165,9 @@ export default async function StockOverviewPage({
               ema12Series={ema12Series}
               ema26Series={ema26Series}
               rsiSeries={rsiSeries}
+              adjusted={adjusted}
+              showAdjustedToggle={canDividendAdjust(range)}
+              query={wantAdjusted ? { adj: "1" } : undefined}
             />
           </Suspense>
           <ReturnsTable changes={priceChange} />

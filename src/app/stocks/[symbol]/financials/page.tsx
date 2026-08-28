@@ -10,6 +10,7 @@ import {
   getCashFlows,
   getCashFlowTtm,
   getDividends,
+  getDailyChart,
   getEnterpriseValues,
   getEstimates,
   getIncomeStatements,
@@ -20,6 +21,7 @@ import {
   getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
+import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   canonicalSegmentName,
@@ -33,9 +35,9 @@ import {
   ttmSegmentMap,
   withSegmentGrowth,
 } from "@/lib/statements";
-import { cashAndInvestments, indicatedAnnualDividend, netCashPosition, nyDateString } from "@/lib/utils";
+import { addDays, cashAndInvestments, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString } from "@/lib/utils";
 import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
-import { nextEstimate, trailingPe } from "@/lib/valuation";
+import { marketCapFromPrice, nextEstimate, trailingPe } from "@/lib/valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
@@ -156,6 +158,8 @@ function overlayValuationColumn(
     ...column,
     values: {
       ...column.values,
+      ...(input.price != null ? { price: input.price } : {}),
+      ...(input.marketCap != null ? { marketCap: input.marketCap } : {}),
       ...(pe != null ? { pe } : {}),
       ...(forwardPe != null ? { forwardPe } : {}),
       ...(ps != null ? { ps } : {}),
@@ -297,7 +301,8 @@ export default async function FinancialsOverviewPage({
   const annualLimit = yearCount + 1;
   const fiscalLimit = Math.max(annualLimit, 16);
   const base = stockPath(ticker, "/financials");
-  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates, enterpriseRows] =
+  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * 22));
+  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates, enterpriseRows, dailyCloses] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", fiscalLimit),
       getIncomeStatements(ticker, "quarter", 8),
@@ -317,7 +322,9 @@ export default async function FinancialsOverviewPage({
       getQuote(ticker),
       getEstimates(ticker, "annual"),
       getEnterpriseValues(ticker, "annual", annualLimit),
+      getDailyChart(ticker, priceFrom),
     ]);
+  const periodCloses = toCloseSeries(dailyCloses);
 
   const incomeYears = annualIncome.slice(0, yearCount);
   const currency = reportingCurrency(annualIncome[0]?.reportedCurrency, ttmIncome?.reportedCurrency);
@@ -519,9 +526,11 @@ export default async function FinancialsOverviewPage({
     const year = incomeYears.find((row) => fyLabel(row.fiscalYear) === column.label);
     const enterprise = year ? matchEnterprise(enterpriseRows, year.date, year.fiscalYear) : null;
     const cash = cashYears.find((row) => year && String(row.fiscalYear) === String(year.fiscalYear));
+    const periodPrice = closeOnOrBefore(periodCloses, year?.date) ?? n(enterprise?.stockPrice);
+    const shares = n(year?.weightedAverageShsOutDil) ?? n(enterprise?.numberOfShares);
     const overlaid = overlayValuationColumn(column, {
-      price: enterprise?.stockPrice,
-      marketCap: enterprise?.marketCapitalization,
+      price: periodPrice,
+      marketCap: marketCapFromPrice(periodPrice, shares) ?? n(enterprise?.marketCapitalization),
       eps: year?.epsDiluted ?? year?.eps,
       revenue: year?.revenue,
       fcf: cash?.freeCashFlow,
@@ -584,7 +593,7 @@ export default async function FinancialsOverviewPage({
       const priorYear = String(annualIncome[index + 1]?.fiscalYear ?? "");
       const dps = dividendByYear.get(year) ?? null;
       const enterprise = matchEnterprise(enterpriseRows, row.date, row.fiscalYear);
-      const yearEndPrice = n(enterprise?.stockPrice);
+      const yearEndPrice = closeOnOrBefore(periodCloses, row.date) ?? n(enterprise?.stockPrice);
       return {
         key: year,
         label: fyLabel(year),
@@ -605,7 +614,7 @@ export default async function FinancialsOverviewPage({
     <Container>
       <PageHeader
         title={`${ticker} Financials Overview`}
-        description={`Revenue, profits, segments, cash, and valuation in millions of ${currency} except ratios and per-share items. Period ending dates follow company filings.`}
+        description={`Revenue, profits, segments, cash, and valuation in millions of ${currency} except ratios and per-share items. Period ending dates follow company filings. Fiscal valuation uses the last FMP close on or before each period end.`}
         actions={
           <YearToggle
             span={span}
@@ -765,6 +774,8 @@ export default async function FinancialsOverviewPage({
         <YearMetricTable
           columns={valuationColumns}
           rows={[
+            { key: "price", label: "Last Close Price", format: "eps" },
+            { key: "marketCap", label: "Market Capitalization", format: "money", href: `/stocks/${ticker}/market-cap` },
             { key: "pe", label: "PE Ratio", format: "ratio", href: `/stocks/${ticker}/pe-ratio` },
             { key: "forwardPe", label: "Forward PE", format: "ratio", href: `/stocks/${ticker}/forward-pe` },
             { key: "pfcf", label: "P/FCF Ratio", format: "ratio", href: `/stocks/${ticker}/pfcf-ratio` },

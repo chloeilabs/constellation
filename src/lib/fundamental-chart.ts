@@ -21,6 +21,10 @@ export const FUNDAMENTAL_METRICS: FundamentalMetric[] = [
   { id: "ebitda", label: "EBITDA", group: "Income", source: "income", field: "ebitda", format: "money" },
   { id: "ebit", label: "EBIT", group: "Income", source: "income", field: "ebit", format: "money" },
   { id: "operatingMargin", label: "Operating Margin", group: "Income", source: "income", field: "operatingProfitMargin", format: "percent" },
+  { id: "rd", label: "R&D", group: "Income", source: "income", field: "researchAndDevelopmentExpenses", format: "money" },
+  { id: "sga", label: "SG&A", group: "Income", source: "income", field: "sellingGeneralAndAdministrativeExpenses", format: "money" },
+  { id: "opex", label: "Operating Expenses", group: "Income", source: "income", field: "operatingExpenses", format: "money" },
+  { id: "shares", label: "Shares (Diluted)", group: "Income", source: "income", field: "weightedAverageShsOutDil", format: "share" },
   { id: "operatingCashFlow", label: "Operating Cash Flow", group: "Cash Flow", source: "cash", field: "netCashProvidedByOperatingActivities", format: "money" },
   { id: "freeCashFlow", label: "Free Cash Flow", group: "Cash Flow", source: "cash", field: "freeCashFlow", format: "money" },
   { id: "capex", label: "Capital Expenditures", group: "Cash Flow", source: "cash", field: "investmentsInPropertyPlantAndEquipment", format: "money" },
@@ -29,14 +33,18 @@ export const FUNDAMENTAL_METRICS: FundamentalMetric[] = [
   { id: "assets", label: "Total Assets", group: "Balance Sheet", source: "balance", field: "totalAssets", format: "money" },
   { id: "debt", label: "Total Debt", group: "Balance Sheet", source: "balance", field: "totalDebt", format: "money" },
   { id: "equity", label: "Shareholders' Equity", group: "Balance Sheet", source: "balance", field: "totalStockholdersEquity", format: "money" },
+  { id: "workingCapital", label: "Working Capital", group: "Balance Sheet", source: "balance", field: "workingCapital", format: "money" },
   { id: "pe", label: "PE Ratio", group: "Valuation", source: "ratios", field: "priceToEarningsRatio", format: "ratio" },
   { id: "ps", label: "PS Ratio", group: "Valuation", source: "ratios", field: "priceToSalesRatio", format: "ratio" },
   { id: "pb", label: "PB Ratio", group: "Valuation", source: "ratios", field: "priceToBookRatio", format: "ratio" },
   { id: "pfcf", label: "P/FCF", group: "Valuation", source: "ratios", field: "priceToFreeCashFlowRatio", format: "ratio" },
+  { id: "currentRatio", label: "Current Ratio", group: "Valuation", source: "ratios", field: "currentRatio", format: "ratio" },
+  { id: "debtEquity", label: "Debt / Equity", group: "Valuation", source: "ratios", field: "debtToEquityRatio", format: "ratio" },
   { id: "roe", label: "ROE", group: "Returns", source: "metrics", field: "returnOnEquity", format: "percent" },
   { id: "roic", label: "ROIC", group: "Returns", source: "metrics", field: "returnOnInvestedCapital", format: "percent" },
   { id: "evEbitda", label: "EV / EBITDA", group: "Returns", source: "metrics", field: "evToEBITDA", format: "ratio" },
   { id: "fcfYield", label: "FCF Yield", group: "Returns", source: "metrics", field: "freeCashFlowYield", format: "percent" },
+  { id: "book", label: "Book Value / Share", group: "Returns", source: "metrics", field: "bookValuePerShare", format: "eps" },
 ];
 
 export function resolveFundamentalMetric(id?: string | null) {
@@ -53,7 +61,15 @@ export function fundamentalMetricGroups() {
   return groups;
 }
 
-export function closeOnOrBefore(candles: ChartPoint[], date: string) {
+export function toCloseSeries(rows: { date: string; price: number }[]): ChartPoint[] {
+  return [...rows]
+    .filter((row) => typeof row.price === "number" && row.price > 0)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({ time: row.date, value: row.price }));
+}
+
+export function closeOnOrBefore(candles: ChartPoint[], date?: string | null) {
+  if (!date) return null;
   const day = date.slice(0, 10);
   let best: number | null = null;
   for (const row of candles) {

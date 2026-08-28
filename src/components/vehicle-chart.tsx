@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
-import { loadQuoteChart } from "@/lib/chart";
+import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
 import { getPriceChange, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { vehiclePath, type VehicleKind } from "@/lib/vehicle";
@@ -10,23 +10,33 @@ import { vehiclePath, type VehicleKind } from "@/lib/vehicle";
 export async function VehicleChart({
   symbol,
   range: rangeParam,
+  adj: adjParam,
   kind,
 }: {
   symbol: string;
   range?: string;
+  adj?: string;
   kind: VehicleKind;
 }) {
   const ticker = decodeTicker(symbol);
+  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [chart, changes, quote] = await Promise.all([
-    loadQuoteChart(ticker, rangeParam),
+    loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
     getPriceChange(ticker),
     getQuote(ticker),
   ]);
-  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
+  const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
 
   return (
     <Container>
-      <PageHeader title={`${ticker} Chart`} description="Price history with SMA, EMA, RSI, and multi-period total returns." />
+      <PageHeader
+        title={`${ticker} Chart`}
+        description={
+          adjusted
+            ? "Dividend-adjusted closes from FMP, with SMA 50/200 computed on the adjusted series, plus EMA 12/26 and RSI (14)."
+            : "Price history with SMA, EMA, RSI, and multi-period total returns."
+        }
+      />
       <PriceChart
         points={points}
         range={range}
@@ -39,6 +49,9 @@ export async function VehicleChart({
         ema12Series={ema12Series}
         ema26Series={ema26Series}
         rsiSeries={rsiSeries}
+        adjusted={adjusted}
+        showAdjustedToggle={canDividendAdjust(range)}
+        query={wantAdjusted ? { adj: "1" } : undefined}
       />
       <ReturnsTable changes={changes} />
     </Container>

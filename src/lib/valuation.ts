@@ -49,6 +49,11 @@ export function trailingPe(price: number | null | undefined, eps: number | null 
   return price / eps;
 }
 
+export function marketCapFromPrice(price: number | null | undefined, shares: number | null | undefined) {
+  if (price == null || shares == null || !(price > 0) || !(shares > 0)) return null;
+  return price * shares;
+}
+
 export function pegRatio(pe: number | null | undefined, growth: number | null | undefined) {
   if (pe == null || !(pe > 0) || growth == null || !(growth > 0)) return null;
   return pe / (growth * 100);

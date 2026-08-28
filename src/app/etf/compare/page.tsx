@@ -3,37 +3,45 @@ import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
+import { ComparePerformanceChart } from "@/components/compare-performance-chart";
 import { ETF_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
+import { compareChartFrom, compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
 import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS } from "@/lib/etf-compare";
 import { holdingQuoteHref, quoteHref } from "@/lib/listings";
 
 export const metadata = {
   title: "Compare ETFs",
-  description: "Side-by-side ETF and mutual fund quotes, expense ratios, returns, and top holdings from live FMP data.",
+  description: "Side-by-side ETF and mutual fund quotes, a normalized price chart, expense ratios, returns, and top holdings from live FMP data.",
 };
 
 export default async function EtfComparePage({
   searchParams,
 }: {
-  searchParams: Promise<{ symbols?: string }>;
+  searchParams: Promise<{ symbols?: string; chart?: string }>;
 }) {
-  const { symbols: raw } = await searchParams;
+  const { symbols: raw, chart: chartParam } = await searchParams;
   const symbols = (raw ?? "QQQ,SPY")
     .split(",")
     .map((symbol) => symbol.trim().toUpperCase())
     .filter(Boolean)
     .slice(0, 4);
-  const rows = await loadEtfCompare(symbols);
+  const span = compareChartSpan(chartParam);
+  const [rows, series] = await Promise.all([
+    loadEtfCompare(symbols),
+    getNormalizedCompareSeries(symbols, compareChartFrom(span)),
+  ]);
   const overlap = overlappingHoldings(rows);
+  const listQuery = `symbols=${encodeURIComponent(symbols.join(","))}`;
 
   return (
     <Container>
       <PageHeader
         title="Compare ETFs & Funds"
-        description="Live quotes, assets, expense ratios, total returns, sector weights, and top-holding overlap from Financial Modeling Prep."
+        description="Live quotes, a normalized price chart, assets, expense ratios, total returns, sector weights, and top-holding overlap from Financial Modeling Prep."
         actions={
-          <form className="flex gap-2">
+          <form method="get" className="flex gap-2">
+            {span === "5Y" ? <input type="hidden" name="chart" value="5Y" /> : null}
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
@@ -47,6 +55,15 @@ export default async function EtfComparePage({
         }
       />
       <SectionNav items={ETF_NAV} />
+
+      <div className="mb-10 rounded-lg border border-border p-4">
+        <ComparePerformanceChart
+          series={series}
+          span={span}
+          oneHref={`/etf/compare?${listQuery}`}
+          fiveHref={`/etf/compare?${listQuery}&chart=5Y`}
+        />
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">

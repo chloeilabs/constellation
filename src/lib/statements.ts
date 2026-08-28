@@ -163,6 +163,7 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   dividendPayoutRatio: "payout-ratio",
   buybackYield: "buybacks",
   shareholderYield: "buybacks",
+  interestCoverage: "interest-coverage",
 };
 
 export function withStatementHrefs(rows: StatementRow[], symbol: string): StatementRow[] {

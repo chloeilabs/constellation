@@ -6,6 +6,7 @@ import {
   getBalanceSheets,
   getCashFlows,
   getCashFlowTtm,
+  getDailyChart,
   getEnterpriseValues,
   getEstimates,
   getIncomeStatements,
@@ -17,6 +18,7 @@ import {
   getRatiosTtm,
   getYearAgoMarketCap,
 } from "@/lib/fmp";
+import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
 import { yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
@@ -33,12 +35,13 @@ import {
   withStatementHrefs,
 } from "@/lib/statements";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, StatementPeriod } from "@/lib/types";
-import { nyDateString, relativeChange } from "@/lib/utils";
+import { addDays, isoDate, nyDateString, relativeChange } from "@/lib/utils";
 import {
   actualToEstimateCagr,
   assignFinite,
   derivedValuationMetrics,
   estimateCagr,
+  marketCapFromPrice,
   nextEstimate,
 } from "@/lib/valuation";
 
@@ -174,6 +177,7 @@ export default async function RatiosPage({
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const span = spanFrom(yearsParam);
   const displayCount = statementLimit(period, span);
+  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), period === "quarter" ? -365 * 12 : -365 * 22));
   const [
     rows,
     ttm,
@@ -190,6 +194,7 @@ export default async function RatiosPage({
     quote,
     enterpriseRows,
     yearAgoCap,
+    dailyCloses,
   ] = await Promise.all([
     getRatios(ticker, period, displayCount),
     getRatiosTtm(ticker),
@@ -206,7 +211,9 @@ export default async function RatiosPage({
     getQuote(ticker),
     getEnterpriseValues(ticker, period, displayCount + 1),
     getYearAgoMarketCap(ticker),
+    getDailyChart(ticker, priceFrom),
   ]);
+  const periodCloses = toCloseSeries(dailyCloses);
   const latestAnnual = (annualIncome[0] ?? (period === "annual" ? incomeRows[0] : null)) ?? null;
   const priorAnnual = (annualIncome[1] ?? (period === "annual" ? incomeRows[1] : null)) ?? null;
   const annualShareYoy = relativeChange(
@@ -252,13 +259,27 @@ export default async function RatiosPage({
     const priorIncome = income
       ? incomeRows[incomeRows.findIndex((row) => row.date === income.date) + 1] ?? null
       : null;
+    const enterprise = isCurrent ? null : matchEnterprise(enterpriseRows, column);
+    const periodDate = isCurrent
+      ? null
+      : typeof column.values.date === "string"
+        ? column.values.date
+        : income?.date;
+    const periodPrice = isCurrent
+      ? quote?.price
+      : (closeOnOrBefore(periodCloses, periodDate) ?? num(enterprise?.stockPrice));
+    const shares = isCurrent
+      ? null
+      : num(income?.weightedAverageShsOutDil) ?? num(enterprise?.numberOfShares);
     return overlayRatioColumn(column, {
       income: isCurrent ? currentIncome : income,
       balance: isCurrent ? latestSheet : matchRow(balanceRows, column, period),
       cash: isCurrent ? cashTtm : matchRow(cashRows, column, period),
-      enterprise: isCurrent ? null : matchEnterprise(enterpriseRows, column),
-      price: isCurrent ? quote?.price : undefined,
-      marketCap: isCurrent ? quote?.marketCap : undefined,
+      enterprise,
+      price: periodPrice,
+      marketCap: isCurrent
+        ? quote?.marketCap
+        : (marketCapFromPrice(periodPrice, shares) ?? num(enterprise?.marketCapitalization)),
       nextEps: isCurrent ? nextEstimate(estimates)?.epsAvg : null,
       epsCagr: isCurrent ? epsCagr : null,
       sharesYoy: isCurrent
@@ -287,7 +308,7 @@ export default async function RatiosPage({
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use year-end price and reported filings. Forward PE and PEG are shown for Current only."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE and PEG are shown for Current only."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle
