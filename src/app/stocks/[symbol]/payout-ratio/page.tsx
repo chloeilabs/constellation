@@ -10,7 +10,7 @@ import { decodeTicker, stockPath } from "@/lib/listings";
 import { dividendsByFiscalYear, payoutRatioFromDps, trailingDividendThrough } from "@/lib/dividends";
 import { historyLabel } from "@/lib/period-valuation";
 import { indicatedAnnualDividend } from "@/lib/utils";
-import { trailingSum } from "@/lib/statements";
+import { filingLimit, trailingSum } from "@/lib/statements";
 import { periodFrom } from "@/components/statement-metric-page";
 
 function epsOf(row: { epsDiluted?: number; eps?: number } | null | undefined) {
@@ -32,11 +32,11 @@ export default async function PayoutRatioPage({
   const ticker = decodeTicker(symbol);
   const period = periodFrom(periodParam);
   const path = stockPath(ticker, "/payout-ratio");
-  const limit = period === "quarter" ? 12 : 20;
+  const limit = filingLimit(period);
   const extra = period === "quarter" ? 4 : 0;
   const [profile, dividends, ttm, income] = await Promise.all([
     getProfile(ticker),
-    getDividends(ticker, 80),
+    getDividends(ticker, 200),
     getIncomeTtm(ticker),
     getIncomeStatements(ticker, period, limit + extra),
   ]);

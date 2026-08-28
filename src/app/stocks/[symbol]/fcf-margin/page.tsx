@@ -8,6 +8,7 @@ import { formatPercentPlain } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { periodFrom } from "@/components/ratio-metric-page";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -31,11 +32,11 @@ export default async function FcfMarginPage({
   const period = periodFrom(periodParam);
   const path = stockPath(ticker, "/fcf-margin");
   const [annualCash, quarterCash, ttmCash, annualIncome, quarterIncome, ttmIncome] = await Promise.all([
-    getCashFlows(ticker, "annual", 20),
-    getCashFlows(ticker, "quarter", 12),
+    getCashFlows(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getCashFlows(ticker, "quarter", QUARTER_FILING_LIMIT),
     getCashFlowTtm(ticker),
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 12),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeTtm(ticker),
   ]);
   const cash = period === "quarter" ? quarterCash : annualCash;

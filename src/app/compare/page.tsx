@@ -198,6 +198,9 @@ export default async function ComparePage({
             <MetricRow label="Dividend Yield" rows={rows}>
               {(row) => formatPercentPlain(row.dividendYield)}
             </MetricRow>
+            <MetricRow label="TTM Yield" rows={rows}>
+              {(row) => formatPercentPlain(row.ttmYield)}
+            </MetricRow>
             <MetricRow label="Profit Margin" rows={rows}>
               {(row) => formatPercentPlain(row.margins?.netProfitMargin)}
             </MetricRow>

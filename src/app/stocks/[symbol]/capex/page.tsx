@@ -8,6 +8,7 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 
 export default async function CapexPage({
   params,
@@ -21,8 +22,8 @@ export default async function CapexPage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm] = await Promise.all([
-    getCashFlows(ticker, "annual", 20),
-    getCashFlows(ticker, "quarter", 12),
+    getCashFlows(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getCashFlows(ticker, "quarter", QUARTER_FILING_LIMIT),
     getCashFlowTtm(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;

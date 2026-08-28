@@ -77,7 +77,14 @@ export { compareTotalReturnBlurb };
 export function overlappingHoldings(rows: EtfCompareRow[]) {
   if (rows.length < 2) return [];
   const maps = rows.map(
-    (row) => new Map(row.topHoldings.map((holding) => [holding.asset.toUpperCase(), holding])),
+    (row) =>
+      new Map(
+        row.topHoldings.flatMap((holding) => {
+          const asset = holding.asset?.trim();
+          if (!asset || asset === "-") return [];
+          return [[asset.toUpperCase(), holding] as const];
+        }),
+      ),
   );
   const first = [...maps[0].keys()];
   return first

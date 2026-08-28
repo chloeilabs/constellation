@@ -10,6 +10,7 @@ import { getBalanceSheets, getIncomeStatements } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { netCashPosition } from "@/lib/utils";
 import { periodFrom } from "@/components/statement-metric-page";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -33,10 +34,10 @@ export default async function NetCashPerSharePage({
   const period = periodFrom(periodParam);
   const path = stockPath(ticker, "/net-cash-per-share");
   const [annual, quarterly, annualIncome, quarterlyIncome] = await Promise.all([
-    getBalanceSheets(ticker, "annual", 20),
-    getBalanceSheets(ticker, "quarter", 12),
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 12),
+    getBalanceSheets(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getBalanceSheets(ticker, "quarter", QUARTER_FILING_LIMIT),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const income = period === "quarter" ? quarterlyIncome : annualIncome;

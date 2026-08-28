@@ -1298,6 +1298,10 @@ export const ANNUAL_FILING_LIMIT = 50;
 /** Ten years of quarters. */
 export const QUARTER_FILING_LIMIT = 40;
 
+export function filingLimit(period: "annual" | "quarter") {
+  return period === "quarter" ? QUARTER_FILING_LIMIT : ANNUAL_FILING_LIMIT;
+}
+
 export function spanFrom(value?: string): StatementSpan {
   if (value === "10" || value === "max") return value;
   return "5";

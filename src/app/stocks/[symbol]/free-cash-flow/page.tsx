@@ -8,7 +8,7 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getCashFlows, getCashFlowTtm, getIncomeTtm, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
-import { ttmChange } from "@/lib/statements";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT, ttmChange } from "@/lib/statements";
 
 export default async function FreeCashFlowPage({
   params,
@@ -22,8 +22,8 @@ export default async function FreeCashFlowPage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, quote, income] = await Promise.all([
-    getCashFlows(ticker, "annual", 20),
-    getCashFlows(ticker, "quarter", 12),
+    getCashFlows(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getCashFlows(ticker, "quarter", QUARTER_FILING_LIMIT),
     getCashFlowTtm(ticker),
     getQuote(ticker),
     getIncomeTtm(ticker),

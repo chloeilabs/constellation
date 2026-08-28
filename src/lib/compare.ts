@@ -2,6 +2,7 @@ import {
   getBalanceSheets,
   getCashFlowTtm,
   getDividendAdjustedChart,
+  getDividends,
   getEstimates,
   getGradesConsensus,
   getIncomeTtm,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/fmp";
 import { downsampleChartPoints, loadVehiclePerformance } from "@/lib/chart";
 import { type CompareChartSpan } from "@/lib/compare-chart";
+import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
 import { valuationFromFilings } from "@/lib/period-valuation";
 import { derivedStatementMetrics } from "@/lib/statements";
 import type { ChartPoint } from "@/lib/types";
@@ -43,7 +45,7 @@ export async function getProfilesAndQuotes(symbols: string[]) {
   return Promise.all(
     symbols.map(async (symbol) => {
       const profilePromise = getProfile(symbol);
-      const [quote, profile, ttm, cash, sheets, estimates, target, grades, performance] = await Promise.all([
+      const [quote, profile, ttm, cash, sheets, estimates, target, grades, performance, dividends] = await Promise.all([
         getQuote(symbol),
         profilePromise,
         getIncomeTtm(symbol),
@@ -53,6 +55,7 @@ export async function getProfilesAndQuotes(symbols: string[]) {
         getPriceTarget(symbol),
         getGradesConsensus(symbol),
         profilePromise.then((company) => loadVehiclePerformance(symbol, company?.ipoDate)),
+        getDividends(symbol, DISTRIBUTION_TTM_LIMIT),
       ]);
       const live = valuationFromFilings({
         price: quote?.price,
@@ -72,9 +75,11 @@ export async function getProfilesAndQuotes(symbols: string[]) {
           })
         : null;
       const indicated = indicatedAnnualDividend(null, profile?.lastDividend);
+      const price = quote?.price;
       const dividendYield =
-        indicated != null && quote?.price && quote.price > 0 ? indicated / quote.price : null;
-      return { symbol, quote, profile, ttm, cash, estimates, target, grades, live, margins, dividendYield, performance };
+        indicated != null && price && price > 0 ? indicated / price : null;
+      const ttmYield = dividendYieldFromPrice(trailingDividendWindow(dividends, nyDateString()), price);
+      return { symbol, quote, profile, ttm, cash, estimates, target, grades, live, margins, dividendYield, ttmYield, performance };
     }),
   );
 }

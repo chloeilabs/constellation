@@ -8,7 +8,7 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatPercentPlain, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { trailingSum, ttmChange } from "@/lib/statements";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT, trailingSum, ttmChange } from "@/lib/statements";
 import { periodFrom } from "@/components/statement-metric-page";
 
 function num(value: unknown) {
@@ -28,8 +28,8 @@ export default async function OperatingExpensesPage({
   const period = periodFrom(periodParam);
   const path = stockPath(ticker, "/operating-expenses");
   const [annual, quarterly, ttm] = await Promise.all([
-    getIncomeStatements(ticker, "annual", 20),
-    getIncomeStatements(ticker, "quarter", 24),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeTtm(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;

@@ -32,7 +32,7 @@ export default async function MarketCapPage({ params }: { params: Promise<{ symb
     latest && yearAgo && yearAgo.marketCap
       ? (latest.marketCap - yearAgo.marketCap) / Math.abs(yearAgo.marketCap)
       : null;
-  const chartItems = [...annual].reverse().slice(-16).map((row) => ({
+  const chartItems = [...annual].reverse().map((row) => ({
     label: row.date.slice(0, 4),
     value: row.marketCap,
   }));
@@ -41,7 +41,7 @@ export default async function MarketCapPage({ params }: { params: Promise<{ symb
     <Container>
       <PageHeader
         title={`${ticker} Market Cap`}
-        description="Historical market capitalization and net worth."
+        description="Historical market capitalization from FMP daily sessions. The chart and table use year-end snapshots for the full archive."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards

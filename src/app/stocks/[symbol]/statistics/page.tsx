@@ -45,7 +45,7 @@ import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
 import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString, relativeChange } from "@/lib/utils";
 import { DISTRIBUTION_TTM_LIMIT, consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
-import { derivedStatementMetrics } from "@/lib/statements";
+import { ANNUAL_FILING_LIMIT, derivedStatementMetrics } from "@/lib/statements";
 import { valuationFromFilings } from "@/lib/period-valuation";
 import { estimatedWacc } from "@/lib/wacc";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
@@ -116,7 +116,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getYearAgoMarketCap(ticker),
     getLatestInstitutionalOwnership(ticker, 0),
     getTreasuryRates(isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -30)), nyDateString()),
-    getIncomeStatements(ticker, "annual", 16),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
   ]);
   const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
 

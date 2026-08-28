@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getCashFlowTtm, getDividends, getIncomeStatements, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, displayCompanyName } from "@/lib/listings";
-import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
+import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trailingDividendWindow } from "@/lib/dividends";
+import { ANNUAL_FILING_LIMIT } from "@/lib/statements";
 import { cashOutlay, indicatedAnnualDividend, nyDateString, payoutFrequencyLabel, payoutFrequencyProse, relativeChange } from "@/lib/utils";
 import { buybackYieldFromShareChange } from "@/lib/valuation";
 
@@ -16,15 +17,16 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
     getProfile(ticker),
     getDividends(ticker, 200),
     getQuote(ticker),
-    getIncomeStatements(ticker, "annual", 20),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
     getCashFlowTtm(ticker),
     getIncomeTtm(ticker),
   ]);
   const latest = dividends[0];
   const annualized = indicatedAnnualDividend(latest, profile?.lastDividend);
   const price = quote?.price ?? profile?.price;
+  const today = nyDateString();
   const indicatedYield = annualized && price ? annualized / price : null;
-  const ttmYield = indicatedYield;
+  const ttmYield = dividendYieldFromPrice(trailingDividendWindow(dividends, today), price);
   const payout = payoutRatioFromDps(annualized, ttm?.epsDiluted ?? ttm?.eps);
 
   const ttmGrowth = dividendTtmGrowth(dividends);
@@ -45,10 +47,9 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const cashBuybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
   const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
   const shareholderYield =
-    buybackYield != null || ttmYield != null ? (buybackYield ?? 0) + (ttmYield ?? 0) : null;
+    buybackYield != null || indicatedYield != null ? (buybackYield ?? 0) + (indicatedYield ?? 0) : null;
   const currency = profile?.currency || "USD";
   const px = (value: number | null | undefined) => formatMoney(value, currency);
-  const today = nyDateString();
   const upcoming = [...dividends]
     .filter((row) => (row.date || "") >= today)
     .sort((a, b) => a.date.localeCompare(b.date));

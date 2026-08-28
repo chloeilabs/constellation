@@ -5,10 +5,11 @@ import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import { ComparePerformanceChart } from "@/components/compare-performance-chart";
 import { ETF_NAV } from "@/lib/nav";
+import { HoldingTicker } from "@/components/holding-ticker";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
 import { compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
 import { loadEtfCompare, overlappingHoldings, allocationRows, POPULAR_ETF_COMPARISONS, compareTotalReturnBlurb, ETF_COMPARE_TOP_HOLDINGS } from "@/lib/etf-compare";
-import { holdingQuoteHref, quoteHref } from "@/lib/listings";
+import { quoteHref } from "@/lib/listings";
 
 export const metadata = {
   title: "Compare ETFs",
@@ -170,28 +171,19 @@ export default async function EtfComparePage({
                 </tr>
               </thead>
               <tbody>
-                {overlap.map((item) => {
-                  const href = holdingQuoteHref(item.asset, item.name);
-                  return (
-                    <tr key={item.asset}>
-                      <td className="symbol">
-                        {href ? (
-                          <Link href={href} className="text-link hover:underline">
-                            {item.asset}
-                          </Link>
-                        ) : (
-                          item.asset
-                        )}
+                {overlap.map((item) => (
+                  <tr key={item.asset}>
+                    <td className="symbol">
+                      <HoldingTicker asset={item.asset} name={item.name} />
+                    </td>
+                    <td className="max-w-[240px] truncate">{item.name}</td>
+                    {item.weights.map((weight, index) => (
+                      <td key={rows[index]?.symbol ?? index} className="num">
+                        {formatPercentPlain(weight, { alreadyPercent: true })}
                       </td>
-                      <td className="max-w-[240px] truncate">{item.name}</td>
-                      {item.weights.map((weight, index) => (
-                        <td key={rows[index]?.symbol ?? index} className="num">
-                          {formatPercentPlain(weight, { alreadyPercent: true })}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -316,31 +308,17 @@ function TopHoldingsSection({ rows }: { rows: Awaited<ReturnType<typeof loadEtfC
                       </td>
                     </tr>
                   ) : (
-                    row.topHoldings.map((holding, index) => {
-                      const href = holdingQuoteHref(holding.asset, holding.name);
-                      return (
-                        <tr key={`${holding.asset}-${index}`}>
-                          <td className="text-muted">{index + 1}</td>
-                          <td>
-                            {href ? (
-                              <Link href={href} className="text-link hover:underline">
-                                {holding.asset}
-                              </Link>
-                            ) : (
-                              holding.asset || "—"
-                            )}
-                            {holding.name ? (
-                              <span className="mt-0.5 block max-w-[280px] truncate text-xs text-muted">
-                                {holding.name}
-                              </span>
-                            ) : null}
-                          </td>
-                          <td className="num">
-                            {formatPercentPlain(holding.weightPercentage, { alreadyPercent: true })}
-                          </td>
-                        </tr>
-                      );
-                    })
+                    row.topHoldings.map((holding, index) => (
+                      <tr key={`${holding.asset}-${index}`}>
+                        <td className="text-muted">{index + 1}</td>
+                        <td>
+                          <HoldingTicker asset={holding.asset} name={holding.name} stackedName />
+                        </td>
+                        <td className="num">
+                          {formatPercentPlain(holding.weightPercentage, { alreadyPercent: true })}
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

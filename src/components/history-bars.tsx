@@ -1,3 +1,11 @@
+function axisLabel(items: { label: string }[], index: number) {
+  const count = items.length;
+  if (count <= 18) return items[index].label;
+  const step = Math.max(1, Math.round((count - 1) / 10));
+  if (index === 0 || index === count - 1 || index % step === 0) return items[index].label;
+  return "";
+}
+
 export function HistoryBars({
   items,
   formatValue,
@@ -14,14 +22,14 @@ export function HistoryBars({
     const peak = Math.max(max, 1);
     return (
       <div className="flex h-48 items-end gap-1 rounded-lg border border-border bg-muted-bg px-3 pb-8 pt-4">
-        {items.map((item) => (
-          <div key={item.label} className="flex h-full min-w-0 flex-1 flex-col justify-end">
+        {items.map((item, index) => (
+          <div key={`${item.label}-${index}`} className="flex h-full min-w-0 flex-1 flex-col justify-end">
             <div
               className="w-full rounded-t bg-brand/80"
               style={{ height: `${Math.max(4, (item.value / peak) * 100)}%` }}
               title={formatValue ? `${item.label}: ${formatValue(item.value)}` : item.label}
             />
-            <div className="mt-1 truncate text-center text-[10px] text-muted">{item.label}</div>
+            <div className="mt-1 truncate text-center text-[10px] text-muted">{axisLabel(items, index)}</div>
           </div>
         ))}
       </div>
@@ -35,11 +43,11 @@ export function HistoryBars({
   return (
     <div className="rounded-lg border border-border bg-muted-bg px-3 pb-8 pt-4">
       <div className="flex h-48 items-stretch gap-1">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const positive = item.value >= 0;
           const title = formatValue ? `${item.label}: ${formatValue(item.value)}` : item.label;
           return (
-            <div key={item.label} className="flex min-w-0 flex-1 flex-col">
+            <div key={`${item.label}-${index}`} className="flex min-w-0 flex-1 flex-col">
               <div className="flex justify-end" style={{ flexGrow: Math.max(upRatio, 0.08), flexBasis: 0 }}>
                 {positive ? (
                   <div
@@ -64,9 +72,9 @@ export function HistoryBars({
         })}
       </div>
       <div className="mt-1 flex gap-1">
-        {items.map((item) => (
-          <div key={item.label} className="min-w-0 flex-1 truncate text-center text-[10px] text-muted">
-            {item.label}
+        {items.map((item, index) => (
+          <div key={`${item.label}-${index}`} className="min-w-0 flex-1 truncate text-center text-[10px] text-muted">
+            {axisLabel(items, index)}
           </div>
         ))}
       </div>

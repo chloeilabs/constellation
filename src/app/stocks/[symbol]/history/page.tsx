@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { DownloadCsvButton } from "@/components/download-csv";
 import { PageHeader, RangeToggle } from "@/components/page-header";
+import { TablePager } from "@/components/table-pager";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatInteger, formatMoney, formatPrice } from "@/lib/format";
 import { getDividendAdjustedChart, getFullDailyChart, getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
 import { indexDisplayName, isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { pageHref, pageNumber, paginate } from "@/lib/paging";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpFullCandle } from "@/lib/types";
 
@@ -52,10 +54,10 @@ export default async function StockHistoryPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ years?: string }>;
+  searchParams: Promise<{ years?: string; page?: string }>;
 }) {
   const { symbol } = await params;
-  const { years: yearsParam } = await searchParams;
+  const { years: yearsParam, page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const index = isIndexTicker(ticker);
   const range = historyRange(yearsParam);
@@ -78,9 +80,13 @@ export default async function StockHistoryPage({
   );
   const daily = withSessionChange(prices, index ? undefined : adjCloseByDate);
   const caps = [...marketCaps].sort((a, b) => b.date.localeCompare(a.date));
-  const shown = daily.slice(0, 250);
-  const shownCaps = caps.slice(0, 250);
+  const pricePage = paginate(daily, pageNumber(pageParam));
+  const capPage = paginate(caps, pageNumber(pageParam));
+  const shown = pricePage.rows;
+  const shownCaps = capPage.rows;
   const showAdjClose = !index;
+  const yearsQuery = range === "6" ? undefined : range;
+  const historyPageHref = (page: number) => pageHref(base, page, { years: yearsQuery });
 
   return (
     <Container>
@@ -131,12 +137,10 @@ export default async function StockHistoryPage({
           ) : null}
         </div>
         <p className="mb-2 text-xs text-muted">
-          {shown.length < daily.length
-            ? `Showing the latest ${shown.length.toLocaleString("en-US")} of ${daily.length.toLocaleString("en-US")} sessions. Download CSV for the full window.`
-            : `${daily.length.toLocaleString("en-US")} sessions in this window.`}
           {showAdjClose
-            ? " Adj. Close is FMP dividend-adjusted. Change is versus the previous session close."
-            : " Change is versus the previous session close."}
+            ? "Adj. Close is FMP dividend-adjusted. Change is versus the previous session close."
+            : "Change is versus the previous session close."}{" "}
+          Download CSV for the full window.
         </p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
@@ -178,6 +182,17 @@ export default async function StockHistoryPage({
             </tbody>
           </table>
         </div>
+        <TablePager
+          from={pricePage.from}
+          to={pricePage.to}
+          total={pricePage.total}
+          page={pricePage.page}
+          pageCount={pricePage.pageCount}
+          firstHref={pricePage.page > 1 ? historyPageHref(1) : undefined}
+          prevHref={pricePage.page > 1 ? historyPageHref(pricePage.page - 1) : undefined}
+          nextHref={pricePage.page < pricePage.pageCount ? historyPageHref(pricePage.page + 1) : undefined}
+          lastHref={pricePage.page < pricePage.pageCount ? historyPageHref(pricePage.pageCount) : undefined}
+        />
       </section>
 
       {index ? null : (
@@ -198,11 +213,7 @@ export default async function StockHistoryPage({
                 </Link>
               </div>
             </div>
-            <p className="mb-2 text-xs text-muted">
-              {shownCaps.length < caps.length
-                ? `Showing the latest ${shownCaps.length.toLocaleString("en-US")} of ${caps.length.toLocaleString("en-US")} sessions. Download CSV for the full window.`
-                : `${caps.length.toLocaleString("en-US")} sessions in this window.`}
-            </p>
+            <p className="mb-2 text-xs text-muted">Download CSV for the full window.</p>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="sa-table">
                 <thead>
@@ -229,6 +240,17 @@ export default async function StockHistoryPage({
                 </tbody>
               </table>
             </div>
+            <TablePager
+              from={capPage.from}
+              to={capPage.to}
+              total={capPage.total}
+              page={capPage.page}
+              pageCount={capPage.pageCount}
+              firstHref={capPage.page > 1 ? historyPageHref(1) : undefined}
+              prevHref={capPage.page > 1 ? historyPageHref(capPage.page - 1) : undefined}
+              nextHref={capPage.page < capPage.pageCount ? historyPageHref(capPage.page + 1) : undefined}
+              lastHref={capPage.page < capPage.pageCount ? historyPageHref(capPage.pageCount) : undefined}
+            />
           </section>
 
           <section className="mt-10">

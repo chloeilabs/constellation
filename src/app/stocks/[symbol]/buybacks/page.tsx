@@ -12,6 +12,7 @@ import { decodeTicker, stockPath } from "@/lib/listings";
 import { dividendYieldFromPrice } from "@/lib/dividends";
 import { cashOutlay, indicatedAnnualDividend } from "@/lib/utils";
 import { buybackYieldFromShareChange } from "@/lib/valuation";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 
 export default async function BuybacksPage({
   params,
@@ -26,8 +27,8 @@ export default async function BuybacksPage({
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const base = stockPath(ticker, "/buybacks");
   const [annual, quarterly, ttm, quote, dividends, growthRows] = await Promise.all([
-    getCashFlows(ticker, "annual", 20),
-    getCashFlows(ticker, "quarter", 12),
+    getCashFlows(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getCashFlows(ticker, "quarter", QUARTER_FILING_LIMIT),
     getCashFlowTtm(ticker),
     getQuote(ticker),
     getDividends(ticker, 4),

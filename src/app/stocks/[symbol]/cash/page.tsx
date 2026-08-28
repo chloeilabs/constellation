@@ -10,6 +10,7 @@ import { getBalanceSheets } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { cashAndInvestments } from "@/lib/utils";
 import { periodFrom } from "@/components/statement-metric-page";
+import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT } from "@/lib/statements";
 
 export default async function CashPage({
   params,
@@ -23,8 +24,8 @@ export default async function CashPage({
   const ticker = decodeTicker(symbol);
   const period = periodFrom(periodParam);
   const [annual, quarterly] = await Promise.all([
-    getBalanceSheets(ticker, "annual", 20),
-    getBalanceSheets(ticker, "quarter", 12),
+    getBalanceSheets(ticker, "annual", ANNUAL_FILING_LIMIT),
+    getBalanceSheets(ticker, "quarter", QUARTER_FILING_LIMIT),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const latest = quarterly[0] ?? annual[0] ?? null;
