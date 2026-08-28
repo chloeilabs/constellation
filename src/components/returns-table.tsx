@@ -25,11 +25,15 @@ function withAdjustedTotals(changes: FmpPriceChange | null, performance?: Vehicl
   if (!performance) return changes;
   const overlay: Partial<Record<PeriodKey, number>> = {};
   const oneMonth = asPercent(performance.oneMonth);
+  const threeMonth = asPercent(performance.threeMonth);
+  const sixMonth = asPercent(performance.sixMonth);
   const ytd = asPercent(performance.ytd);
   const oneYear = asPercent(performance.oneYear);
   const fiveYear = asPercent(performance.fiveYearTotal);
   const max = asPercent(performance.inceptionTotal);
   if (oneMonth != null) overlay["1M"] = oneMonth;
+  if (threeMonth != null) overlay["3M"] = threeMonth;
+  if (sixMonth != null) overlay["6M"] = sixMonth;
   if (ytd != null) overlay.ytd = ytd;
   if (oneYear != null) overlay["1Y"] = oneYear;
   if (fiveYear != null) overlay["5Y"] = fiveYear;

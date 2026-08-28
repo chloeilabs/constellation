@@ -434,6 +434,8 @@ function periodReturn(
 
 export type VehiclePerformance = {
   oneMonth: number | null;
+  threeMonth: number | null;
+  sixMonth: number | null;
   ytd: number | null;
   oneYear: number | null;
   fiveYear: number | null;
@@ -481,6 +483,8 @@ export async function loadVehiclePerformance(symbol: string, inception?: string 
   if (points.length < 2) return null;
 
   const oneMonth = sessionReturn(points, 21);
+  const threeMonth = periodReturn(points, isoDate(addDays(today, -91)), { minDays: 60 });
+  const sixMonth = periodReturn(points, isoDate(addDays(today, -182)), { minDays: 120 });
   const ytd = periodReturn(points, `${today.getUTCFullYear()}-01-01`, { minDays: 1, maxLag: 10 });
   const oneYear = periodReturn(points, isoDate(addDays(today, -365)), { minDays: 300 });
   const fiveYear = periodReturn(points, isoDate(addDays(today, -365 * 5)), {
@@ -498,6 +502,8 @@ export async function loadVehiclePerformance(symbol: string, inception?: string 
   const inceptionCagr = seriesCagr(points);
   if (
     oneMonth == null &&
+    threeMonth == null &&
+    sixMonth == null &&
     ytd == null &&
     oneYear == null &&
     fiveYear == null &&
@@ -506,5 +512,16 @@ export async function loadVehiclePerformance(symbol: string, inception?: string 
   ) {
     return null;
   }
-  return { oneMonth, ytd, oneYear, fiveYear, fiveYearTotal, tenYear, inceptionTotal, inceptionCagr };
+  return {
+    oneMonth,
+    threeMonth,
+    sixMonth,
+    ytd,
+    oneYear,
+    fiveYear,
+    fiveYearTotal,
+    tenYear,
+    inceptionTotal,
+    inceptionCagr,
+  };
 }
