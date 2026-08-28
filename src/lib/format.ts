@@ -57,6 +57,15 @@ export function formatMoney(value: number | null | undefined, currency?: string 
   return prefix ? `${prefix}${amount}` : `${amount} ${code}`;
 }
 
+/** Whole-dollar amounts such as revenue per employee on Stock Analysis. */
+export function formatMoneyWhole(value: number | null | undefined, currency?: string | null) {
+  if (value == null || Number.isNaN(value)) return "—";
+  const code = (currency || "USD").toUpperCase();
+  const prefix = CURRENCY_PREFIX[code];
+  const amount = Math.round(value).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return prefix ? `${prefix}${amount}` : `${amount} ${code}`;
+}
+
 export function formatCompact(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return "—";
   const abs = Math.abs(value);
@@ -265,7 +274,7 @@ export function formatVolume(value: number | null | undefined) {
   return formatInteger(value);
 }
 
-export function formatDate(value: string | null | undefined) {
+export function formatDate(value: string | null | undefined, options?: { month?: "short" | "long" }) {
   if (!value) return "—";
   const day = value.slice(0, 10);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(day)
@@ -273,7 +282,7 @@ export function formatDate(value: string | null | undefined) {
     : new Date(value.includes("T") ? value : `${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("en-US", {
-    month: "short",
+    month: options?.month ?? "short",
     day: "numeric",
     year: "numeric",
   });
