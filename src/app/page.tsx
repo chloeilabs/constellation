@@ -39,6 +39,8 @@ const MARKET_LINKS = [
   ["/list/magnificent-seven", "Mag 7"],
   ["/list/faang", "FAANG"],
   ["/list/ai-stocks", "AI"],
+  ["/list/clean-energy", "Clean Energy"],
+  ["/list/spac-stocks", "SPACs"],
   ["/list/ev-stocks", "EVs"],
   ["/list/glp1-stocks", "GLP-1"],
   ["/list/apparel-stocks", "Apparel"],

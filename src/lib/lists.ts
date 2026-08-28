@@ -20,6 +20,8 @@ type ScreenerList = {
   yieldMax?: number;
   symbolPattern?: string;
   namePattern?: string;
+  excludeNamePattern?: string;
+  excludeSymbolPattern?: string;
   capMax?: number;
 };
 
@@ -93,6 +95,8 @@ type IndustryMatchList = {
   source: "industry-match";
   sector?: string;
   industryPattern: string;
+  /** When set, query these FMP industries instead of scanning a sector page. */
+  industries?: readonly string[];
   hrefBase?: "/stocks" | "/etf" | "/funds";
 };
 
@@ -456,6 +460,44 @@ export const STOCK_LISTS = {
     hrefBase: "/etf",
     namePattern: "XRP|Ripple",
   },
+  "artificial-intelligence-etfs": {
+    title: "Artificial Intelligence ETFs",
+    description:
+      "U.S. ETFs whose names point to artificial intelligence, generative AI, or robotics & AI, ranked by FMP market value. Not a full thematic holdings screen.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US" },
+    limit: 1000,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+    namePattern:
+      "Artificial Intelligence|A\\.I\\.|Robotics & Artificial|Future AI|Generative AI|Robotics and Automation|Autonomous Technology",
+  },
+  "australian-etfs": {
+    title: "Australian ETFs",
+    description: "The largest ETFs listed on the Australian Securities Exchange, ranked by FMP market value.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "AU" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    hrefBase: "/etf",
+    symbolPattern: "\\.AX$",
+  },
+  "canadian-etfs": {
+    title: "Canadian ETFs",
+    description: "The largest ETFs listed on Canadian exchanges, ranked by FMP market value.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "CA" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    hrefBase: "/etf",
+    symbolPattern: "\\.(TO|NE)$",
+  },
   "leveraged-etfs": {
     title: "Leveraged ETFs",
     description: "U.S. leveraged and inverse equity ETFs, ranked by market value.",
@@ -642,6 +684,15 @@ export const STOCK_LISTS = {
     sort: "marketCap",
     listing: "primary",
   },
+  "clean-energy": {
+    title: "Clean Energy Stocks",
+    description:
+      "U.S.-listed solar and renewable-utility companies from FMP industry screens, ranked by market capitalization. Not a full clean-energy thematic universe.",
+    category: "popular",
+    source: "industry-match",
+    industryPattern: "Renewable Utilities|^Solar$",
+    industries: ["Renewable Utilities", "Solar"],
+  },
   "steel-stocks": {
     title: "Steel Stocks",
     description: "U.S. steel companies, ranked by market capitalization.",
@@ -681,6 +732,26 @@ export const STOCK_LISTS = {
     limit: 100,
     sort: "marketCap",
     listing: "primary",
+  },
+  "online-gambling": {
+    title: "Online Gambling Stocks",
+    description: "U.S.-listed sports-betting, iGaming, and casino operators, with live FMP quotes.",
+    category: "popular",
+    source: "symbols",
+    symbols: ["FLUT", "MGM", "DKNG", "RSI", "BYD", "CZR", "SRAD", "PENN", "GENI", "PLTK", "DDI", "INSE", "GIGM"],
+  },
+  "spac-stocks": {
+    title: "SPAC Stocks",
+    description:
+      "U.S. special-purpose acquisition companies from FMP’s Shell Companies industry, excluding warrants and units.",
+    category: "popular",
+    source: "screener",
+    filters: { country: "US", industry: "Shell Companies" },
+    limit: 200,
+    sort: "marketCap",
+    listing: "primary",
+    excludeNamePattern: "Warrant|\\bUnits?\\b|\\bRights?\\b",
+    excludeSymbolPattern: "(W|U|-UN|-WT|-RT)$",
   },
   "shipping-stocks": {
     title: "Shipping Stocks",
@@ -1061,6 +1132,18 @@ export const STOCK_LISTS = {
     listing: "raw",
     symbolPattern: "^[A-Z0-9]+\\.DE$",
   },
+  "frankfurt-stocks": {
+    title: "Frankfurt Stock Exchange",
+    description:
+      "The largest listings on the Frankfurt Stock Exchange, ranked by FMP market cap. Mutual-fund share classes (0P…) are excluded.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "FSX" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]{2,6}\\.F$",
+  },
   "japan-stocks": {
     title: "Tokyo Stock Exchange",
     description: "The largest Japanese companies listed on the Tokyo Stock Exchange.",
@@ -1205,6 +1288,9 @@ export const LIST_NAV = [
   { href: "/list/cef-funds", label: "CEFs" },
   { href: "/list/preferred-stocks", label: "Preferred" },
   { href: "/list/solar-stocks", label: "Solar" },
+  { href: "/list/clean-energy", label: "Clean Energy" },
+  { href: "/list/spac-stocks", label: "SPACs" },
+  { href: "/list/online-gambling", label: "Online Gambling" },
   { href: "/list/cybersecurity-stocks", label: "Cyber" },
   { href: "/list/fintech-stocks", label: "Fintech" },
   { href: "/list/streaming-stocks", label: "Streaming" },
@@ -1260,6 +1346,26 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   shipping: "shipping-stocks",
   tobacco: "tobacco-stocks",
   casinos: "casino-stocks",
+  "online-gambling-stocks": "online-gambling",
+  igaming: "online-gambling",
+  "sports-betting": "online-gambling",
+  "clean-energy-stocks": "clean-energy",
+  "renewable-energy": "clean-energy",
+  "renewable-energy-stocks": "clean-energy",
+  spacs: "spac-stocks",
+  spac: "spac-stocks",
+  "blank-check-stocks": "spac-stocks",
+  "blank-check-companies": "spac-stocks",
+  "shell-companies": "spac-stocks",
+  "ai-etfs": "artificial-intelligence-etfs",
+  "ai-etf": "artificial-intelligence-etfs",
+  "australia-etfs": "australian-etfs",
+  "asx-etfs": "australian-etfs",
+  "canada-etfs": "canadian-etfs",
+  "tsx-etfs": "canadian-etfs",
+  frankfurt: "frankfurt-stocks",
+  "frankfurt-stock-exchange": "frankfurt-stocks",
+  fra: "frankfurt-stocks",
   beverages: "beverage-stocks",
   steel: "steel-stocks",
   uranium: "uranium-stocks",
@@ -1444,7 +1550,11 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
   }
 
   if (list.source === "industry-match") {
-    return loadIndustryMatchList(list.sector, list.industryPattern);
+    return loadIndustryMatchList(
+      "sector" in list ? list.sector : undefined,
+      list.industryPattern,
+      "industries" in list ? list.industries : undefined,
+    );
   }
 
   if (list.source === "fundamentals-rank") {
@@ -1487,6 +1597,20 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
     "namePattern" in list && typeof list.namePattern === "string" ? new RegExp(list.namePattern, "i") : null;
   if (namePattern) {
     selected = selected.filter((row) => namePattern.test(row.companyName || ""));
+  }
+  const excludeNamePattern =
+    "excludeNamePattern" in list && typeof list.excludeNamePattern === "string"
+      ? new RegExp(list.excludeNamePattern, "i")
+      : null;
+  if (excludeNamePattern) {
+    selected = selected.filter((row) => !excludeNamePattern.test(row.companyName || ""));
+  }
+  const excludeSymbolPattern =
+    "excludeSymbolPattern" in list && typeof list.excludeSymbolPattern === "string"
+      ? new RegExp(list.excludeSymbolPattern, "i")
+      : null;
+  if (excludeSymbolPattern) {
+    selected = selected.filter((row) => !excludeSymbolPattern.test(row.symbol));
   }
   let rows = await toScreenerRows(selected);
   const capMax = "capMax" in list && typeof list.capMax === "number" ? list.capMax : undefined;
@@ -1703,9 +1827,19 @@ async function loadRatingsRank(dividendOnly = false): Promise<SymbolTableRow[]> 
     );
 }
 
-async function loadIndustryMatchList(sector: string | undefined, industryPattern: string): Promise<SymbolTableRow[]> {
+async function loadIndustryMatchList(
+  sector: string | undefined,
+  industryPattern: string,
+  industries?: readonly string[],
+): Promise<SymbolTableRow[]> {
   const matcher = new RegExp(industryPattern, "i");
-  const raw = await getScreenerPages({ country: "US", ...(sector ? { sector } : {}) }, { pages: 1, limit: 1000, revalidate: 1800 });
+  const raw = industries?.length
+    ? (
+        await Promise.all(
+          industries.map((industry) => getScreener({ country: "US", industry }, { limit: 100, revalidate: 1800 })),
+        )
+      ).flat()
+    : await getScreenerPages({ country: "US", ...(sector ? { sector } : {}) }, { pages: 1, limit: 1000, revalidate: 1800 });
   const selected = preferPrimaryListings(raw)
     .filter((row) => matcher.test(row.industry || ""))
     .filter((row) => row.isActivelyTrading !== false);

@@ -485,17 +485,18 @@ export function countryMarketFromProfile(country?: string | null) {
   );
 }
 
-const US_EXCHANGE_HREF: Record<string, string> = {
+const EXCHANGE_LIST_HREF: Record<string, string> = {
   NASDAQ: "/list/nasdaq-stocks",
   NYSE: "/list/nyse-stocks",
   AMEX: "/list/nyse-american-stocks",
   OTC: "/list/otc-stocks",
+  FSX: "/list/frankfurt-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {
   if (!exchange) return null;
   const code = exchange.toUpperCase();
-  if (US_EXCHANGE_HREF[code]) return US_EXCHANGE_HREF[code];
+  if (EXCHANGE_LIST_HREF[code]) return EXCHANGE_LIST_HREF[code];
   const market = COUNTRY_MARKETS.find((row) => row.exchange?.toUpperCase() === code);
   if (!market) return null;
   return market.listSlug ? `/list/${market.listSlug}` : countryHref(market.code);

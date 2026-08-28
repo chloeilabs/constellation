@@ -37,7 +37,9 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
     resolved === "bdc-stocks" ||
     resolved === "cef-funds" ||
     resolved === "preferred-stocks" ||
-    resolved === "top-rated-dividend-stocks";
+    resolved === "top-rated-dividend-stocks" ||
+    resolved === "australian-etfs" ||
+    resolved === "canadian-etfs";
 
   return (
     <Container>
@@ -52,7 +54,9 @@ export default async function StockListPage({ params }: { params: Promise<{ slug
         showYield={showYield}
         showFounded={resolved === "oldest-companies"}
         showCountry={list.category === "international" || ("source" in list && list.source === "foreign-us")}
-        localCurrency={list.category === "international"}
+        localCurrency={
+          list.category === "international" || resolved === "australian-etfs" || resolved === "canadian-etfs"
+        }
         showRevenue={resolved === "highest-revenue"}
         showProfit={resolved === "highest-profit"}
         showEmployees={resolved === "highest-employees"}

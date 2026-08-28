@@ -139,6 +139,7 @@ const SUFFIX_CURRENCY: Record<string, string> = {
   L: "GBP",
   PA: "EUR",
   DE: "EUR",
+  F: "EUR",
   TO: "CAD",
   AX: "AUD",
   NS: "INR",

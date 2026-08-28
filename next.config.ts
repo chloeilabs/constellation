@@ -147,6 +147,13 @@ const nextConfig: NextConfig = {
       { source: "/list/fixed-income-etfs", destination: "/list/bond-etfs", permanent: false },
       { source: "/list/covered-call-etfs", destination: "/list/income-etfs", permanent: false },
       { source: "/list/mutual-funds", destination: "/funds", permanent: false },
+      { source: "/list/frankfurt-stock-exchange", destination: "/list/frankfurt-stocks", permanent: false },
+      { source: "/list/clean-energy-stocks", destination: "/list/clean-energy", permanent: false },
+      { source: "/list/spacs", destination: "/list/spac-stocks", permanent: false },
+      { source: "/list/ai-etfs", destination: "/list/artificial-intelligence-etfs", permanent: false },
+      { source: "/list/australia-etfs", destination: "/list/australian-etfs", permanent: false },
+      { source: "/list/canada-etfs", destination: "/list/canadian-etfs", permanent: false },
+      { source: "/list/online-gambling-stocks", destination: "/list/online-gambling", permanent: false },
     ];
   },
   images: {
