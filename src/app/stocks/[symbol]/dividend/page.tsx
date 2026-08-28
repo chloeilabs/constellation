@@ -5,7 +5,15 @@ import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getCashFlowTtm, getDividends, getIncomeStatements, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, displayCompanyName } from "@/lib/listings";
-import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trailingDividendWindow } from "@/lib/dividends";
+import {
+  consecutiveDividendGrowthYears,
+  DISTRIBUTION_HISTORY_LIMIT,
+  dividendTtmGrowth,
+  dividendYieldFromPrice,
+  dividendsByFiscalYear,
+  payoutRatioFromDps,
+  trailingDividendWindow,
+} from "@/lib/dividends";
 import { ANNUAL_FILING_LIMIT } from "@/lib/statements";
 import { cashOutlay, indicatedAnnualDividend, nyDateString, payoutFrequencyLabel, payoutFrequencyProse, relativeChange } from "@/lib/utils";
 import { buybackYieldFromShareChange } from "@/lib/valuation";
@@ -15,7 +23,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const ticker = decodeTicker(symbol);
   const [profile, dividends, quote, annual, cash, ttm] = await Promise.all([
     getProfile(ticker),
-    getDividends(ticker, 200),
+    getDividends(ticker, DISTRIBUTION_HISTORY_LIMIT),
     getQuote(ticker),
     getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
     getCashFlowTtm(ticker),

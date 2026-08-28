@@ -1,16 +1,27 @@
-import Link from "next/link";
 import { Container } from "@/components/container";
+import { HoldingTicker } from "@/components/holding-ticker";
 import { PageHeader } from "@/components/page-header";
 import { StatGrid } from "@/components/quote-stats";
+import { TablePager } from "@/components/table-pager";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain, formatPlausiblePe } from "@/lib/format";
 import { getEtfCountryWeights, getEtfHoldings, getEtfInfo, getProfile, getQuote } from "@/lib/fmp";
-import { decodeTicker, holdingQuoteHref } from "@/lib/listings";
+import { decodeTicker } from "@/lib/listings";
+import { HOLDINGS_PAGE_SIZE, pageHref, pageNumber, paginate } from "@/lib/paging";
 import { parseWeightPercentage } from "@/lib/utils";
-import { vehicleNoun, type VehicleKind } from "@/lib/vehicle";
+import { vehicleNoun, vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
-export async function VehicleHoldings({ symbol, kind }: { symbol: string; kind: VehicleKind }) {
+export async function VehicleHoldings({
+  symbol,
+  kind,
+  page: pageParam,
+}: {
+  symbol: string;
+  kind: VehicleKind;
+  page?: string;
+}) {
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
+  const path = vehiclePath(kind, ticker, "/holdings");
   const [info, holdings, countries, quote, profile] = await Promise.all([
     getEtfInfo(ticker),
     getEtfHoldings(ticker),
@@ -19,7 +30,7 @@ export async function VehicleHoldings({ symbol, kind }: { symbol: string; kind: 
     getProfile(ticker),
   ]);
   const ranked = [...holdings].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
-  const shown = ranked.slice(0, 500);
+  const page = paginate(ranked, pageNumber(pageParam), HOLDINGS_PAGE_SIZE);
   const count = ranked.length || info?.holdingsCount || 0;
   const top10 = ranked.slice(0, 10).reduce((sum, row) => sum + (row.weightPercentage || 0), 0);
   const asOf = ranked[0]?.updatedAt?.slice(0, 10);
@@ -35,6 +46,7 @@ export async function VehicleHoldings({ symbol, kind }: { symbol: string; kind: 
   const intro = assetLabel
     ? `${ticker} is ${article} ${assetLabel} ${noun} with a total of ${formatInteger(count)} individual holdings.`
     : `${formatInteger(count)} positions in this ${noun}.`;
+  const holdingsPageHref = (nextPage: number) => pageHref(path, nextPage);
 
   return (
     <Container>
@@ -93,38 +105,40 @@ export async function VehicleHoldings({ symbol, kind }: { symbol: string; kind: 
             </tr>
           </thead>
           <tbody>
-            {shown.length === 0 ? (
+            {page.rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-muted">
                   Holdings are unavailable for this {noun}.
                 </td>
               </tr>
             ) : (
-              shown.map((row, index) => {
-                const href = holdingQuoteHref(row.asset, row.name);
-                return (
-                  <tr key={`${row.asset}-${index}`}>
-                    <td className="text-muted">{index + 1}</td>
-                    <td className="symbol">
-                      {href ? (
-                        <Link href={href} className="text-link hover:underline">
-                          {row.asset}
-                        </Link>
-                      ) : (
-                        row.asset || "—"
-                      )}
-                    </td>
-                    <td className="max-w-[280px] truncate">{row.name}</td>
-                    <td className="num">{formatInteger(row.sharesNumber)}</td>
-                    <td className="num">{formatPercentPlain(row.weightPercentage, { alreadyPercent: true })}</td>
-                    <td className="num">{formatCompactUsd(row.marketValue)}</td>
-                  </tr>
-                );
-              })
+              page.rows.map((row, index) => (
+                <tr key={`${row.asset}-${row.name}-${page.from + index}`}>
+                  <td className="text-muted">{page.from + index}</td>
+                  <td className="symbol">
+                    <HoldingTicker asset={row.asset} name={row.name} />
+                  </td>
+                  <td className="max-w-[280px] truncate">{row.name}</td>
+                  <td className="num">{formatInteger(row.sharesNumber)}</td>
+                  <td className="num">{formatPercentPlain(row.weightPercentage, { alreadyPercent: true })}</td>
+                  <td className="num">{formatCompactUsd(row.marketValue)}</td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={page.from}
+        to={page.to}
+        total={page.total}
+        page={page.page}
+        pageCount={page.pageCount}
+        firstHref={page.page > 1 ? holdingsPageHref(1) : undefined}
+        prevHref={page.page > 1 ? holdingsPageHref(page.page - 1) : undefined}
+        nextHref={page.page < page.pageCount ? holdingsPageHref(page.page + 1) : undefined}
+        lastHref={page.page < page.pageCount ? holdingsPageHref(page.pageCount) : undefined}
+      />
     </Container>
   );
 }

@@ -8,9 +8,16 @@ import { formatMoney, formatPercentPlain } from "@/lib/format";
 import { getDailyChart, getDividends, getIncomeStatements, getProfile, getQuote } from "@/lib/fmp";
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { dividendYieldFromPrice, dividendsByFiscalYear, trailingDividendThrough } from "@/lib/dividends";
-import { historyLabel } from "@/lib/period-valuation";
-import { addDays, indicatedAnnualDividend, isoDate, nyDateString } from "@/lib/utils";
+import {
+  DISTRIBUTION_HISTORY_LIMIT,
+  dividendYieldFromPrice,
+  dividendsByFiscalYear,
+  trailingDividendThrough,
+  trimTrailingEmptyDividendHistory,
+} from "@/lib/dividends";
+import { historyLabel, priceFromForFilings } from "@/lib/period-valuation";
+import { indicatedAnnualDividend } from "@/lib/utils";
+import { filingLimit } from "@/lib/statements";
 import { periodFrom } from "@/components/statement-metric-page";
 
 export default async function DividendYieldPage({
@@ -25,13 +32,12 @@ export default async function DividendYieldPage({
   const ticker = decodeTicker(symbol);
   const period = periodFrom(periodParam);
   const path = stockPath(ticker, "/dividend-yield");
-  const limit = period === "quarter" ? 12 : 20;
-  const lookbackYears = period === "quarter" ? 12 : 22;
-  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * lookbackYears));
+  const limit = filingLimit(period);
+  const priceFrom = priceFromForFilings(period, limit);
   const [quote, profile, dividends, income, candles] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
-    getDividends(ticker, 80),
+    getDividends(ticker, DISTRIBUTION_HISTORY_LIMIT),
     getIncomeStatements(ticker, period, limit),
     getDailyChart(ticker, priceFrom),
   ]);
@@ -39,19 +45,23 @@ export default async function DividendYieldPage({
   const liveYield = dividendYieldFromPrice(indicated, quote?.price);
   const closes = toCloseSeries(candles);
   const byYear = period === "annual" ? dividendsByFiscalYear(dividends, income) : null;
-  const history = income.map((row) => {
-    const price = closeOnOrBefore(closes, row.date);
-    const dps =
-      period === "annual"
-        ? (byYear?.get(String(row.fiscalYear)) ?? null)
-        : trailingDividendThrough(dividends, row.date, 4);
-    return {
-      key: `${row.date}-${row.period}`,
-      date: row.date,
-      label: historyLabel(row, period),
-      value: dividendYieldFromPrice(dps, price),
-    };
-  });
+  const history = trimTrailingEmptyDividendHistory(
+    income.map((row) => {
+      const price = closeOnOrBefore(closes, row.date);
+      const dps =
+        period === "annual"
+          ? (byYear?.get(String(row.fiscalYear)) ?? null)
+          : trailingDividendThrough(dividends, row.date, 4);
+      return {
+        key: `${row.date}-${row.period}`,
+        date: row.date,
+        label: historyLabel(row, period),
+        value: dividendYieldFromPrice(dps, price),
+        dps,
+      };
+    }),
+    (row) => row.dps,
+  );
   const currency = profile?.currency || "USD";
 
   return (
@@ -85,7 +95,7 @@ export default async function DividendYieldPage({
       <p className="mt-4 text-sm text-muted">
         Current yield is the indicated annual dividend (latest payment × frequency) divided by the live price.
         Annual history uses dividends paid in that fiscal year divided by the period-end close. Quarterly history
-        uses the last four payments on or before quarter end.{" "}
+        uses the last four payments on or before quarter end. Years before the first recorded payment are omitted.{" "}
         <span className="text-header">Formula: Dividend Yield = Dividends Per Share ÷ Price</span>
       </p>
     </Container>

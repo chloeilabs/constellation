@@ -4,6 +4,22 @@ import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
 /** Payments to fetch so a weekly payer covers two 365-day windows (TTM and 1Y growth). */
 export const DISTRIBUTION_TTM_LIMIT = 120;
+/** Multi-decade DPS history (AAPL quarterly since 2012 plus the 1987–1995 run). */
+export const DISTRIBUTION_HISTORY_LIMIT = 200;
+
+/** Drop oldest rows until the last remaining row paid a dividend. Keeps interior gaps. */
+export function trimTrailingEmptyDividendHistory<T>(
+  rows: T[],
+  dpsOf: (row: T) => number | null | undefined,
+) {
+  let last = rows.length - 1;
+  while (last >= 0) {
+    const dps = dpsOf(rows[last]);
+    if (typeof dps === "number" && dps > 0) break;
+    last -= 1;
+  }
+  return last < 0 ? [] : rows.slice(0, last + 1);
+}
 
 export function payoutRatioFromDps(dps: number | null | undefined, eps: number | null | undefined) {
   if (typeof dps !== "number" || !Number.isFinite(dps) || typeof eps !== "number" || !(eps > 0)) return null;

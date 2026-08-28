@@ -7,7 +7,13 @@ import { MetricHistory } from "@/components/metric-history";
 import { formatMoney, formatPercentPlain } from "@/lib/format";
 import { getDividends, getIncomeStatements, getIncomeTtm, getProfile } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { dividendsByFiscalYear, payoutRatioFromDps, trailingDividendThrough } from "@/lib/dividends";
+import {
+  DISTRIBUTION_HISTORY_LIMIT,
+  dividendsByFiscalYear,
+  payoutRatioFromDps,
+  trailingDividendThrough,
+  trimTrailingEmptyDividendHistory,
+} from "@/lib/dividends";
 import { historyLabel } from "@/lib/period-valuation";
 import { indicatedAnnualDividend } from "@/lib/utils";
 import { filingLimit, trailingSum } from "@/lib/statements";
@@ -36,7 +42,7 @@ export default async function PayoutRatioPage({
   const extra = period === "quarter" ? 4 : 0;
   const [profile, dividends, ttm, income] = await Promise.all([
     getProfile(ticker),
-    getDividends(ticker, 200),
+    getDividends(ticker, DISTRIBUTION_HISTORY_LIMIT),
     getIncomeTtm(ticker),
     getIncomeStatements(ticker, period, limit + extra),
   ]);
@@ -44,23 +50,27 @@ export default async function PayoutRatioPage({
   const ttmEps = epsOf(ttm);
   const livePayout = payoutRatioFromDps(indicated, ttmEps);
   const byYear = period === "annual" ? dividendsByFiscalYear(dividends, income) : null;
-  const history = income.slice(0, limit).map((row, index) => {
-    const dps =
-      period === "annual"
-        ? (byYear?.get(String(row.fiscalYear)) ?? null)
-        : trailingDividendThrough(dividends, row.date, 4);
-    const eps =
-      period === "annual"
-        ? epsOf(row)
-        : trailingSum(income as unknown as Array<Record<string, unknown>>, "epsDiluted", index, 4) ??
-          trailingSum(income as unknown as Array<Record<string, unknown>>, "eps", index, 4);
-    return {
-      key: `${row.date}-${row.period}`,
-      date: row.date,
-      label: historyLabel(row, period),
-      value: payoutRatioFromDps(dps, eps),
-    };
-  });
+  const history = trimTrailingEmptyDividendHistory(
+    income.slice(0, limit).map((row, index) => {
+      const dps =
+        period === "annual"
+          ? (byYear?.get(String(row.fiscalYear)) ?? null)
+          : trailingDividendThrough(dividends, row.date, 4);
+      const eps =
+        period === "annual"
+          ? epsOf(row)
+          : trailingSum(income as unknown as Array<Record<string, unknown>>, "epsDiluted", index, 4) ??
+            trailingSum(income as unknown as Array<Record<string, unknown>>, "eps", index, 4);
+      return {
+        key: `${row.date}-${row.period}`,
+        date: row.date,
+        label: historyLabel(row, period),
+        value: payoutRatioFromDps(dps, eps),
+        dps,
+      };
+    }),
+    (row) => row.dps,
+  );
   const currency = profile?.currency || "USD";
 
   return (

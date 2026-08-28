@@ -18,7 +18,7 @@ import {
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
 import { yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trailingDividendThrough } from "@/lib/dividends";
+import { DISTRIBUTION_HISTORY_LIMIT, dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trailingDividendThrough } from "@/lib/dividends";
 import {
   RATIO_SECTIONS,
   derivedBalanceMetrics,
@@ -33,7 +33,7 @@ import {
   withStatementHrefs,
 } from "@/lib/statements";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, StatementPeriod } from "@/lib/types";
-import { addDays, indicatedAnnualDividend, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { indicatedAnnualDividend, nyDateString, relativeChange } from "@/lib/utils";
 import {
   actualToEstimateCagr,
   assignFinite,
@@ -42,6 +42,7 @@ import {
   marketCapFromPrice,
   nextEstimate,
 } from "@/lib/valuation";
+import { priceFromForFilings } from "@/lib/period-valuation";
 
 type StatementColumn = { key: string; label: string; values: Record<string, unknown> };
 
@@ -174,7 +175,7 @@ export default async function RatiosPage({
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
   const span = spanFrom(yearsParam);
   const displayCount = statementLimit(period, span);
-  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), period === "quarter" ? -365 * 12 : -365 * 22));
+  const priceFrom = priceFromForFilings(period, displayCount);
   const [
     incomeTtm,
     incomeRows,
@@ -202,7 +203,7 @@ export default async function RatiosPage({
     getEnterpriseValues(ticker, period, displayCount + 1),
     getYearAgoMarketCap(ticker),
     getDailyChart(ticker, priceFrom),
-    getDividends(ticker, 80),
+    getDividends(ticker, DISTRIBUTION_HISTORY_LIMIT),
   ]);
   const periodCloses = toCloseSeries(dailyCloses);
   const indicatedDividend = indicatedAnnualDividend(dividends[0], null);

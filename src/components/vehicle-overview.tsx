@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { ChangePercent } from "@/components/change";
 import { HistoryBars } from "@/components/history-bars";
+import { HoldingTicker } from "@/components/holding-ticker";
 import { QuoteNewsTabs } from "@/components/quote-news-tabs";
 import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
@@ -21,7 +22,7 @@ import {
   getSymbolNews,
 } from "@/lib/fmp";
 import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
-import { decodeTicker, holdingQuoteHref } from "@/lib/listings";
+import { decodeTicker } from "@/lib/listings";
 import { nyDateString, parseWeightPercentage, payoutFrequencyLabel } from "@/lib/utils";
 import { vehicleNoun, vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
@@ -231,26 +232,17 @@ export async function VehicleOverview({
                     </td>
                   </tr>
                 ) : (
-                  topHoldings.map((row, index) => {
-                    const href = holdingQuoteHref(row.asset, row.name);
-                    return (
-                      <tr key={`${row.asset}-${index}`}>
-                        <td className="text-muted">{index + 1}</td>
-                        <td className="symbol">
-                          {href ? (
-                            <Link href={href} className="text-link hover:underline">
-                              {row.asset}
-                            </Link>
-                          ) : (
-                            row.asset || "—"
-                          )}
-                        </td>
-                        <td className="max-w-[240px] truncate">{row.name}</td>
-                        <td className="num">{formatPercentPlain(row.weightPercentage, { alreadyPercent: true })}</td>
-                        <td className="num">{formatCompactUsd(row.marketValue)}</td>
-                      </tr>
-                    );
-                  })
+                  topHoldings.map((row, index) => (
+                    <tr key={`${row.asset}-${row.name}-${index}`}>
+                      <td className="text-muted">{index + 1}</td>
+                      <td className="symbol">
+                        <HoldingTicker asset={row.asset} name={row.name} />
+                      </td>
+                      <td className="max-w-[240px] truncate">{row.name}</td>
+                      <td className="num">{formatPercentPlain(row.weightPercentage, { alreadyPercent: true })}</td>
+                      <td className="num">{formatCompactUsd(row.marketValue)}</td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

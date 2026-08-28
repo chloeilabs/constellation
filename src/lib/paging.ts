@@ -1,4 +1,5 @@
 export const TABLE_PAGE_SIZE = 50;
+export const HOLDINGS_PAGE_SIZE = 100;
 
 export function pageNumber(value?: string) {
   const parsed = Number(value);

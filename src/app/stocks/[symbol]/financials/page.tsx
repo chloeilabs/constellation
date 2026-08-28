@@ -33,10 +33,10 @@ import {
   ttmSegmentMap,
   withSegmentGrowth,
 } from "@/lib/statements";
-import { addDays, cashAndInvestments, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString } from "@/lib/utils";
-import { DISTRIBUTION_TTM_LIMIT, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
+import { cashAndInvestments, indicatedAnnualDividend, netCashPosition, nyDateString } from "@/lib/utils";
+import { DISTRIBUTION_HISTORY_LIMIT, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
 import { marketCapFromPrice, nextEstimate } from "@/lib/valuation";
-import { valuationFromFilings } from "@/lib/period-valuation";
+import { valuationFromFilings, priceFromForFilings } from "@/lib/period-valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
@@ -291,7 +291,7 @@ export default async function FinancialsOverviewPage({
   const annualLimit = yearCount + 1;
   const fiscalLimit = Math.max(annualLimit, 16);
   const base = stockPath(ticker, "/financials");
-  const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * 22));
+  const priceFrom = priceFromForFilings("annual", yearCount);
   const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, products, productQuarters, geos, geoQuarters, dividends, quote, estimates, enterpriseRows, dailyCloses] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", fiscalLimit),
@@ -306,7 +306,7 @@ export default async function FinancialsOverviewPage({
       getRevenueProductSegments(ticker, "quarter"),
       getRevenueGeographicSegments(ticker, "annual"),
       getRevenueGeographicSegments(ticker, "quarter"),
-      getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
+      getDividends(ticker, DISTRIBUTION_HISTORY_LIMIT),
       getQuote(ticker),
       getEstimates(ticker, "annual"),
       getEnterpriseValues(ticker, "annual", annualLimit),

@@ -1,53 +1,16 @@
 import Link from "next/link";
 import { Container } from "@/components/container";
-import { DownloadCsvButton } from "@/components/download-csv";
+import { DownloadCsvLink } from "@/components/download-csv-link";
 import { PageHeader, RangeToggle } from "@/components/page-header";
 import { TablePager } from "@/components/table-pager";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatInteger, formatMoney, formatPrice } from "@/lib/format";
 import { getDividendAdjustedChart, getFullDailyChart, getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
+import { historyCapLimit, historyFrom, historyRange, historyRangeSlug, withSessionChange } from "@/lib/history";
 import { indexDisplayName, isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { pageHref, pageNumber, paginate } from "@/lib/paging";
-import { addDays, isoDate, nyDateString } from "@/lib/utils";
-import type { FmpFullCandle } from "@/lib/types";
-
-function historyRange(value?: string): "6" | "1" | "5" | "10" | "max" {
-  if (value === "1" || value === "5" || value === "10" || value === "max") return value;
-  return "6";
-}
-
-function historyFrom(range: "6" | "1" | "5" | "10" | "max", today: string) {
-  if (range === "max") return "1970-01-01";
-  const days =
-    range === "6" ? 200 : range === "1" ? 400 : range === "5" ? 365 * 5 + 20 : 365 * 10 + 20;
-  return isoDate(addDays(new Date(`${today}T00:00:00Z`), -days));
-}
-
-function historyCapLimit(range: "6" | "1" | "5" | "10" | "max") {
-  return range === "6" ? 220 : range === "1" ? 400 : range === "5" ? 1500 : range === "10" ? 2800 : 5000;
-}
-
-function finite(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-/** Session change versus the previous close, matching Stock Analysis history. */
-function withSessionChange(rows: FmpFullCandle[], adjCloseByDate?: Map<string, number>) {
-  const chronological = [...rows].sort((a, b) => a.date.localeCompare(b.date));
-  return chronological
-    .map((row, index) => {
-      const prev = chronological[index - 1];
-      const closeChangePercent =
-        prev && prev.close ? ((row.close - prev.close) / prev.close) * 100 : finite(row.changePercent);
-      return {
-        ...row,
-        adjClose: adjCloseByDate?.get(row.date) ?? null,
-        closeChangePercent,
-      };
-    })
-    .reverse();
-}
+import { nyDateString } from "@/lib/utils";
 
 export default async function StockHistoryPage({
   params,
@@ -75,7 +38,7 @@ export default async function StockHistoryPage({
   const px = (value: number | null | undefined) => (index ? formatPrice(value) : formatMoney(value, profile?.currency));
   const adjCloseByDate = new Map(
     adjusted
-      .map((row) => [row.date, finite(row.adjClose)] as const)
+      .map((row) => [row.date, Number.isFinite(row.adjClose) ? row.adjClose : null] as const)
       .filter((entry): entry is readonly [string, number] => entry[1] != null),
   );
   const daily = withSessionChange(prices, index ? undefined : adjCloseByDate);
@@ -87,6 +50,13 @@ export default async function StockHistoryPage({
   const showAdjClose = !index;
   const yearsQuery = range === "6" ? undefined : range;
   const historyPageHref = (page: number) => pageHref(base, page, { years: yearsQuery });
+  const csvQuery = new URLSearchParams();
+  if (yearsQuery) csvQuery.set("years", yearsQuery);
+  const pricesCsvHref = csvQuery.size ? `${base}/csv?${csvQuery}` : `${base}/csv`;
+  const capCsv = new URLSearchParams(csvQuery);
+  capCsv.set("table", "market-cap");
+  const marketCapCsvHref = `${base}/csv?${capCsv}`;
+  const rangeSlug = historyRangeSlug(range);
 
   return (
     <Container>
@@ -120,27 +90,13 @@ export default async function StockHistoryPage({
       <section>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-header">Daily Prices</h2>
-          {daily.length ? (
-            <DownloadCsvButton
-              filename={`${ticker}-history-${range === "max" ? "max" : range === "6" ? "6m" : `${range}y`}`}
-              headers={
-                showAdjClose
-                  ? ["Date", "Open", "High", "Low", "Close", "Adj. Close", "Change %", "Volume"]
-                  : ["Date", "Open", "High", "Low", "Close", "Change %", "Volume"]
-              }
-              rows={daily.map((row) =>
-                showAdjClose
-                  ? [row.date, row.open, row.high, row.low, row.close, row.adjClose, row.closeChangePercent, row.volume]
-                  : [row.date, row.open, row.high, row.low, row.close, row.closeChangePercent, row.volume],
-              )}
-            />
-          ) : null}
+          {daily.length ? <DownloadCsvLink href={pricesCsvHref} /> : null}
         </div>
         <p className="mb-2 text-xs text-muted">
           {showAdjClose
             ? "Adj. Close is FMP dividend-adjusted. Change is versus the previous session close."
             : "Change is versus the previous session close."}{" "}
-          Download CSV for the full window.
+          Download CSV for the full {rangeSlug} window.
         </p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
@@ -201,19 +157,13 @@ export default async function StockHistoryPage({
             <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <h2 className="text-lg font-semibold text-header">Market Cap</h2>
               <div className="flex flex-wrap items-center gap-3">
-                {caps.length ? (
-                  <DownloadCsvButton
-                    filename={`${ticker}-market-cap-${range === "max" ? "max" : `${range}y`}`}
-                    headers={["Date", "Market Cap"]}
-                    rows={caps.map((row) => [row.date, row.marketCap])}
-                  />
-                ) : null}
+                {caps.length ? <DownloadCsvLink href={marketCapCsvHref} /> : null}
                 <Link href={stockPath(ticker, "/market-cap")} className="text-sm text-link hover:underline">
                   Full history
                 </Link>
               </div>
             </div>
-            <p className="mb-2 text-xs text-muted">Download CSV for the full window.</p>
+            <p className="mb-2 text-xs text-muted">Download CSV for the full {rangeSlug} window.</p>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="sa-table">
                 <thead>

@@ -1,5 +1,7 @@
 "use client";
 
+import { toCsv } from "@/lib/csv";
+
 export function DownloadCsvButton({
   filename,
   headers,
@@ -10,13 +12,7 @@ export function DownloadCsvButton({
   rows: Array<Array<string | number | null | undefined>>;
 }) {
   function onClick() {
-    const escape = (value: string | number | null | undefined) => {
-      if (value == null || value === "") return "";
-      const text = String(value);
-      if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
-      return text;
-    };
-    const csv = [headers.map(escape).join(","), ...rows.map((row) => row.map(escape).join(","))].join("\n");
+    const csv = toCsv(headers, rows);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
