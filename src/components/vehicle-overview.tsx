@@ -5,7 +5,7 @@ import { PriceChart } from "@/components/price-chart";
 import { ReturnsTable } from "@/components/returns-table";
 import { StatGrid } from "@/components/quote-stats";
 import { formatCompactUsd, formatInteger, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
-import { loadQuoteChart, canDividendAdjust } from "@/lib/chart";
+import { loadQuoteChart, loadVehiclePerformance, canDividendAdjust } from "@/lib/chart";
 import {
   getDividends,
   getEtfCountryWeights,
@@ -37,19 +37,25 @@ export async function VehicleOverview({
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
   const wantAdjusted = adjParam === "1" || adjParam === "true";
-  const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, profile] = await Promise.all([
-    getEtfInfo(ticker),
-    getEtfHoldings(ticker),
-    getEtfSectors(ticker),
-    getEtfCountryWeights(ticker),
-    getQuote(ticker),
-    getSymbolNews(ticker, 8),
-    getPressReleases(ticker, 8),
-    getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
-    getPriceChange(ticker),
-    loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
-    getProfile(ticker),
-  ]);
+  const infoPromise = getEtfInfo(ticker);
+  const profilePromise = getProfile(ticker);
+  const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, profile, performance] =
+    await Promise.all([
+      infoPromise,
+      getEtfHoldings(ticker),
+      getEtfSectors(ticker),
+      getEtfCountryWeights(ticker),
+      getQuote(ticker),
+      getSymbolNews(ticker, 8),
+      getPressReleases(ticker, 8),
+      getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
+      getPriceChange(ticker),
+      loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
+      profilePromise,
+      Promise.all([infoPromise, profilePromise]).then(([etfInfo, company]) =>
+        loadVehiclePerformance(ticker, etfInfo?.inceptionDate || company?.ipoDate),
+      ),
+    ]);
   const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
 
   const rankedSectors = [...sectors].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
@@ -305,6 +311,25 @@ export async function VehicleOverview({
               </tbody>
             </table>
           </div>
+        </section>
+      ) : null}
+
+      {performance?.oneYear != null || performance?.inceptionCagr != null || performance?.inceptionTotal != null ? (
+        <section className="mt-10">
+          <h2 className="mb-2 text-xl font-semibold text-header">Performance</h2>
+          <p className="max-w-4xl text-sm leading-7 text-header/90">
+            {performance.oneYear != null
+              ? `${ticker} had a total return of ${formatPercentPlain(performance.oneYear)} in the past year, including dividends.`
+              : null}
+            {performance.oneYear != null && (performance.inceptionCagr != null || performance.inceptionTotal != null)
+              ? " "
+              : null}
+            {performance.inceptionCagr != null
+              ? `Since the ${noun}'s inception, the average annual return has been ${formatPercentPlain(performance.inceptionCagr)}.`
+              : performance.inceptionTotal != null && performance.oneYear == null
+                ? `Since inception, ${ticker} has returned ${formatPercentPlain(performance.inceptionTotal)}, including dividends.`
+                : null}
+          </p>
         </section>
       ) : null}
 

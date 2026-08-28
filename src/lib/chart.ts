@@ -302,3 +302,38 @@ export async function loadQuoteChart(
     ...dailyIndicatorSeries(points, range),
   };
 }
+
+function seriesReturn(points: ChartPoint[]) {
+  const first = points[0]?.value;
+  const last = points.at(-1)?.value;
+  if (!(typeof first === "number" && first > 0) || typeof last !== "number" || !Number.isFinite(last)) return null;
+  return (last - first) / first;
+}
+
+function seriesCagr(points: ChartPoint[]) {
+  const first = points[0];
+  const last = points.at(-1);
+  if (!first || !last || !(first.value > 0) || !(last.value > 0)) return null;
+  const days = (Date.parse(last.time.slice(0, 10)) - Date.parse(first.time.slice(0, 10))) / 86_400_000;
+  if (!(days > 365)) return null;
+  return Math.pow(last.value / first.value, 365.25 / days) - 1;
+}
+
+/** Dividend-adjusted total return for ETF/fund overview copy (1Y and since inception). */
+export async function loadVehiclePerformance(symbol: string, inception?: string | null) {
+  const asOf = nyDateString();
+  const yearAgo = isoDate(addDays(new Date(`${asOf}T00:00:00Z`), -365));
+  const from = inception && inception <= yearAgo ? inception : yearAgo;
+  const points = toAdjustedPoints(await getDividendAdjustedChart(symbol, from));
+  if (points.length < 2) return null;
+  const yearPoints = points.filter((point) => point.time.slice(0, 10) >= yearAgo);
+  const yearStart = yearPoints[0]?.time.slice(0, 10);
+  const hasFullYear = Boolean(
+    yearStart && yearStart <= isoDate(addDays(new Date(`${asOf}T00:00:00Z`), -300)),
+  );
+  const oneYear = hasFullYear ? seriesReturn(yearPoints) : null;
+  const inceptionTotal = seriesReturn(points);
+  const inceptionCagr = seriesCagr(points);
+  if (oneYear == null && inceptionTotal == null) return null;
+  return { oneYear, inceptionTotal, inceptionCagr };
+}
