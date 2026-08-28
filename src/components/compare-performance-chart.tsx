@@ -48,8 +48,10 @@ export function ComparePerformanceChart({
     <div>
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-header">Normalized Performance</h2>
-          <p className="mt-1 text-sm text-muted">Each series starts at 100 on the first overlapping close in this window.</p>
+          <h2 className="text-lg font-semibold text-header">Total Return (%)</h2>
+          <p className="mt-1 text-sm text-muted">
+            Dividend-adjusted closes from FMP. Each series starts at 100 on the first overlapping close in this window.
+          </p>
         </div>
         <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Chart range">
           <Link

@@ -1,4 +1,4 @@
-import { loadVehiclePerformance } from "@/lib/chart";
+import { compareTotalReturnBlurb, loadVehiclePerformance } from "@/lib/chart";
 import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
 import { getDividends, getEtfCountryWeights, getEtfHoldings, getEtfInfo, getEtfSectors, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
@@ -68,19 +68,7 @@ export async function loadEtfCompare(symbols: string[]) {
 
 export type EtfCompareRow = Awaited<ReturnType<typeof loadEtfCompare>>[number];
 
-export function compareTotalReturnBlurb(rows: EtfCompareRow[]) {
-  const scored = rows.filter((row) => row.performance?.oneYear != null);
-  if (scored.length < 2) return null;
-  const ranked = [...scored].sort((a, b) => (b.performance?.oneYear ?? 0) - (a.performance?.oneYear ?? 0));
-  const lead = ranked[0];
-  const trail = ranked[1];
-  return {
-    lead: lead.symbol,
-    leadReturn: lead.performance!.oneYear as number,
-    trail: trail.symbol,
-    trailReturn: trail.performance!.oneYear as number,
-  };
-}
+export { compareTotalReturnBlurb };
 
 export function overlappingHoldings(rows: EtfCompareRow[]) {
   if (rows.length < 2) return [];

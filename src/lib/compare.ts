@@ -1,15 +1,15 @@
 import {
   getBalanceSheets,
   getCashFlowTtm,
-  getDailyChart,
+  getDividendAdjustedChart,
   getEstimates,
   getGradesConsensus,
   getIncomeTtm,
-  getPriceChange,
   getPriceTarget,
   getProfile,
   getQuote,
 } from "@/lib/fmp";
+import { loadVehiclePerformance } from "@/lib/chart";
 import { valuationFromFilings } from "@/lib/period-valuation";
 import { derivedStatementMetrics } from "@/lib/statements";
 import type { ChartPoint } from "@/lib/types";
@@ -34,16 +34,17 @@ export const POPULAR_STOCK_COMPARISONS = [
 export async function getProfilesAndQuotes(symbols: string[]) {
   return Promise.all(
     symbols.map(async (symbol) => {
-      const [quote, profile, ttm, cash, sheets, changes, estimates, target, grades] = await Promise.all([
+      const profilePromise = getProfile(symbol);
+      const [quote, profile, ttm, cash, sheets, estimates, target, grades, performance] = await Promise.all([
         getQuote(symbol),
-        getProfile(symbol),
+        profilePromise,
         getIncomeTtm(symbol),
         getCashFlowTtm(symbol),
         getBalanceSheets(symbol, "quarter", 5),
-        getPriceChange(symbol),
         getEstimates(symbol, "annual"),
         getPriceTarget(symbol),
         getGradesConsensus(symbol),
+        profilePromise.then((company) => loadVehiclePerformance(symbol, company?.ipoDate)),
       ]);
       const live = valuationFromFilings({
         price: quote?.price,
@@ -65,7 +66,7 @@ export async function getProfilesAndQuotes(symbols: string[]) {
       const indicated = indicatedAnnualDividend(null, profile?.lastDividend);
       const dividendYield =
         indicated != null && quote?.price && quote.price > 0 ? indicated / quote.price : null;
-      return { symbol, quote, profile, ttm, cash, changes, estimates, target, grades, live, margins, dividendYield };
+      return { symbol, quote, profile, ttm, cash, estimates, target, grades, live, margins, dividendYield, performance };
     }),
   );
 }
@@ -92,11 +93,12 @@ export function normalizePriceSeries(rows: { date: string; price: number }[], st
 export async function getNormalizedCompareSeries(symbols: string[], from: string) {
   const raw = await Promise.all(
     symbols.map(async (symbol) => {
-      const candles = await getDailyChart(symbol, from);
-      return {
-        symbol,
-        points: [...candles].filter((row) => row.price > 0).sort((a, b) => a.date.localeCompare(b.date)),
-      };
+      const candles = await getDividendAdjustedChart(symbol, from);
+      const points = [...candles]
+        .filter((row) => typeof row.adjClose === "number" && row.adjClose > 0)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((row) => ({ date: row.date, price: row.adjClose }));
+      return { symbol, points };
     }),
   );
   const start = raw

@@ -378,6 +378,22 @@ export type VehiclePerformance = {
   inceptionCagr: number | null;
 };
 
+export function compareTotalReturnBlurb(
+  rows: { symbol: string; performance: VehiclePerformance | null }[],
+) {
+  const scored = rows.filter((row) => row.performance?.oneYear != null);
+  if (scored.length < 2) return null;
+  const ranked = [...scored].sort((a, b) => (b.performance?.oneYear ?? 0) - (a.performance?.oneYear ?? 0));
+  const lead = ranked[0];
+  const trail = ranked[1];
+  return {
+    lead: lead.symbol,
+    leadReturn: lead.performance!.oneYear as number,
+    trail: trail.symbol,
+    trailReturn: trail.performance!.oneYear as number,
+  };
+}
+
 function sessionReturn(points: ChartPoint[], sessions: number) {
   if (sessions < 1 || points.length <= sessions) return null;
   const start = points[points.length - 1 - sessions];
@@ -387,14 +403,15 @@ function sessionReturn(points: ChartPoint[], sessions: number) {
 }
 
 /**
- * Dividend-adjusted performance for ETF/fund overview.
+ * Dividend-adjusted performance for quote overviews and compare tables.
  * 1M is ~21 trading sessions; YTD / 1Y are total return; 5Y / 10Y / inception are annualized.
  */
 export async function loadVehiclePerformance(symbol: string, inception?: string | null): Promise<VehiclePerformance | null> {
   const asOf = nyDateString();
   const today = new Date(`${asOf}T00:00:00Z`);
   const tenYearsAgo = isoDate(addDays(today, -365 * 10 - 15));
-  const from = inception && inception > tenYearsAgo ? inception : tenYearsAgo;
+  const inceptionDay = inception && /^\d{4}-\d{2}-\d{2}/.test(inception) ? inception.slice(0, 10) : null;
+  const from = inceptionDay && inceptionDay <= asOf ? inceptionDay : tenYearsAgo;
   const points = toAdjustedPoints(await getDividendAdjustedChart(symbol, from));
   if (points.length < 2) return null;
 

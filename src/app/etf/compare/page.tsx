@@ -38,7 +38,7 @@ export default async function EtfComparePage({
     <Container>
       <PageHeader
         title="Compare ETFs & Funds"
-        description="Live quotes, a normalized price chart, assets, expense ratios, total returns, sector weights, and top-holding overlap from Financial Modeling Prep."
+        description="Live quotes, a dividend-adjusted total-return chart, assets, expense ratios, average returns, sector weights, and top-holding overlap from Financial Modeling Prep."
         actions={
           <form method="get" className="flex gap-2">
             {span === "5Y" ? <input type="hidden" name="chart" value="5Y" /> : null}

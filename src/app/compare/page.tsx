@@ -13,7 +13,14 @@ import {
   formatPrice,
   formatRatio,
 } from "@/lib/format";
-import { getProfilesAndQuotes, POPULAR_STOCK_COMPARISONS, compareChartFrom, compareChartSpan, getNormalizedCompareSeries } from "@/lib/compare";
+import { compareTotalReturnBlurb } from "@/lib/chart";
+import {
+  getProfilesAndQuotes,
+  POPULAR_STOCK_COMPARISONS,
+  compareChartFrom,
+  compareChartSpan,
+  getNormalizedCompareSeries,
+} from "@/lib/compare";
 import { industryHref, sectorHref } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
 import { estimateCagr, forwardPe, forwardPs, pegRatio, trailingPe } from "@/lib/valuation";
@@ -79,7 +86,7 @@ export default async function ComparePage({
     <Container>
       <PageHeader
         title="Compare Stocks"
-        description="Side-by-side quotes, a normalized price chart, forward valuation, analyst targets, and trailing financials from live FMP data."
+        description="Side-by-side quotes, a dividend-adjusted total-return chart, average returns, forward valuation, analyst targets, and trailing financials from live FMP data."
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <form method="get" className="flex gap-2">
@@ -153,15 +160,6 @@ export default async function ComparePage({
                   ? `$${formatPrice(row.ttm.epsDiluted ?? row.ttm.eps)}`
                   : "—"
               }
-            </MetricRow>
-            <MetricRow label="YTD" rows={rows}>
-              {(row) => <ChangePercent value={row.changes?.ytd} />}
-            </MetricRow>
-            <MetricRow label="1 Year" rows={rows}>
-              {(row) => <ChangePercent value={row.changes?.["1Y"]} />}
-            </MetricRow>
-            <MetricRow label="5 Year" rows={rows}>
-              {(row) => <ChangePercent value={row.changes?.["5Y"]} />}
             </MetricRow>
             <MetricRow label="PE Ratio" rows={rows}>
               {(row) => formatPlausiblePe(row.live.priceToEarningsRatio ?? row.quote?.pe)}
@@ -249,6 +247,8 @@ export default async function ComparePage({
         </table>
       </div>
 
+      <AverageReturnSection rows={rows} />
+
       <section className="mt-10">
         <h2 className="mb-3 text-xl font-semibold text-header">Popular Comparisons</h2>
         <div className="flex flex-wrap gap-2">
@@ -264,5 +264,61 @@ export default async function ComparePage({
         </div>
       </section>
     </Container>
+  );
+}
+
+function AverageReturnSection({ rows }: { rows: CompareRow[] }) {
+  const blurb = compareTotalReturnBlurb(rows);
+  const periods = [
+    { key: "ytd", label: "Year-to-date" },
+    { key: "oneYear", label: "1 Year" },
+    { key: "fiveYear", label: "5 Years" },
+    { key: "tenYear", label: "10 Years" },
+    { key: "inceptionCagr", label: "Max" },
+  ] as const;
+
+  return (
+    <section className="mt-10">
+      <h2 className="mb-2 text-xl font-semibold text-header">Average Return</h2>
+      {blurb ? (
+        <p className="mb-4 max-w-4xl text-sm leading-7 text-header/90">
+          In the past year, {blurb.lead} returned a total of {formatPercentPlain(blurb.leadReturn)}, including
+          dividends, compared with {blurb.trail}&apos;s {formatPercentPlain(blurb.trailReturn)}. Periods longer than one
+          year are annualized from FMP dividend-adjusted prices. Max is the annualized return since each company&apos;s
+          first FMP daily bar, usually the IPO.
+        </p>
+      ) : (
+        <p className="mb-4 max-w-4xl text-sm text-muted">
+          Total return including dividends from FMP dividend-adjusted prices. Periods longer than one year are
+          annualized. Max is the annualized return since each company&apos;s first FMP daily bar.
+        </p>
+      )}
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="sa-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              {rows.map((row) => (
+                <th key={row.symbol} className="num">
+                  {row.symbol}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {periods.map((period) => (
+              <tr key={period.key}>
+                <td>{period.label}</td>
+                {rows.map((row) => (
+                  <td key={row.symbol} className="num">
+                    <ChangePercent value={row.performance?.[period.key] ?? null} alreadyPercent={false} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
