@@ -26,16 +26,17 @@ export default async function StockInsidersPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; stats?: string }>;
 }) {
   const { symbol } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, stats: statsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const [rows, stats] = await Promise.all([getInsiderTradesArchive(ticker), getInsiderStatistics(ticker)]);
   const filings = paginate(rows, pageNumber(pageParam));
-  const recent = [...stats].sort((a, b) => b.year - a.year || b.quarter - a.quarter).slice(0, 12);
-  const latest = recent[0] ?? null;
-  const trailing4 = recent.slice(0, 4);
+  const ranked = [...stats].sort((a, b) => b.year - a.year || b.quarter - a.quarter);
+  const statsFeed = paginate(ranked, pageNumber(statsParam));
+  const latest = ranked[0] ?? null;
+  const trailing4 = ranked.slice(0, 4);
   const trailingNet = trailing4.reduce((sum, row) => sum + netShares(row.totalAcquired, row.totalDisposed), 0);
   const cutoff = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -90));
   const last90 = rows.filter((row) => (row.transactionDate || row.filingDate).slice(0, 10) >= cutoff);
@@ -45,7 +46,7 @@ export default async function StockInsidersPage({
   const sold90 = last90
     .filter((row) => row.acquisitionOrDisposition === "D")
     .reduce((sum, row) => sum + (row.securitiesTransacted || 0), 0);
-  const chartItems = [...recent].reverse().map((row) => ({
+  const chartItems = [...ranked].slice(0, 16).reverse().map((row) => ({
     label: `Q${row.quarter} ${String(row.year).slice(2)}`,
     value: netShares(row.totalAcquired, row.totalDisposed),
   }));
@@ -91,7 +92,7 @@ export default async function StockInsidersPage({
           <HistoryBars items={chartItems} formatValue={(value) => `${value >= 0 ? "+" : "−"}${formatCompact(Math.abs(value))}`} />
         </section>
       ) : null}
-      {recent.length > 0 ? (
+      {statsFeed.total > 0 ? (
         <section className="mt-8">
           <h2 className="mb-3 text-lg font-semibold text-header">Quarterly Statistics</h2>
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -108,7 +109,7 @@ export default async function StockInsidersPage({
                 </tr>
               </thead>
               <tbody>
-                {recent.map((row) => {
+                {statsFeed.rows.map((row) => {
                   const net = netShares(row.totalAcquired, row.totalDisposed);
                   return (
                     <tr key={`${row.year}-${row.quarter}`}>
@@ -127,6 +128,20 @@ export default async function StockInsidersPage({
               </tbody>
             </table>
           </div>
+          <TablePager
+            from={statsFeed.from}
+            to={statsFeed.to}
+            total={statsFeed.total}
+            page={statsFeed.page}
+            pageCount={statsFeed.pageCount}
+            {...pagerLinks(
+              stockPath(ticker, "/insiders"),
+              statsFeed.page,
+              statsFeed.pageCount,
+              { page: filings.page > 1 ? String(filings.page) : undefined },
+              "stats",
+            )}
+          />
         </section>
       ) : null}
       <div className="mt-8">
@@ -138,7 +153,9 @@ export default async function StockInsidersPage({
           total={filings.total}
           page={filings.page}
           pageCount={filings.pageCount}
-          {...pagerLinks(stockPath(ticker, "/insiders"), filings.page, filings.pageCount)}
+          {...pagerLinks(stockPath(ticker, "/insiders"), filings.page, filings.pageCount, {
+            stats: statsFeed.page > 1 ? String(statsFeed.page) : undefined,
+          })}
         />
       </div>
     </Container>

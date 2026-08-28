@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import { CALENDAR_NAV } from "@/lib/nav";
 import { formatCompactUsd, formatDate, formatPrice } from "@/lib/format";
-import { getEarningsCalendar, getLatestFinancialStatements } from "@/lib/fmp";
+import { getEarningsCalendar, getLatestFinancialStatementsArchive } from "@/lib/fmp";
 import { isPrimaryUsSymbol, quoteHref } from "@/lib/listings";
 import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
@@ -34,7 +34,7 @@ function groupEarningsByDate<T extends { date: string; symbol: string }>(rows: T
 export default async function EarningsCalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; view?: string; page?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; view?: string; page?: string; added?: string }>;
 }) {
   const params = await searchParams;
   const view: EarningsView =
@@ -50,21 +50,17 @@ export default async function EarningsCalendarPage({
   const to = params.to || defaultTo;
   const [calendar, latestStatements] = await Promise.all([
     getEarningsCalendar(from, to),
-    view === "reported"
-      ? Promise.all([getLatestFinancialStatements(0, 100), getLatestFinancialStatements(1, 100)]).then((pages) =>
-          pages.flat(),
-        )
-      : Promise.resolve([]),
+    view === "reported" ? getLatestFinancialStatementsArchive() : Promise.resolve([]),
   ]);
   const rows = calendar.filter((row) => isPrimaryUsSymbol(row.symbol)).filter((row) => {
     if (view === "reported") return row.epsActual != null;
     if (view === "upcoming") return row.epsActual == null && row.date >= today;
     return true;
   });
-  const statements = latestStatements
+  const statementRows = latestStatements
     .filter((row) => isPrimaryUsSymbol(row.symbol))
-    .filter((row, index, list) => list.findIndex((item) => item.symbol === row.symbol && item.period === row.period && item.date === row.date) === index)
-    .slice(0, 25);
+    .filter((row, index, list) => list.findIndex((item) => item.symbol === row.symbol && item.period === row.period && item.date === row.date) === index);
+  const statements = paginate(statementRows, pageNumber(params.added), TABLE_PAGE_SIZE);
   const feed = paginate(rows, pageNumber(params.page), TABLE_PAGE_SIZE);
   const grouped = groupEarningsByDate(feed.rows);
   if (view === "reported") grouped.reverse();
@@ -72,6 +68,13 @@ export default async function EarningsCalendarPage({
     from: params.from,
     to: params.to,
     view: view === "all" ? undefined : view,
+    added: statements.page > 1 ? String(statements.page) : undefined,
+  };
+  const addedExtra = {
+    from: params.from,
+    to: params.to,
+    view: view === "all" ? undefined : view,
+    page: feed.page > 1 ? String(feed.page) : undefined,
   };
 
   return (
@@ -110,7 +113,7 @@ export default async function EarningsCalendarPage({
           Update
         </button>
       </form>
-      {view === "reported" && statements.length > 0 ? (
+      {view === "reported" && statements.total > 0 ? (
         <section className="mb-10">
           <h2 className="mb-3 text-lg font-semibold text-header">Statements just added</h2>
           <p className="mb-3 text-sm text-muted">
@@ -127,7 +130,7 @@ export default async function EarningsCalendarPage({
                 </tr>
               </thead>
               <tbody>
-                {statements.map((row) => (
+                {statements.rows.map((row) => (
                   <tr key={`${row.symbol}-${row.period}-${row.date}-${row.dateAdded}`}>
                     <td>{formatDate(row.dateAdded)}</td>
                     <td className="symbol">
@@ -144,6 +147,14 @@ export default async function EarningsCalendarPage({
               </tbody>
             </table>
           </div>
+          <TablePager
+            from={statements.from}
+            to={statements.to}
+            total={statements.total}
+            page={statements.page}
+            pageCount={statements.pageCount}
+            {...pagerLinks("/calendar/earnings", statements.page, statements.pageCount, addedExtra, "added")}
+          />
         </section>
       ) : null}
       {grouped.length === 0 ? (

@@ -715,6 +715,26 @@ export type FmpLatestStatement = {
   dateAdded: string;
 };
 
+/** Unpaged FMP COT analysis is a stale snapshot; always pass `from`/`to`. Field name `netPostion` is FMP's. */
+export type FmpCotAnalysis = {
+  symbol: string;
+  date: string;
+  name: string;
+  sector: string;
+  exchange: string;
+  currentLongMarketSituation: number;
+  currentShortMarketSituation: number;
+  marketSituation: string;
+  previousLongMarketSituation: number;
+  previousShortMarketSituation: number;
+  previousMarketSituation: string;
+  netPostion: number;
+  previousNetPosition: number;
+  changeInNetPosition: number;
+  marketSentiment: string;
+  reversalTrend: boolean;
+};
+
 export type FmpTranscriptDate = {
   quarter: number;
   fiscalYear: number;

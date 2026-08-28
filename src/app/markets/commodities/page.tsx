@@ -3,13 +3,27 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import { MARKET_NAV } from "@/lib/nav";
-import { formatInteger, formatPrice } from "@/lib/format";
-import { getCommoditiesList, getCommodityQuotes } from "@/lib/fmp";
+import { formatDate, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
+import { getCommoditiesList, getCommodityQuotes, getCotAnalysis } from "@/lib/fmp";
 import { quoteHref } from "@/lib/listings";
-import { percentFromPriceChange } from "@/lib/utils";
+import { commodityContractRoot, latestCotBySymbol } from "@/lib/markets";
+import { addDays, cn, isoDate, nyDateString, percentFromPriceChange } from "@/lib/utils";
 import Link from "next/link";
 
-const PINNED = ["GCUSD", "SIUSD", "CLUSD", "BZUSD", "NGUSD", "HGUSD", "ZCUSD", "ZWUSD", "ZSUSD", "KCUSD", "CTUSD", "SBUSD"];
+const PINNED = [
+  "GCUSD",
+  "SIUSD",
+  "CLUSD",
+  "BZUSD",
+  "NGUSD",
+  "HGUSD",
+  "ZCUSX",
+  "ZSUSX",
+  "KEUSX",
+  "KCUSX",
+  "CTUSX",
+  "SBUSX",
+];
 
 export const metadata = {
   title: "Commodities",
@@ -17,9 +31,16 @@ export const metadata = {
 };
 
 export default async function CommoditiesPage() {
-  const [names, quotes] = await Promise.all([getCommoditiesList(), getCommodityQuotes()]);
+  const today = nyDateString();
+  const cotFrom = isoDate(addDays(new Date(`${today}T00:00:00Z`), -21));
+  const [names, quotes, cotRows] = await Promise.all([
+    getCommoditiesList(),
+    getCommodityQuotes(),
+    getCotAnalysis(cotFrom, today),
+  ]);
   const bySymbol = new Map(quotes.map((row) => [row.symbol, row]));
   const pinRank = new Map(PINNED.map((symbol, index) => [symbol, index]));
+  const cotByRoot = latestCotBySymbol(cotRows);
   const rows = names
     .map((row) => {
       const quote = bySymbol.get(row.symbol);
@@ -36,9 +57,12 @@ export default async function CommoditiesPage() {
         changePercentage,
         volume: quote?.volume ?? null,
         pinned: pinRank.get(row.symbol) ?? 1000,
+        cot: cotByRoot.get(commodityContractRoot(row.symbol)) ?? null,
       };
     })
     .sort((a, b) => a.pinned - b.pinned || (b.volume ?? 0) - (a.volume ?? 0));
+  const cotTable = rows.flatMap((row) => (row.cot ? [{ ...row, cot: row.cot }] : []));
+  const cotAsOf = cotTable[0]?.cot?.date;
 
   return (
     <Container>
@@ -90,6 +114,71 @@ export default async function CommoditiesPage() {
           </tbody>
         </table>
       </div>
+      {cotTable.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-header">Commitment of Traders</h2>
+          <p className="mb-3 text-sm text-muted">
+            Latest CFTC positioning from FMP for contracts that match this quote list
+            {cotAsOf ? ` · week of ${formatDate(cotAsOf)}` : ""}. Net position is non-commercial longs minus shorts.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Contract</th>
+                  <th>Name</th>
+                  <th>Situation</th>
+                  <th>Sentiment</th>
+                  <th className="num">Net Position</th>
+                  <th className="num">Net Chg</th>
+                  <th className="num">Long %</th>
+                  <th className="num">Short %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cotTable.map((row) => {
+                  const { cot } = row;
+                  const bullish = /bullish/i.test(cot.marketSituation || "");
+                  const bearish = /bearish/i.test(cot.marketSituation || "");
+                  return (
+                    <tr key={`${row.symbol}-cot`}>
+                      <td className="symbol font-semibold">
+                        <Link
+                          href={quoteHref(row.symbol, { exchange: "COMMODITY" })}
+                          className="text-link hover:underline"
+                        >
+                          {row.symbol}
+                        </Link>
+                      </td>
+                      <td className="max-w-[280px] truncate">{cot.name || row.name}</td>
+                      <td
+                        className={cn(
+                          "font-medium",
+                          bullish && "text-gain",
+                          bearish && "text-loss",
+                        )}
+                      >
+                        {cot.marketSituation || "—"}
+                      </td>
+                      <td className="text-muted">{cot.marketSentiment || "—"}</td>
+                      <td className="num">{formatInteger(cot.netPostion)}</td>
+                      <td className="num">
+                        <ChangePercent value={cot.changeInNetPosition} alreadyPercent />
+                      </td>
+                      <td className="num">
+                        {formatPercentPlain(cot.currentLongMarketSituation, { alreadyPercent: true })}
+                      </td>
+                      <td className="num">
+                        {formatPercentPlain(cot.currentShortMarketSituation, { alreadyPercent: true })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </Container>
   );
 }

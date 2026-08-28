@@ -28,10 +28,10 @@ export default async function InstitutionalFilerPage({
   searchParams,
 }: {
   params: Promise<{ cik: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; history?: string }>;
 }) {
   const { cik } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, history: historyParam } = await searchParams;
   const padded = padCik(cik);
   if (!padded) notFound();
   const { name, period, holdings, filing, latestPerformance, performance, industries } =
@@ -44,11 +44,13 @@ export default async function InstitutionalFilerPage({
   });
   const totalValue = equity.reduce((sum, row) => sum + (row.value || 0), 0);
   const holdingsPage = paginate(equity, pageNumber(pageParam), HOLDINGS_PAGE_SIZE);
+  const historyPage = paginate(performance, pageNumber(historyParam));
   const topHolding = equity[0];
-  const history = performance.slice(0, 8);
-  const mix = industries.slice(0, 15);
+  const mix = industries;
   const marketValue = latestPerformance?.marketValue || totalValue;
   const base = `/institutional/${padded}`;
+  const holdingExtra = { history: historyPage.page > 1 ? String(historyPage.page) : undefined };
+  const historyExtra = { page: holdingsPage.page > 1 ? String(holdingsPage.page) : undefined };
 
   return (
     <Container>
@@ -131,7 +133,7 @@ export default async function InstitutionalFilerPage({
         </section>
       ) : null}
 
-      {history.length > 0 ? (
+      {historyPage.total > 0 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-semibold text-header">Portfolio History</h2>
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -148,7 +150,7 @@ export default async function InstitutionalFilerPage({
                 </tr>
               </thead>
               <tbody>
-                {history.map((row) => (
+                {historyPage.rows.map((row) => (
                   <tr key={row.date}>
                     <td>{formatDate(row.date)}</td>
                     <td className="num">{formatCompactUsd(row.marketValue)}</td>
@@ -166,6 +168,14 @@ export default async function InstitutionalFilerPage({
               </tbody>
             </table>
           </div>
+          <TablePager
+            from={historyPage.from}
+            to={historyPage.to}
+            total={historyPage.total}
+            page={historyPage.page}
+            pageCount={historyPage.pageCount}
+            {...pagerLinks(base, historyPage.page, historyPage.pageCount, historyExtra, "history")}
+          />
         </section>
       ) : null}
 
@@ -228,7 +238,7 @@ export default async function InstitutionalFilerPage({
         total={holdingsPage.total}
         page={holdingsPage.page}
         pageCount={holdingsPage.pageCount}
-        {...pagerLinks(base, holdingsPage.page, holdingsPage.pageCount)}
+        {...pagerLinks(base, holdingsPage.page, holdingsPage.pageCount, holdingExtra)}
       />
       {ranked[0]?.link ? (
           <p className="mt-2 text-sm text-muted">

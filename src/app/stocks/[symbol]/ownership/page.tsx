@@ -34,7 +34,7 @@ export default async function OwnershipPage({
   const requestedPage = pageNumber(pageParam);
   const [{ summary, year, quarter, holders, holderTotal }, history, beneficial, fundDisclosures] = await Promise.all([
     getLatestInstitutionalOwnership(ticker, { page: requestedPage }),
-    getInstitutionalOwnershipHistory(ticker, 8),
+    getInstitutionalOwnershipHistory(ticker, 16),
     getBeneficialOwnership(ticker),
     getFundDisclosureHolders(ticker),
   ]);

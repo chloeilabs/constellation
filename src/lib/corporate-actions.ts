@@ -12,7 +12,7 @@ export type CorporateAction = {
   action: string;
 };
 
-const DELISTED_PAGES = 4;
+const DELISTED_PAGES = 8;
 const MERGER_LIMIT = 100;
 
 function usTicker(symbol?: string | null) {

@@ -89,6 +89,7 @@ import type {
   FmpSenateNetWorth,
   FmpFundDisclosureHolder,
   FmpLatestStatement,
+  FmpCotAnalysis,
   FmpInstitutionalPerformance,
   FmpInstitutionalIndustry,
   FmpOwnerEarnings,
@@ -1345,6 +1346,31 @@ export function getLatestFinancialStatements(page = 0, limit = 100) {
   );
 }
 
+const FMP_STATEMENT_PAGE_SIZE = 100;
+const FMP_STATEMENT_MAX_PAGES = 8;
+
+/** Newest-first ingest feed; eight pages cover about one calendar day of additions. */
+export async function getLatestFinancialStatementsArchive() {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_STATEMENT_MAX_PAGES }, (_, page) =>
+      getLatestFinancialStatements(page, FMP_STATEMENT_PAGE_SIZE),
+    ),
+  );
+  const seen = new Set<string>();
+  const out: FmpLatestStatement[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.symbol}|${row.period}|${row.date}|${row.dateAdded}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out.sort(
+    (a, b) => (b.dateAdded || "").localeCompare(a.dateAdded || "") || a.symbol.localeCompare(b.symbol),
+  );
+}
+
 export function getLatestSecFilings8k(from: string, to: string, limit = 100, page = 0) {
   return fmpList<FmpSecFiling>(
     "/sec-filings-8k",
@@ -1469,9 +1495,9 @@ export function getSecFilings(symbol: string, from: string, to: string, limit = 
 }
 
 const FMP_SEC_PAGE_SIZE = 100;
-const FMP_SEC_MAX_PAGES = 8;
+const FMP_SEC_MAX_PAGES = 12;
 
-/** Newest-first SEC search is Form-4 heavy; page until the window or cap. */
+/** Newest-first SEC search is Form-4 heavy; page 8+ needs `from`, which callers always pass. */
 export async function getSecFilingsArchive(symbol: string, from: string, to: string) {
   const pages = await Promise.all(
     Array.from({ length: FMP_SEC_MAX_PAGES }, (_, page) =>
@@ -1578,7 +1604,7 @@ async function findLatestInstitutionalSummary(symbol: string) {
   return { summary: backup.row, year: backup.year, quarter: backup.quarter };
 }
 
-export async function getInstitutionalOwnershipHistory(symbol: string, quarters = 8) {
+export async function getInstitutionalOwnershipHistory(symbol: string, quarters = 16) {
   const ticker = decodeTicker(symbol);
   const periods = recentFiscalQuarters(quarters);
   const batches = await Promise.all(
@@ -1763,6 +1789,15 @@ export async function getPriceTargetNewsArchive(symbol: string) {
 
 export function getCommoditiesList() {
   return fmpList<FmpCommodity>("/commodities-list", {}, { revalidate: 86400 });
+}
+
+/** CFTC positioning. Omit `from`/`to` and FMP returns a 2024 snapshot instead of the latest week. */
+export function getCotAnalysis(from: string, to: string) {
+  return fmpList<FmpCotAnalysis>(
+    "/commitment-of-traders-analysis",
+    { from, to },
+    { revalidate: 3600 },
+  );
 }
 
 export function getCommodityQuotes() {

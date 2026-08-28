@@ -1,4 +1,4 @@
-import type { FmpBeneficialOwner, FmpCommodityQuote, FmpIndexListItem, FmpMarketHours } from "@/lib/types";
+import type { FmpBeneficialOwner, FmpCommodityQuote, FmpCotAnalysis, FmpIndexListItem, FmpMarketHours } from "@/lib/types";
 import { nyDateString } from "@/lib/utils";
 
 export const PINNED_INDEXES = [
@@ -143,4 +143,22 @@ export function joinIndexQuotes(list: FmpIndexListItem[], quotes: FmpCommodityQu
     })
     .filter((row) => row.price != null && row.price > 0)
     .sort((a, b) => a.pinned - b.pinned || a.name.localeCompare(b.name));
+}
+
+/** FMP commodity roots use USD (GCUSD) or USX (ZCUSX) suffixes; COT uses the root (GC, ZC). */
+export function commodityContractRoot(symbol: string) {
+  return symbol.replace(/US[DX]$/i, "").toUpperCase();
+}
+
+export function latestCotBySymbol(rows: FmpCotAnalysis[]) {
+  const bySymbol = new Map<string, FmpCotAnalysis>();
+  for (const row of rows) {
+    const symbol = (row.symbol || "").toUpperCase();
+    if (!symbol) continue;
+    const prev = bySymbol.get(symbol);
+    if (!prev || (row.date || "").slice(0, 10) > (prev.date || "").slice(0, 10)) {
+      bySymbol.set(symbol, row);
+    }
+  }
+  return bySymbol;
 }
