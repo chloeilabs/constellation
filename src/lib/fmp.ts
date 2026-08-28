@@ -1208,11 +1208,18 @@ export function getShareFloat(symbol: string) {
 }
 
 export function getHistoricalMarketCap(symbol: string, limit = 90, from?: string, to?: string) {
-  return fmpList<FmpHistoricalMarketCap>(
-    "/historical-market-capitalization",
-    { symbol: decodeTicker(symbol), limit, from, to },
-    { revalidate: 3600 },
-  );
+  const ticker = decodeTicker(symbol);
+  const pageLimit = Math.min(Math.max(limit, 1), FMP_EOD_ROW_CAP);
+  return fetchEodPages(
+    (pageTo) =>
+      fmpList<FmpHistoricalMarketCap>(
+        "/historical-market-capitalization",
+        { symbol: ticker, limit: pageLimit, from, to: pageTo },
+        { revalidate: 3600 },
+      ),
+    from,
+    to,
+  ).then((rows) => [...rows].sort((a, b) => b.date.localeCompare(a.date)));
 }
 
 /** Closest daily market cap to today−365, from a small date window (not the full history). */

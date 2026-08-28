@@ -19,7 +19,7 @@ export default async function MarketCapPage({ params }: { params: Promise<{ symb
     getQuote(ticker),
     getProfile(ticker),
     loadLiveValuation(ticker),
-    getHistoricalMarketCap(ticker, 5000, "1998-01-01", today),
+    getHistoricalMarketCap(ticker, 5000, "1970-01-01", today),
   ]);
   const money = compactMoneyFn(profile?.currency);
   const annual = yearEndSnapshots(history);
