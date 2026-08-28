@@ -1,9 +1,5 @@
 import type { FmpNewsItem } from "@/lib/types";
 
-/** One FMP /news/stock call; AAPL at 200 is about two weeks of headlines. */
-export const SYMBOL_NEWS_LIMIT = 200;
-export const PRESS_RELEASE_LIMIT = 50;
-
 export function mergeNews(...lists: FmpNewsItem[][]) {
   const seen = new Set<string>();
   const merged: FmpNewsItem[] = [];

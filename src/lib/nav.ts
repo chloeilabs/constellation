@@ -13,6 +13,14 @@ export function extendedHoursNav(base: "/markets/premarket" | "/markets/afterhou
   ];
 }
 
+export function marketAssetNewsNav(kind: "crypto" | "forex", symbol: string): NavItem[] {
+  const base = kind === "crypto" ? `/markets/crypto/${symbol}` : `/markets/forex/${symbol}`;
+  return [
+    { href: base, label: "Overview", match: "exact" },
+    { href: `${base}/news`, label: "News" },
+  ];
+}
+
 export const MARKET_NAV: NavItem[] = [
   { href: "/markets", label: "Overview" },
   { href: "/markets/global", label: "World Markets" },

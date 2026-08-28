@@ -1256,6 +1256,17 @@ export const STOCK_LISTS = {
     listing: "raw",
     symbolPattern: "^[0-9]+\\.KQ$",
   },
+  "prague-stocks": {
+    title: "Prague Stock Exchange",
+    description: "The largest Czech companies listed in Prague, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "PRA", country: "CZ" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.PR$",
+  },
   "bse-india": {
     title: "Bombay Stock Exchange",
     description: "The largest companies listed on the BSE in India, ranked by market cap.",
@@ -1863,8 +1874,16 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   "nse-india": "india-stocks",
   "brazil-stock-exchange": "brazil-stocks",
   "tsx-venture-exchange": "tsx-venture-stocks",
+  tsxv: "tsx-venture-stocks",
   "kosdaq-korea": "kosdaq-stocks",
+  kosdaq: "kosdaq-stocks",
   "shenzhen-stock-exchange": "shenzhen-stocks",
+  "bombay-stock-exchange": "bse-india",
+  bse: "bse-india",
+  "prague-stock-exchange": "prague-stocks",
+  prague: "prague-stocks",
+  "czech-stocks": "prague-stocks",
+  "czech-republic-stocks": "prague-stocks",
   "shanghai-stock-exchange": "shanghai-stocks",
   "korea-stock-exchange": "korea-stocks",
   kospi: "korea-stocks",
@@ -1941,7 +1960,6 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
 export const LIST_PATH_ALIASES: Record<string, string> = {
   exchanges: "/list/exchanges",
   "mutual-funds": "/funds",
-  "prague-stock-exchange": "/stocks/country/cz",
 };
 
 export function resolveStockListSlug(value: string): StockListSlug | null {

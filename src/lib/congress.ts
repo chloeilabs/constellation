@@ -79,7 +79,7 @@ export async function loadCongressTrades(chamber: CongressChamber, limit = 80) {
 }
 
 export async function loadCongressTradesArchive(chamber: CongressChamber) {
-  const pages = 3;
+  const pages = 6;
   if (chamber === "senate") {
     return sortCongressTrades(await loadChamberPages(getSenateLatest, "Senate", pages));
   }

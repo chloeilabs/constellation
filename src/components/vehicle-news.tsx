@@ -3,10 +3,10 @@ import { NewsList } from "@/components/news-list";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { TablePager } from "@/components/table-pager";
-import { getPressReleases, getSymbolNews } from "@/lib/fmp";
+import { getPressReleasesArchive, getSymbolNewsArchive } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { vehicleNewsNav } from "@/lib/nav";
-import { mergeNews, PRESS_RELEASE_LIMIT, SYMBOL_NEWS_LIMIT } from "@/lib/news";
+import { mergeNews } from "@/lib/news";
 import { NEWS_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { vehicleNoun, vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
@@ -25,8 +25,8 @@ export async function VehicleNews({
   const noun = vehicleNoun(kind);
   const page = pageNumber(pageParam);
   const [news, press] = await Promise.all([
-    feed === "press" ? Promise.resolve([]) : getSymbolNews(ticker, SYMBOL_NEWS_LIMIT),
-    getPressReleases(ticker, PRESS_RELEASE_LIMIT),
+    feed === "press" ? Promise.resolve([]) : getSymbolNewsArchive(ticker),
+    getPressReleasesArchive(ticker),
   ]);
   const items = feed === "press" ? press : mergeNews(news, press);
   const window = paginate(items, page, NEWS_PAGE_SIZE);
@@ -39,7 +39,7 @@ export async function VehicleNews({
         description={
           feed === "press"
             ? `Company press releases for this ${noun}.`
-            : `Headlines and press releases for this ${noun}. FMP returns the most recent articles.`
+            : `Headlines and press releases for this ${noun}. FMP pages the latest articles newest-first.`
         }
       />
       <SectionNav items={vehicleNewsNav(kind, ticker)} />

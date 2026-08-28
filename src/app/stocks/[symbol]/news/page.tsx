@@ -4,11 +4,11 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { TablePager } from "@/components/table-pager";
 import { NewsWindowPager } from "@/components/news-window-pager";
-import { getPressReleases, getStockNews, getSymbolNews } from "@/lib/fmp";
+import { getPressReleasesArchive, getStockNews, getSymbolNewsArchive } from "@/lib/fmp";
 import { isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
-import { mergeNews, PRESS_RELEASE_LIMIT, SYMBOL_NEWS_LIMIT } from "@/lib/news";
+import { mergeNews } from "@/lib/news";
 import { NEWS_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
 export default async function StockNewsPage({
@@ -36,8 +36,8 @@ export default async function StockNewsPage({
   }
 
   const [news, press] = await Promise.all([
-    getSymbolNews(ticker, SYMBOL_NEWS_LIMIT),
-    getPressReleases(ticker, PRESS_RELEASE_LIMIT),
+    getSymbolNewsArchive(ticker),
+    getPressReleasesArchive(ticker),
   ]);
   const items = mergeNews(news, press);
   const feed = paginate(items, page, NEWS_PAGE_SIZE);
@@ -47,7 +47,7 @@ export default async function StockNewsPage({
     <Container>
       <PageHeader
         title={`${ticker} News`}
-        description="Headlines and press releases for this stock. FMP returns the most recent articles."
+        description="Headlines and press releases for this stock. FMP pages the latest articles newest-first."
       />
       <SectionNav items={quoteNewsNav(ticker)} />
       <NewsList items={feed.rows} showSymbol={false} />

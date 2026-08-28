@@ -370,6 +370,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "CZ",
     exchange: "PRA",
     symbolPattern: "^[A-Z0-9]+\\.PR$",
+    listSlug: "prague-stocks",
   },
   {
     code: "is",
@@ -526,6 +527,11 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   CNQ: "/list/canadian-securities-exchange",
   NEO: "/list/cboe-canada",
   TWO: "/list/taipei-exchange",
+  TSXV: "/list/tsx-venture-stocks",
+  KOE: "/list/kosdaq-stocks",
+  BSE: "/list/bse-india",
+  SHZ: "/list/shenzhen-stocks",
+  PRA: "/list/prague-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {

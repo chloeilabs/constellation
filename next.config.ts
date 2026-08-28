@@ -91,7 +91,9 @@ const nextConfig: NextConfig = {
       { source: "/stocks/sectors", destination: "/stocks/sector", permanent: false },
       { source: "/stocks/sectors/:slug", destination: "/stocks/sector/:slug", permanent: false },
       { source: "/crypto/:symbol", destination: "/markets/crypto/:symbol", permanent: false },
+      { source: "/crypto/:symbol/news", destination: "/markets/crypto/:symbol/news", permanent: false },
       { source: "/forex/:symbol", destination: "/markets/forex/:symbol", permanent: false },
+      { source: "/forex/:symbol/news", destination: "/markets/forex/:symbol/news", permanent: false },
       { source: "/commodities/:symbol", destination: "/markets/commodities/:symbol", permanent: false },
       { source: "/mutual-fund/:symbol", destination: "/funds/:symbol", permanent: false },
       { source: "/mutual-funds/:symbol", destination: "/funds/:symbol", permanent: false },
@@ -182,6 +184,11 @@ const nextConfig: NextConfig = {
       { source: "/list/exchange-traded-note", destination: "/list/exchange-traded-notes", permanent: false },
       { source: "/list/covered-call", destination: "/list/covered-call-etfs", permanent: false },
       { source: "/list/buywrite-etfs", destination: "/list/covered-call-etfs", permanent: false },
+      { source: "/list/prague-stock-exchange", destination: "/list/prague-stocks", permanent: false },
+      { source: "/list/czech-stocks", destination: "/list/prague-stocks", permanent: false },
+      { source: "/list/tsx-venture-exchange", destination: "/list/tsx-venture-stocks", permanent: false },
+      { source: "/list/bombay-stock-exchange", destination: "/list/bse-india", permanent: false },
+      { source: "/list/kosdaq-korea", destination: "/list/kosdaq-stocks", permanent: false },
     ];
   },
   images: {

@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { decodeTicker, listedUsRows, looksLikeFund, uniqueBySymbol, usEtfHolders, WELL_KNOWN_MARKET_ASSETS } from "@/lib/listings";
+import { mergeNews } from "@/lib/news";
 import { addDays, chunk, first, isoDate, nyDateString, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -449,18 +450,18 @@ export function getForexNewsLatest(limit = 20, page = 0) {
   return fmpList<FmpNewsItem>("/news/forex-latest", { limit, page }, { revalidate: 120 });
 }
 
-export function getCryptoNews(symbol: string, limit = 20) {
+export function getCryptoNews(symbol: string, limit = 20, page = 0) {
   return fmpList<FmpNewsItem>(
     "/news/crypto",
-    { symbols: decodeTicker(symbol), limit },
+    { symbols: decodeTicker(symbol), limit, page },
     { revalidate: 120 },
   );
 }
 
-export function getForexNews(symbol: string, limit = 20) {
+export function getForexNews(symbol: string, limit = 20, page = 0) {
   return fmpList<FmpNewsItem>(
     "/news/forex",
-    { symbols: decodeTicker(symbol), limit },
+    { symbols: decodeTicker(symbol), limit, page },
     { revalidate: 120 },
   );
 }
@@ -471,6 +472,41 @@ export function getPressReleases(symbol: string, limit = 10, page = 0) {
     { symbols: decodeTicker(symbol), limit, page },
     { revalidate: 300 },
   );
+}
+
+const FMP_SYMBOL_NEWS_PAGE_SIZE = 200;
+const FMP_SYMBOL_NEWS_MAX_PAGES = 8;
+const FMP_PRESS_PAGE_SIZE = 50;
+const FMP_PRESS_MAX_PAGES = 4;
+const FMP_MARKET_NEWS_PAGE_SIZE = 50;
+const FMP_CRYPTO_NEWS_MAX_PAGES = 8;
+const FMP_FOREX_NEWS_MAX_PAGES = 6;
+
+async function newsPages(load: (page: number) => Promise<FmpNewsItem[]>, pages: number) {
+  const rows = await Promise.all(Array.from({ length: pages }, (_, page) => load(page)));
+  return mergeNews(...rows);
+}
+
+/** `/news/stock` pages are unique; eight × 200 covers about three months for AAPL. */
+export function getSymbolNewsArchive(symbol: string) {
+  const ticker = decodeTicker(symbol);
+  return newsPages((page) => getSymbolNews(ticker, FMP_SYMBOL_NEWS_PAGE_SIZE, page), FMP_SYMBOL_NEWS_MAX_PAGES);
+}
+
+/** `/news/press-releases` page 1 is empty for AAPL but continues for names like MSFT. */
+export function getPressReleasesArchive(symbol: string) {
+  const ticker = decodeTicker(symbol);
+  return newsPages((page) => getPressReleases(ticker, FMP_PRESS_PAGE_SIZE, page), FMP_PRESS_MAX_PAGES);
+}
+
+export function getCryptoNewsArchive(symbol: string) {
+  const ticker = decodeTicker(symbol);
+  return newsPages((page) => getCryptoNews(ticker, FMP_MARKET_NEWS_PAGE_SIZE, page), FMP_CRYPTO_NEWS_MAX_PAGES);
+}
+
+export function getForexNewsArchive(symbol: string) {
+  const ticker = decodeTicker(symbol);
+  return newsPages((page) => getForexNews(ticker, FMP_MARKET_NEWS_PAGE_SIZE, page), FMP_FOREX_NEWS_MAX_PAGES);
 }
 
 export function getIpos(from: string, to: string) {
@@ -1181,7 +1217,7 @@ export function getInsiderTrades(symbol: string, limit = 50, page = 0) {
 }
 
 const FMP_INSIDER_PAGE_SIZE = 100;
-const FMP_INSIDER_MAX_PAGES = 4;
+const FMP_INSIDER_MAX_PAGES = 8;
 
 /** Newest-first Form 4 search, several FMP pages so the quote table covers more than one year. */
 export async function getInsiderTradesArchive(symbol: string) {
@@ -1356,9 +1392,9 @@ export function getLatestFinancialStatements(page = 0, limit = 100) {
 }
 
 const FMP_STATEMENT_PAGE_SIZE = 100;
-const FMP_STATEMENT_MAX_PAGES = 8;
+const FMP_STATEMENT_MAX_PAGES = 16;
 
-/** Newest-first ingest feed; eight pages cover about one calendar day of additions. */
+/** Newest-first ingest feed; sixteen pages cover about two calendar days of additions. */
 export async function getLatestFinancialStatementsArchive() {
   const pages = await Promise.all(
     Array.from({ length: FMP_STATEMENT_MAX_PAGES }, (_, page) =>
@@ -1504,7 +1540,7 @@ export function getSecFilings(symbol: string, from: string, to: string, limit = 
 }
 
 const FMP_SEC_PAGE_SIZE = 100;
-const FMP_SEC_MAX_PAGES = 12;
+const FMP_SEC_MAX_PAGES = 20;
 
 /** Newest-first SEC search is Form-4 heavy; page 8+ needs `from`, which callers always pass. */
 export async function getSecFilingsArchive(symbol: string, from: string, to: string) {

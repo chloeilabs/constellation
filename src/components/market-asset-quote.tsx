@@ -12,7 +12,7 @@ import { QuoteHeaderStats } from "@/components/quote-header-stats";
 import { formatCompact, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
 import { getCotAnalysis, getCryptoNews, getForexNews, getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
-import { MARKET_NAV } from "@/lib/nav";
+import { MARKET_NAV, marketAssetNewsNav } from "@/lib/nav";
 import {
   MARKET_ASSET_LABEL,
   marketAssetHref,
@@ -160,6 +160,7 @@ export async function MarketAssetQuote({
       </div>
       <Container>
         <SectionNav items={MARKET_NAV} />
+        {kind === "crypto" || kind === "forex" ? <SectionNav items={marketAssetNewsNav(kind, ticker)} /> : null}
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
           <div>
             <PriceChart
@@ -269,11 +270,21 @@ export async function MarketAssetQuote({
         ) : null}
 
         <section className="mt-10">
-          <div className="mb-3 flex items-end justify-between">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
             <h2 className="text-xl font-semibold text-header">News</h2>
-            <Link href={kind === "crypto" ? "/news/crypto" : kind === "forex" ? "/news/forex" : listHref} className="text-sm text-link hover:underline">
-              All {kindLabel.toLowerCase()} news
-            </Link>
+            <div className="flex flex-wrap gap-4 text-sm">
+              {kind !== "commodity" && news.length > 0 ? (
+                <Link href={`${href}/news`} className="text-link hover:underline">
+                  More {ticker} news
+                </Link>
+              ) : null}
+              <Link
+                href={kind === "crypto" ? "/news/crypto" : kind === "forex" ? "/news/forex" : listHref}
+                className="text-link hover:underline"
+              >
+                All {kindLabel.toLowerCase()} news
+              </Link>
+            </div>
           </div>
           {news.length === 0 ? (
             <p className="text-sm text-muted">FMP has no headlines tagged to {ticker}.</p>

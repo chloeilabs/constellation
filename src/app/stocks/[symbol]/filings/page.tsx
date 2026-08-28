@@ -9,7 +9,7 @@ import { secFormCategory, secFormTitle, sortSecFilings, type SecFilingCategory }
 import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
 import { pageHref, pageNumber, paginate } from "@/lib/paging";
-import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
+import { cn, nyDateString } from "@/lib/utils";
 
 const FILING_FILTERS: { id: SecFilingCategory; label: string }[] = [
   { id: "all", label: "All" },
@@ -36,7 +36,7 @@ export default async function StockFilingsPage({
   const ticker = decodeTicker(symbol);
   const filter = filingFilter(typeParam);
   const to = nyDateString();
-  const from = isoDate(addDays(new Date(`${to}T00:00:00Z`), -365 * 15));
+  const from = "1990-01-01";
   const [rows, profile] = await Promise.all([getSecFilingsArchive(ticker, from, to), getProfile(ticker)]);
   const ordered = sortSecFilings(rows);
   const filtered =
