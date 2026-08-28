@@ -110,7 +110,6 @@ const nextConfig: NextConfig = {
       { source: "/indexes", destination: "/markets/indexes", permanent: false },
       { source: "/market-indexes", destination: "/markets/indexes", permanent: false },
       { source: "/stocks/countries", destination: "/stocks/country", permanent: false },
-      { source: "/list/austria-stocks", destination: "/stocks/country/at", permanent: false },
       { source: "/stocks/:symbol/income-statement", destination: "/stocks/:symbol/financials/income-statement", permanent: false },
       { source: "/stocks/:symbol/balance-sheet", destination: "/stocks/:symbol/financials/balance-sheet", permanent: false },
       { source: "/stocks/:symbol/cash-flow-statement", destination: "/stocks/:symbol/financials/cash-flow-statement", permanent: false },
@@ -162,6 +161,14 @@ const nextConfig: NextConfig = {
       { source: "/list/nasdaq-helsinki", destination: "/list/finland-stocks", permanent: false },
       { source: "/list/indonesia-stock-exchange", destination: "/list/indonesia-stocks", permanent: false },
       { source: "/list/bursa-malaysia", destination: "/list/malaysia-stocks", permanent: false },
+      { source: "/list/vienna-stock-exchange", destination: "/list/austria-stocks", permanent: false },
+      { source: "/list/athens-stock-exchange", destination: "/list/greece-stocks", permanent: false },
+      { source: "/list/borsa-istanbul", destination: "/list/turkey-stocks", permanent: false },
+      { source: "/list/stock-exchange-of-thailand", destination: "/list/thailand-stocks", permanent: false },
+      { source: "/list/saudi-stock-exchange", destination: "/list/saudi-stocks", permanent: false },
+      { source: "/list/qatar-stock-exchange", destination: "/list/qatar-stocks", permanent: false },
+      { source: "/list/santiago-stock-exchange", destination: "/list/chile-stocks", permanent: false },
+      { source: "/list/euronext-lisbon", destination: "/list/portugal-stocks", permanent: false },
     ];
   },
   images: {

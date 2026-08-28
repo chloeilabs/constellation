@@ -217,6 +217,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "AT",
     exchange: "VIE",
     symbolPattern: "^[A-Z0-9]+\\.VI$",
+    listSlug: "austria-stocks",
   },
   {
     code: "jp",
@@ -346,6 +347,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "PT",
     exchange: "LIS",
     symbolPattern: "^[A-Z0-9]+\\.LS$",
+    listSlug: "portugal-stocks",
   },
   {
     code: "gr",
@@ -356,6 +358,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "GR",
     exchange: "ATH",
     symbolPattern: "^[A-Z0-9]+\\.AT$",
+    listSlug: "greece-stocks",
   },
   {
     code: "cz",
@@ -386,6 +389,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "TR",
     exchange: "IST",
     symbolPattern: "^[A-Z0-9]+\\.IS$",
+    listSlug: "turkey-stocks",
   },
   {
     code: "ar",
@@ -405,7 +409,8 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     currency: "CLP",
     country: "CL",
     exchange: "SGO",
-    symbolPattern: "^[A-Z0-9]+\\.SN$",
+    symbolPattern: "^[A-Z0-9-]+\\.SN$",
+    listSlug: "chile-stocks",
   },
   {
     code: "cn",
@@ -449,6 +454,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "TH",
     exchange: "SET",
     symbolPattern: "^[A-Z0-9]+\\.BK$",
+    listSlug: "thailand-stocks",
   },
   {
     code: "sa",
@@ -458,7 +464,8 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     currency: "SAR",
     country: "SA",
     exchange: "SAU",
-    symbolPattern: "^[A-Z0-9]+\\.SR$",
+    symbolPattern: "^[0-9]+\\.SR$",
+    listSlug: "saudi-stocks",
   },
   {
     code: "ae",
@@ -479,6 +486,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "QA",
     exchange: "DOH",
     symbolPattern: "^[A-Z0-9]+\\.QA$",
+    listSlug: "qatar-stocks",
   },
 ];
 
