@@ -68,7 +68,8 @@ export async function VehicleOverview({
     .map((row) => ({ country: row.country, weight: parseWeightPercentage(row.weightPercentage) }))
     .filter((row) => row.country && row.weight > 0)
     .sort((a, b) => b.weight - a.weight);
-  const topHoldings = holdings.slice(0, 10);
+  const rankedHoldings = [...holdings].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0));
+  const topHoldings = rankedHoldings.slice(0, 10);
   const maxSector = Math.max(...rankedSectors.map((row) => row.weightPercentage || 0), 1);
   const maxCountry = Math.max(...rankedCountries.map((row) => row.weight), 1);
   const latestDividend = dividends[0];
