@@ -21,7 +21,10 @@ export async function VehicleChart({
   const ticker = decodeTicker(symbol);
   const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [chart, changes, quote] = await Promise.all([
-    loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
+    loadQuoteChart(ticker, rangeParam, {
+      adjusted: wantAdjusted,
+      fallbackRange: kind === "fund" ? "1Y" : undefined,
+    }),
     getPriceChange(ticker),
     getQuote(ticker),
   ]);

@@ -52,7 +52,10 @@ export async function VehicleOverview({
       getPressReleases(ticker, 8),
       getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
       getPriceChange(ticker),
-      loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
+      loadQuoteChart(ticker, rangeParam, {
+        adjusted: wantAdjusted,
+        fallbackRange: kind === "fund" ? "1Y" : undefined,
+      }),
       profilePromise,
       Promise.all([infoPromise, profilePromise]).then(([etfInfo, company]) =>
         loadVehiclePerformance(ticker, etfInfo?.inceptionDate || company?.ipoDate),

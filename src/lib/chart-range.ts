@@ -8,9 +8,9 @@ export function defaultChartRange(): ChartRange {
   return nySession() === "closed" ? "1Y" : "1D";
 }
 
-export function resolveChartRange(param?: string | null): ChartRange {
+export function resolveChartRange(param?: string | null, fallback?: ChartRange): ChartRange {
   const normalized = param?.trim().toUpperCase();
   if (normalized === "YTD") return "YTD";
   if (normalized && CHART_RANGES.includes(normalized as ChartRange)) return normalized as ChartRange;
-  return defaultChartRange();
+  return fallback ?? defaultChartRange();
 }

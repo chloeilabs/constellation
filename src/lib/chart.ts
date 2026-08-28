@@ -249,17 +249,30 @@ function lastSessionPoints(points: ChartPoint[], sessionCount: number, rthOnly =
   return out;
 }
 
+/** Mutual funds and some listings have no intraday tape; use recent daily closes so 1D/5D are not blank. */
+async function dailySessionPoints(symbol: string, sessions: number): Promise<ChartPoint[]> {
+  const today = new Date(`${nyDateString()}T00:00:00Z`);
+  const from = isoDate(addDays(today, -Math.max(sessions * 4, 14)));
+  const daily = toDailyPoints(await getDailyChart(symbol, from));
+  return daily.slice(-Math.max(sessions, 2));
+}
+
 export async function getChartData(symbol: string, range: ChartRange): Promise<ChartPoint[]> {
   if (range === "1D") {
     const oneMin = sessionChartPoints(toIntradayPoints(await getIntradayChart(symbol, "1min")));
     if (oneMin.length >= 2) return oneMin;
     const fiveMin = sessionChartPoints(toIntradayPoints(await getIntradayChart(symbol, "5min")));
-    return fiveMin.length >= 2 ? fiveMin : oneMin;
+    if (fiveMin.length >= 2) return fiveMin;
+    return dailySessionPoints(symbol, 2);
   }
   if (range === "5D") {
     const fiveMin = lastSessionPoints(toIntradayPoints(await getIntradayChart(symbol, "5min")), 5);
     if (fiveMin.length >= 20) return fiveMin;
-    return lastSessionPoints(toIntradayPoints(await getIntradayChart(symbol, "15min")), 5);
+    const fifteen = lastSessionPoints(toIntradayPoints(await getIntradayChart(symbol, "15min")), 5);
+    if (fifteen.length >= 20) return fifteen;
+    if (fiveMin.length >= 2) return fiveMin;
+    if (fifteen.length >= 2) return fifteen;
+    return dailySessionPoints(symbol, 5);
   }
   if (range === "MAX") {
     return toDailyPoints(await getDailyChart(symbol));
@@ -270,9 +283,9 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
 export async function loadQuoteChart(
   symbol: string,
   rangeParam?: string | null,
-  options?: { adjusted?: boolean },
+  options?: { adjusted?: boolean; fallbackRange?: ChartRange },
 ) {
-  const range = resolveChartRange(rangeParam);
+  const range = resolveChartRange(rangeParam, options?.fallbackRange);
   const adjusted = Boolean(options?.adjusted) && canDividendAdjust(range);
   if (adjusted) {
     const chartFrom = fromDateForRange(range);
