@@ -149,7 +149,12 @@ export function PriceChart({
     const values = points.map((point) => point.value);
     const priceMin = Math.min(...values);
     const priceMax = Math.max(...values);
-    const extras = [ma50, ma200].filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    const extras: number[] = [];
+    if (points.length > 12) {
+      extras.push(
+        ...[ma50, ma200].filter((value): value is number => typeof value === "number" && Number.isFinite(value)),
+      );
+    }
     for (const point of points) {
       const day = point.time.slice(0, 10);
       const sma50 = ma50Days.get(day);
@@ -216,8 +221,10 @@ export function PriceChart({
       positive,
       volumes,
       macdBars,
-      ma50Y: !ma50Path && typeof ma50 === "number" && Number.isFinite(ma50) ? yOf(ma50) : null,
-      ma200Y: !ma200Path && typeof ma200 === "number" && Number.isFinite(ma200) ? yOf(ma200) : null,
+      ma50Y:
+        points.length > 12 && !ma50Path && typeof ma50 === "number" && Number.isFinite(ma50) ? yOf(ma50) : null,
+      ma200Y:
+        points.length > 12 && !ma200Path && typeof ma200 === "number" && Number.isFinite(ma200) ? yOf(ma200) : null,
       ma50Path,
       ma200Path,
       ema12Path: alignedPath(points, ema12Days, yOf, pad, width),
