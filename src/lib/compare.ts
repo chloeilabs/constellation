@@ -74,7 +74,7 @@ export async function getProfilesAndQuotes(symbols: string[]) {
             freeCashFlow: cash?.freeCashFlow,
           })
         : null;
-      const indicated = indicatedAnnualDividend(null, profile?.lastDividend);
+      const indicated = indicatedAnnualDividend(dividends[0], profile?.lastDividend);
       const price = quote?.price;
       const dividendYield =
         indicated != null && price && price > 0 ? indicated / price : null;
