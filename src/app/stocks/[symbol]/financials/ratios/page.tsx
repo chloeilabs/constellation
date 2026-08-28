@@ -153,18 +153,19 @@ function overlayRatioColumn(
     nextEps: input.nextEps,
     epsCagr: input.epsCagr,
   });
-  return {
-    ...column,
-    values: assignFinite(
-      {
-        ...column.values,
-        ...mergedIncome,
-        weightedAverageShsOutDil: num(mergedIncome.weightedAverageShsOutDil),
-        ...(input.date ? { date: input.date } : {}),
-      },
-      overlay,
-    ),
-  };
+  const values = assignFinite(
+    {
+      ...column.values,
+      ...mergedIncome,
+      weightedAverageShsOutDil: num(mergedIncome.weightedAverageShsOutDil),
+      ...(input.date ? { date: input.date } : {}),
+    },
+    overlay,
+  ) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(overlay)) {
+    values[key] = typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
+  return { ...column, values };
 }
 
 export default async function RatiosPage({
