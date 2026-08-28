@@ -1,14 +1,19 @@
+import Link from "next/link";
 import { formatCompactUsd, formatInteger } from "@/lib/format";
 import type { FmpExecutive, FmpExecutiveCompensation } from "@/lib/types";
 
 export function CompanyPeople({
   executives,
-  compensation,
-  year,
+  compensation = [],
+  year = 0,
+  compact = false,
+  moreHref,
 }: {
   executives: FmpExecutive[];
-  compensation: FmpExecutiveCompensation[];
-  year: number;
+  compensation?: FmpExecutiveCompensation[];
+  year?: number;
+  compact?: boolean;
+  moreHref?: string;
 }) {
   return (
     <>
@@ -19,15 +24,19 @@ export function CompanyPeople({
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Title</th>
-                <th className="num">Pay</th>
-                <th className="num">Year Born</th>
+                <th>Position</th>
+                {compact ? null : (
+                  <>
+                    <th className="num">Pay</th>
+                    <th className="num">Year Born</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody>
               {executives.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-muted">
+                  <td colSpan={compact ? 2 : 4} className="text-muted">
                     Executive data is unavailable for this company.
                   </td>
                 </tr>
@@ -36,22 +45,33 @@ export function CompanyPeople({
                   <tr key={`${person.name}-${person.title}`}>
                     <td className="font-medium">{person.name}</td>
                     <td className="whitespace-normal text-muted">{person.title}</td>
-                    <td className="num">
-                      {person.pay != null ? formatCompactUsd(person.pay) : "—"}
-                      {person.pay != null && person.currencyPay ? (
-                        <span className="ml-1 text-xs text-muted">{person.currencyPay}</span>
-                      ) : null}
-                    </td>
-                    <td className="num">{person.yearBorn ? formatInteger(person.yearBorn) : "—"}</td>
+                    {compact ? null : (
+                      <>
+                        <td className="num">
+                          {person.pay != null ? formatCompactUsd(person.pay) : "—"}
+                          {person.pay != null && person.currencyPay ? (
+                            <span className="ml-1 text-xs text-muted">{person.currencyPay}</span>
+                          ) : null}
+                        </td>
+                        <td className="num">{person.yearBorn ? formatInteger(person.yearBorn) : "—"}</td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+        {compact && moreHref ? (
+          <p className="mt-2 text-sm">
+            <Link href={moreHref} className="text-link hover:underline">
+              Executive compensation
+            </Link>
+          </p>
+        ) : null}
       </section>
 
-      {compensation.length > 0 ? (
+      {!compact && compensation.length > 0 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-xl font-semibold text-header">Executive Compensation ({year})</h2>
           <div className="overflow-x-auto rounded-lg border border-border">

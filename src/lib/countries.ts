@@ -322,6 +322,19 @@ export function findCountryMarket(code: string) {
   return COUNTRY_MARKETS.find((market) => market.code === code.toLowerCase()) ?? null;
 }
 
+export function countryMarketFromProfile(country?: string | null) {
+  if (!country) return null;
+  const needle = country.trim().toLowerCase();
+  return (
+    COUNTRY_MARKETS.find(
+      (market) =>
+        market.code === needle ||
+        market.country?.toLowerCase() === needle ||
+        market.name.toLowerCase() === needle,
+    ) ?? null
+  );
+}
+
 export const loadCountryStocks = cache(async (code: string) => {
   const market = findCountryMarket(code);
   if (!market) return null;

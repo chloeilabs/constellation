@@ -10,6 +10,7 @@ import {
   getCashFlows,
   getCashFlowTtm,
   getDividends,
+  getEnterpriseValues,
   getEstimates,
   getIncomeStatements,
   getIncomeTtm,
@@ -22,6 +23,7 @@ import {
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   canonicalSegmentName,
+  derivedStatementMetrics,
   priorTtmSegmentMap,
   segmentLevelValues,
   spanFrom,
@@ -33,8 +35,8 @@ import {
 } from "@/lib/statements";
 import { cashAndInvestments, indicatedAnnualDividend, netCashPosition, nyDateString } from "@/lib/utils";
 import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
-import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
-import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
+import { nextEstimate, trailingPe } from "@/lib/valuation";
+import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -132,6 +134,46 @@ function ratioColumn(
     values[outKey] = n(row?.[inKey]);
   }
   return { key, label, values };
+}
+
+function overlayValuationColumn(
+  column: YearMetricColumn,
+  input: {
+    price?: number | null;
+    marketCap?: number | null;
+    eps?: number | null;
+    revenue?: number | null;
+    fcf?: number | null;
+    nextEps?: number | null;
+  },
+): YearMetricColumn {
+  const pe = trailingPe(input.price, input.eps);
+  const ps =
+    input.marketCap != null && input.revenue != null && input.revenue !== 0 ? input.marketCap / input.revenue : null;
+  const pfcf = input.marketCap != null && input.fcf != null && input.fcf !== 0 ? input.marketCap / input.fcf : null;
+  const forwardPe = input.nextEps != null ? trailingPe(input.price, input.nextEps) : null;
+  return {
+    ...column,
+    values: {
+      ...column.values,
+      ...(pe != null ? { pe } : {}),
+      ...(forwardPe != null ? { forwardPe } : {}),
+      ...(ps != null ? { ps } : {}),
+      ...(pfcf != null ? { pfcf } : {}),
+    },
+  };
+}
+
+function matchEnterprise(
+  rows: FmpEnterpriseValue[],
+  date?: string | null,
+  fiscalYear?: string | number | null,
+) {
+  return (
+    rows.find((row) => date && row.date === date) ??
+    rows.find((row) => fiscalYear != null && row.date.slice(0, 4) === String(fiscalYear)) ??
+    null
+  );
 }
 
 function fillMarginGaps(
@@ -255,7 +297,7 @@ export default async function FinancialsOverviewPage({
   const annualLimit = yearCount + 1;
   const fiscalLimit = Math.max(annualLimit, 16);
   const base = stockPath(ticker, "/financials");
-  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates] =
+  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates, enterpriseRows] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", fiscalLimit),
       getIncomeStatements(ticker, "quarter", 8),
@@ -274,6 +316,7 @@ export default async function FinancialsOverviewPage({
       getDividends(ticker, span === "5" ? 40 : 80),
       getQuote(ticker),
       getEstimates(ticker, "annual"),
+      getEnterpriseValues(ticker, "annual", annualLimit),
     ]);
 
   const incomeYears = annualIncome.slice(0, yearCount);
@@ -403,6 +446,15 @@ export default async function FinancialsOverviewPage({
     pfcf: "priceToFreeCashFlowRatio",
     dividendYield: "dividendYield",
   };
+  const derivedTtm = ttmIncomeSynthetic
+    ? derivedStatementMetrics({
+        ...(ttmIncomeSynthetic as unknown as Record<string, unknown>),
+        depreciationAndAmortization:
+          (ttmIncomeSynthetic as unknown as Record<string, unknown>).depreciationAndAmortization ??
+          ttmCashRow?.depreciationAndAmortization,
+        freeCashFlow: ttmCashRow?.freeCashFlow,
+      })
+    : null;
   const marginColumns = fillMarginGaps(
     [
       ...(ttmRatios
@@ -420,27 +472,64 @@ export default async function FinancialsOverviewPage({
       { label: "TTM", row: ttmCashRow },
       ...cashYears.map((row) => ({ label: fyLabel(row.fiscalYear), row })),
     ],
-  );
-  const valuationColumns = [
-    ...(ttmRatios
-      ? [withEnded(ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap), nyDateString())]
-      : []),
+  ).map((column) => {
+    if (column.key !== "ttm-m" || !derivedTtm) return column;
+    return {
+      ...column,
+      values: {
+        ...column.values,
+        grossMargin: derivedTtm.grossProfitMargin,
+        operatingMargin: derivedTtm.operatingProfitMargin,
+        pretaxMargin: derivedTtm.pretaxProfitMargin,
+        profitMargin: derivedTtm.netProfitMargin,
+        fcfMargin: derivedTtm.fcfMargin,
+      },
+    };
+  });
+  let valuationColumns = [
+    ...(quote
+      ? [
+          withEnded(
+            {
+              key: "current-v",
+              label: "Current",
+              values: {},
+            },
+            nyDateString(),
+          ),
+        ]
+      : ttmRatios
+        ? [withEnded(ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap), nyDateString())]
+        : []),
     ...ratioYears.map((row) =>
       withEnded(ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap), row.date),
     ),
   ];
-  if (valuationColumns[0]) {
-    valuationColumns[0] = {
-      ...valuationColumns[0],
-      values: {
-        ...valuationColumns[0].values,
-        forwardPe: forwardPeFromEstimates(quote?.price, estimates),
-        pe:
-          trailingPe(quote?.price, ttmIncome?.epsDiluted ?? ttmIncome?.eps) ??
-          valuationColumns[0].values.pe,
-      },
-    };
-  }
+  valuationColumns = valuationColumns.map((column) => {
+    if (column.key === "current-v") {
+      return overlayValuationColumn(column, {
+        price: quote?.price,
+        marketCap: quote?.marketCap,
+        eps: ttmIncomeSynthetic?.epsDiluted ?? ttmIncomeSynthetic?.eps,
+        revenue: ttmIncomeSynthetic?.revenue,
+        fcf: ttmCashRow?.freeCashFlow,
+        nextEps: nextEstimate(estimates)?.epsAvg,
+      });
+    }
+    const year = incomeYears.find((row) => fyLabel(row.fiscalYear) === column.label);
+    const enterprise = year ? matchEnterprise(enterpriseRows, year.date, year.fiscalYear) : null;
+    const cash = cashYears.find((row) => year && String(row.fiscalYear) === String(year.fiscalYear));
+    const overlaid = overlayValuationColumn(column, {
+      price: enterprise?.stockPrice,
+      marketCap: enterprise?.marketCapitalization,
+      eps: year?.epsDiluted ?? year?.eps,
+      revenue: year?.revenue,
+      fcf: cash?.freeCashFlow,
+    });
+    const values = { ...overlaid.values };
+    delete values.forwardPe;
+    return { ...overlaid, values };
+  });
 
   const productTtm = ttmSegmentMap(productQuarters);
   const productPriorTtm = priorTtmSegmentMap(productQuarters);
@@ -477,6 +566,8 @@ export default async function FinancialsOverviewPage({
   const ttmDividendGrowth = dividendTtmGrowth(dividends);
   const fiscalEnds = annualIncome.map((row) => ({ fiscalYear: row.fiscalYear, date: row.date }));
   const dividendByYear = dividendsByFiscalYear(dividends, fiscalEnds);
+  const currentDividendYield =
+    indicatedDividend != null && quote?.price && quote.price > 0 ? indicatedDividend / quote.price : null;
   const dividendColumns: YearMetricColumn[] = [
     {
       key: "current-div",
@@ -485,20 +576,26 @@ export default async function FinancialsOverviewPage({
       values: {
         dividend: indicatedDividend,
         dividendGrowth: ttmDividendGrowth,
-        yield: n((ttmRatios as Record<string, unknown> | null)?.dividendYieldTTM),
+        yield: currentDividendYield,
       },
     },
     ...incomeYears.map((row, index) => {
       const year = String(row.fiscalYear);
       const priorYear = String(annualIncome[index + 1]?.fiscalYear ?? "");
+      const dps = dividendByYear.get(year) ?? null;
+      const enterprise = matchEnterprise(enterpriseRows, row.date, row.fiscalYear);
+      const yearEndPrice = n(enterprise?.stockPrice);
       return {
         key: year,
         label: fyLabel(year),
         ended: row.date,
         values: {
-          dividend: dividendByYear.get(year) ?? null,
-          dividendGrowth: yearOverYear(dividendByYear.get(year), priorYear ? dividendByYear.get(priorYear) : null),
-          yield: n(ratioYears.find((ratio) => String(ratio.fiscalYear) === year)?.dividendYield),
+          dividend: dps,
+          dividendGrowth: yearOverYear(dps, priorYear ? dividendByYear.get(priorYear) : null),
+          yield:
+            dps != null && yearEndPrice != null && yearEndPrice > 0
+              ? dps / yearEndPrice
+              : n(ratioYears.find((ratio) => String(ratio.fiscalYear) === year)?.dividendYield),
         },
       };
     }),
