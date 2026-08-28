@@ -1128,6 +1128,23 @@ export type FmpEsgDisclosure = {
   url: string;
 };
 
+export type FmpEsgBenchmark = {
+  fiscalYear: number;
+  period: string;
+  sector: string;
+  environmentalScore: number;
+  socialScore: number;
+  governanceScore: number;
+  ESGScore: number;
+};
+
+export type FmpMarketRiskPremium = {
+  country: string;
+  continent: string;
+  countryRiskPremium: number;
+  totalEquityRiskPremium: number;
+};
+
 export type FmpCompanyNote = {
   cik: string;
   symbol: string;

@@ -98,6 +98,8 @@ import type {
   FmpFinancialGrowth,
   FmpEsgRating,
   FmpEsgDisclosure,
+  FmpEsgBenchmark,
+  FmpMarketRiskPremium,
   FmpCompanyNote,
   FmpInstitutionalFiling,
   FmpExecutiveCompensation,
@@ -1515,6 +1517,18 @@ export function getEsgDisclosures(symbol: string) {
     { symbol: decodeTicker(symbol) },
     { revalidate: 86400 },
   );
+}
+
+export function getEsgBenchmark(year?: number) {
+  return fmpList<FmpEsgBenchmark>(
+    "/esg-benchmark",
+    year != null ? { year } : {},
+    { revalidate: 86400 },
+  );
+}
+
+export function getMarketRiskPremium() {
+  return fmpList<FmpMarketRiskPremium>("/market-risk-premium", {}, { revalidate: 86400 });
 }
 
 export function getCompanyNotes(symbol: string) {

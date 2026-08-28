@@ -310,6 +310,156 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     exchange: "JNB",
     symbolPattern: "^[A-Z0-9]+\\.JO$",
   },
+  {
+    code: "ie",
+    name: "Ireland",
+    region: "europe",
+    exchangeName: "Euronext Dublin",
+    currency: "EUR",
+    country: "IE",
+    exchange: "DUB",
+    symbolPattern: "^[A-Z0-9]+\\.IR$",
+  },
+  {
+    code: "pt",
+    name: "Portugal",
+    region: "europe",
+    exchangeName: "Euronext Lisbon",
+    currency: "EUR",
+    country: "PT",
+    exchange: "LIS",
+    symbolPattern: "^[A-Z0-9]+\\.LS$",
+  },
+  {
+    code: "gr",
+    name: "Greece",
+    region: "europe",
+    exchangeName: "Athens Stock Exchange",
+    currency: "EUR",
+    country: "GR",
+    exchange: "ATH",
+    symbolPattern: "^[A-Z0-9]+\\.AT$",
+  },
+  {
+    code: "cz",
+    name: "Czech Republic",
+    region: "europe",
+    exchangeName: "Prague Stock Exchange",
+    currency: "CZK",
+    country: "CZ",
+    exchange: "PRA",
+    symbolPattern: "^[A-Z0-9]+\\.PR$",
+  },
+  {
+    code: "is",
+    name: "Iceland",
+    region: "europe",
+    exchangeName: "Nasdaq Iceland",
+    currency: "ISK",
+    country: "IS",
+    exchange: "ICE",
+    symbolPattern: "^[A-Z0-9]+\\.IC$",
+  },
+  {
+    code: "tr",
+    name: "Turkey",
+    region: "europe",
+    exchangeName: "Borsa Istanbul",
+    currency: "TRY",
+    country: "TR",
+    exchange: "IST",
+    symbolPattern: "^[A-Z0-9]+\\.IS$",
+  },
+  {
+    code: "ar",
+    name: "Argentina",
+    region: "americas",
+    exchangeName: "Buenos Aires Stock Exchange",
+    currency: "ARS",
+    country: "AR",
+    exchange: "BUE",
+    symbolPattern: "^[A-Z0-9]+\\.BA$",
+  },
+  {
+    code: "cl",
+    name: "Chile",
+    region: "americas",
+    exchangeName: "Santiago Stock Exchange",
+    currency: "CLP",
+    country: "CL",
+    exchange: "SGO",
+    symbolPattern: "^[A-Z0-9]+\\.SN$",
+  },
+  {
+    code: "cn",
+    name: "China",
+    region: "asia-pacific",
+    exchangeName: "Shanghai Stock Exchange",
+    currency: "CNY",
+    country: "CN",
+    exchange: "SHH",
+    symbolPattern: "^[A-Z0-9]+\\.SS$",
+  },
+  {
+    code: "id",
+    name: "Indonesia",
+    region: "asia-pacific",
+    exchangeName: "Indonesia Stock Exchange",
+    currency: "IDR",
+    country: "ID",
+    exchange: "JKT",
+    symbolPattern: "^[A-Z0-9]+\\.JK$",
+  },
+  {
+    code: "my",
+    name: "Malaysia",
+    region: "asia-pacific",
+    exchangeName: "Bursa Malaysia",
+    currency: "MYR",
+    country: "MY",
+    exchange: "KLS",
+    symbolPattern: "^[A-Z0-9]+\\.KL$",
+  },
+  {
+    code: "th",
+    name: "Thailand",
+    region: "asia-pacific",
+    exchangeName: "Stock Exchange of Thailand",
+    currency: "THB",
+    country: "TH",
+    exchange: "SET",
+    symbolPattern: "^[A-Z0-9]+\\.BK$",
+  },
+  {
+    code: "sa",
+    name: "Saudi Arabia",
+    region: "other",
+    exchangeName: "Saudi Exchange (Tadawul)",
+    currency: "SAR",
+    country: "SA",
+    exchange: "SAU",
+    symbolPattern: "^[A-Z0-9]+\\.SR$",
+  },
+  {
+    code: "ae",
+    name: "United Arab Emirates",
+    region: "other",
+    exchangeName: "Dubai Financial Market",
+    currency: "AED",
+    country: "AE",
+    exchange: "DFM",
+    symbolPattern: "^[A-Z0-9]+\\.AE$",
+  },
+  {
+    code: "qa",
+    name: "Qatar",
+    region: "other",
+    exchangeName: "Qatar Stock Exchange",
+    currency: "QAR",
+    country: "QA",
+    exchange: "DOH",
+    symbolPattern: "^[A-Z0-9]+\\.QA$",
+  },
 ];
 
 export function countryHref(code: string) {
@@ -333,6 +483,22 @@ export function countryMarketFromProfile(country?: string | null) {
         market.name.toLowerCase() === needle,
     ) ?? null
   );
+}
+
+const US_EXCHANGE_HREF: Record<string, string> = {
+  NASDAQ: "/list/nasdaq-stocks",
+  NYSE: "/list/nyse-stocks",
+  AMEX: "/list/nyse-american-stocks",
+  OTC: "/list/otc-stocks",
+};
+
+export function exchangeStocksHref(exchange: string | null | undefined) {
+  if (!exchange) return null;
+  const code = exchange.toUpperCase();
+  if (US_EXCHANGE_HREF[code]) return US_EXCHANGE_HREF[code];
+  const market = COUNTRY_MARKETS.find((row) => row.exchange?.toUpperCase() === code);
+  if (!market) return null;
+  return market.listSlug ? `/list/${market.listSlug}` : countryHref(market.code);
 }
 
 export const loadCountryStocks = cache(async (code: string) => {

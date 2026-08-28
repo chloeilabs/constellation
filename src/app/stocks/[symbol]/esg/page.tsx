@@ -2,8 +2,9 @@ import { Container } from "@/components/container";
 import { MetricCards } from "@/components/metric-cards";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
+import { matchEsgBenchmark } from "@/lib/esg";
 import { formatDate, formatNumber } from "@/lib/format";
-import { getEsgDisclosures, getEsgRatings } from "@/lib/fmp";
+import { getEsgBenchmark, getEsgDisclosures, getEsgRatings, getProfile } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { companyNav } from "@/lib/nav";
 import Link from "next/link";
@@ -11,16 +12,23 @@ import Link from "next/link";
 export default async function EsgPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [esgRatings, esgDisclosures] = await Promise.all([getEsgRatings(ticker), getEsgDisclosures(ticker)]);
+  const [esgRatings, esgDisclosures, benchmarks, profile] = await Promise.all([
+    getEsgRatings(ticker),
+    getEsgDisclosures(ticker),
+    getEsgBenchmark(),
+    getProfile(ticker),
+  ]);
   const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
   const esg = esgDisclosures[0] ?? null;
   const history = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0));
+  const industry = esgRating?.industry || profile?.industry || null;
+  const industryBench = matchEsgBenchmark(benchmarks, industry);
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} ESG`}
-        description="Environmental, social, and governance scores from live FMP ESG ratings and SEC disclosures."
+        description="Environmental, social, and governance scores from live FMP ESG ratings, SEC disclosures, and the matching industry FY benchmark."
       />
       <SectionNav items={companyNav(ticker)} />
       {esgRating || esg ? (
@@ -36,6 +44,13 @@ export default async function EsgPage({ params }: { params: Promise<{ symbol: st
               },
               { label: "Social", value: esg?.socialScore != null ? formatNumber(esg.socialScore) : "—" },
               { label: "Governance", value: esg?.governanceScore != null ? formatNumber(esg.governanceScore) : "—" },
+              {
+                label: "Industry ESG",
+                value: industryBench?.ESGScore != null ? formatNumber(industryBench.ESGScore) : "—",
+                hint: industryBench
+                  ? `${industryBench.sector} FY${industryBench.fiscalYear}`
+                  : industry || undefined,
+              },
             ]}
           />
           <p className="mt-2 text-sm text-muted">
@@ -55,6 +70,44 @@ export default async function EsgPage({ params }: { params: Promise<{ symbol: st
       ) : (
         <p className="text-sm text-muted">No ESG rating or disclosure is available for {ticker}.</p>
       )}
+      {industryBench ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-header">
+            {industryBench.sector} Benchmark (FY{industryBench.fiscalYear})
+          </h2>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th className="num">ESG</th>
+                  <th className="num">Environmental</th>
+                  <th className="num">Social</th>
+                  <th className="num">Governance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="font-medium">{ticker}</td>
+                  <td className="num">{esg?.ESGScore != null ? formatNumber(esg.ESGScore) : "—"}</td>
+                  <td className="num">
+                    {esg?.environmentalScore != null ? formatNumber(esg.environmentalScore) : "—"}
+                  </td>
+                  <td className="num">{esg?.socialScore != null ? formatNumber(esg.socialScore) : "—"}</td>
+                  <td className="num">{esg?.governanceScore != null ? formatNumber(esg.governanceScore) : "—"}</td>
+                </tr>
+                <tr>
+                  <td className="font-medium">Industry average</td>
+                  <td className="num">{formatNumber(industryBench.ESGScore)}</td>
+                  <td className="num">{formatNumber(industryBench.environmentalScore)}</td>
+                  <td className="num">{formatNumber(industryBench.socialScore)}</td>
+                  <td className="num">{formatNumber(industryBench.governanceScore)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
       {history.length > 0 ? (
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-semibold text-header">Rating History</h2>

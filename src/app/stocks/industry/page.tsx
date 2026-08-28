@@ -34,7 +34,7 @@ export default async function IndustriesPage() {
           </a>
         ))}
       </div>
-      <div className="space-y-12">
+      <div className="flex flex-col gap-12">
         {sectors.map((sector) => (
           <section key={sector.slug} id={sector.slug} className="scroll-mt-24">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">

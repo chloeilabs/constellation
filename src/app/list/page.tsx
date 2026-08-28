@@ -68,15 +68,26 @@ export default function ListsIndexPage() {
                   </>
                 ) : null}
                 {category.id === "international" ? (
-                  <Link
-                    href="/stocks/country"
-                    className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
-                  >
-                    <h3 className="font-semibold text-header">All Country Stocks</h3>
-                    <p className="mt-2 text-sm text-muted">
-                      Korea, Taiwan, Switzerland, and other local exchanges ranked by market cap.
-                    </p>
-                  </Link>
+                  <>
+                    <Link
+                      href="/list/exchanges"
+                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    >
+                      <h3 className="font-semibold text-header">Stock Exchanges</h3>
+                      <p className="mt-2 text-sm text-muted">
+                        Global venues with ticker suffixes, quote delay, and live open/closed status.
+                      </p>
+                    </Link>
+                    <Link
+                      href="/stocks/country"
+                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    >
+                      <h3 className="font-semibold text-header">All Country Stocks</h3>
+                      <p className="mt-2 text-sm text-muted">
+                        Korea, Taiwan, Switzerland, and other local exchanges ranked by market cap.
+                      </p>
+                    </Link>
+                  </>
                 ) : null}
               </div>
             </section>

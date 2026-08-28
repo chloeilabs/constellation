@@ -30,6 +30,7 @@ const columns = [
       ["/stocks/sector", "Sectors"],
       ["/stocks/industry", "Sectors & Industries"],
       ["/stocks/country", "Country Stocks"],
+      ["/list/exchanges", "Stock Exchanges"],
       ["/list/sp-500-stocks", "S&P 500"],
       ["/list/nasdaq-100-stocks", "Nasdaq 100"],
       ["/list/dow-jones-stocks", "Dow Jones"],
@@ -155,7 +156,7 @@ export function SiteFooter() {
         {columns.map((column) => (
           <div key={column.title}>
             <h3 className="mb-3 text-sm font-semibold text-header">{column.title}</h3>
-            <ul className="space-y-2 text-sm text-muted">
+            <ul className="flex flex-col gap-2 text-sm text-muted">
               {column.links.map(([href, label]) => (
                 <li key={href}>
                   <Link href={href} className="hover:text-link">

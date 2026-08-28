@@ -246,7 +246,7 @@ export default async function HomePage() {
             </div>
             <NewsList items={news.slice(0, 12)} />
           </section>
-          <div className="space-y-8">
+          <div className="flex flex-col gap-8">
             <IpoTable title="Recent IPOs" rows={recentIpos} />
             <IpoTable title="Upcoming IPOs" rows={upcomingIpos} />
             <EarningsTable title="S&P 500 Earnings" rows={spEarnings} />

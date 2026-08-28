@@ -41,6 +41,7 @@ const GROUPS = [
       ["/etf/lookup", "ETF Reverse Lookup", "Find U.S. ETFs that hold a stock, ranked by position value."],
       ["/stocks/country", "Country Stocks", "Largest listings on Korea, Taiwan, Switzerland, and other local exchanges."],
       ["/markets/hours", "Market Hours", "Live open/closed status, session times, and upcoming U.S. holidays."],
+      ["/list/exchanges", "Stock Exchanges", "Global venues with ticker suffixes, quote delay, and live session status."],
       ["/markets/indexes", "Market Indexes", "S&P 500, Dow, Nasdaq, and global indexes with live FMP quotes."],
     ],
   },

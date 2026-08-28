@@ -230,7 +230,7 @@ export async function VehicleOverview({
           {rankedSectors.length === 0 ? (
             <p className="text-sm text-muted">Sector breakdown is unavailable.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="flex flex-col gap-3">
               {rankedSectors.map((row) => (
                 <li key={row.sector}>
                   <div className="mb-1 flex justify-between text-sm">
@@ -253,7 +253,7 @@ export async function VehicleOverview({
           {rankedCountries.length === 0 ? (
             <p className="text-sm text-muted">Country allocation is unavailable.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="flex flex-col gap-3">
               {rankedCountries.map((row) => (
                 <li key={row.country}>
                   <div className="mb-1 flex justify-between text-sm">

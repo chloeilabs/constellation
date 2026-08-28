@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/fmp";
 import { marketAssetHref, quoteHref } from "@/lib/listings";
-import { isQuoteSubpage } from "@/lib/quote-subpages";
+import { quoteSubpath } from "@/lib/quote-subpages";
 
 const EXCHANGE_SUFFIX: Record<string, string> = {
   nse: "NS",
@@ -70,8 +70,9 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
   if (exchange.toLowerCase() === "13f") {
     redirect(`/institutional/${token}`);
   }
-  if (isQuoteSubpage(token)) {
-    await redirectQuote(exchange.toUpperCase(), [token, ...rest]);
+  const mapped = quoteSubpath(token);
+  if (mapped) {
+    await redirectQuote(exchange.toUpperCase(), [...mapped, ...rest]);
   }
 
   const ticker = token.toUpperCase();

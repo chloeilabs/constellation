@@ -25,6 +25,7 @@ export function estimatedWacc({
   totalDebt,
   interestExpense,
   taxRate,
+  equityRiskPremium,
 }: {
   marketCap: unknown;
   beta: unknown;
@@ -32,6 +33,7 @@ export function estimatedWacc({
   totalDebt: unknown;
   interestExpense: unknown;
   taxRate: unknown;
+  equityRiskPremium?: unknown;
 }) {
   const equity = num(marketCap);
   const rf = treasuryYieldToDecimal(riskFreeYield);
@@ -40,7 +42,8 @@ export function estimatedWacc({
   const debt = Math.max(num(totalDebt) ?? 0, 0);
   const capital = equity + debt;
   if (capital <= 0) return null;
-  const costOfEquity = rf + stockBeta * EQUITY_RISK_PREMIUM;
+  const erp = treasuryYieldToDecimal(equityRiskPremium) ?? EQUITY_RISK_PREMIUM;
+  const costOfEquity = rf + stockBeta * erp;
   const interest = num(interestExpense);
   const interestAbs = interest == null ? null : Math.abs(interest);
   const costOfDebt =
@@ -57,7 +60,7 @@ export function estimatedWacc({
     equityWeight,
     debtWeight,
     riskFreeRate: rf,
-    equityRiskPremium: EQUITY_RISK_PREMIUM,
+    equityRiskPremium: erp,
     beta: stockBeta,
     equity,
     debt,

@@ -83,7 +83,7 @@ export function SegmentBars({
   const max = Math.max(...items.map((item) => item.value), 1);
   if (items.length === 0) return null;
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       {items.map((item) => {
         const share = total > 0 ? item.value / total : 0;
         return (

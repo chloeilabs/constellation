@@ -5,8 +5,9 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { formatDate, formatPercentPlain, formatRatio } from "@/lib/format";
-import { getBalanceSheets, getIncomeTtm, getProfile, getQuote, getTreasuryRates } from "@/lib/fmp";
+import { getBalanceSheets, getIncomeTtm, getMarketRiskPremium, getProfile, getQuote, getTreasuryRates } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { equityRiskPremiumDecimal, matchMarketRiskPremium } from "@/lib/risk-premium";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import { estimatedWacc } from "@/lib/wacc";
 
@@ -15,13 +16,16 @@ export default async function WaccPage({ params }: { params: Promise<{ symbol: s
   const ticker = decodeTicker(symbol);
   const today = nyDateString();
   const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -30));
-  const [quote, profile, incomeTtm, balance, rates] = await Promise.all([
+  const [quote, profile, incomeTtm, balance, rates, premiums] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getIncomeTtm(ticker),
     getBalanceSheets(ticker, "quarter", 1),
     getTreasuryRates(from, today),
+    getMarketRiskPremium(),
   ]);
+  const premium = matchMarketRiskPremium(premiums, profile?.country);
+  const liveErp = equityRiskPremiumDecimal(premium);
   const pretax = incomeTtm?.incomeBeforeTax;
   const taxExpense = incomeTtm?.incomeTaxExpense;
   const taxRate =
@@ -34,13 +38,14 @@ export default async function WaccPage({ params }: { params: Promise<{ symbol: s
     totalDebt: balance[0]?.totalDebt,
     interestExpense: incomeTtm?.interestExpense,
     taxRate,
+    equityRiskPremium: liveErp,
   });
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Weighted Average Cost of Capital`}
-        description="Estimated WACC from live FMP market cap, beta, the latest 10-year Treasury, reported total debt, TTM interest expense, and TTM tax ÷ pretax income. The equity risk premium is a disclosed 5% assumption — not Stock Analysis Pro."
+        description="Estimated WACC from live FMP market cap, beta, the latest 10-year Treasury, reported total debt, TTM interest expense, TTM tax ÷ pretax income, and the Damodaran-style equity risk premium for the company's country."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       {wacc ? (
@@ -58,6 +63,11 @@ export default async function WaccPage({ params }: { params: Promise<{ symbol: s
               value: formatPercentPlain(wacc.riskFreeRate),
               hint: latestRate?.date ? formatDate(latestRate.date) : undefined,
             },
+            {
+              label: "Equity risk premium",
+              value: formatPercentPlain(wacc.equityRiskPremium),
+              hint: premium ? premium.country : "5% fallback",
+            },
             { label: "Beta", value: formatRatio(wacc.beta) },
             { label: "Equity weight", value: formatPercentPlain(wacc.equityWeight) },
           ]}
@@ -66,7 +76,11 @@ export default async function WaccPage({ params }: { params: Promise<{ symbol: s
         <p className="text-sm text-muted">Not enough live inputs to estimate WACC for {ticker}.</p>
       )}
       <p className="mt-4 max-w-3xl text-sm leading-6 text-muted">
-        Cost of equity = 10-year Treasury + beta × 5% ERP. Cost of debt uses TTM interest expense ÷ total
+        Cost of equity = 10-year Treasury + beta × country ERP
+        {premium
+          ? ` (${premium.country} ${formatPercentPlain(wacc?.equityRiskPremium)} from FMP /market-risk-premium)`
+          : " (5% fallback when FMP has no country premium)"}
+        . Cost of debt uses TTM interest expense ÷ total
         debt, then (1 − tax). Weights use market cap versus book total debt. FMP reports TTM interest
         expense as zero for some issuers, so cost of debt may be unavailable.
       </p>

@@ -107,6 +107,25 @@ export const QUOTE_SUBPAGES = new Set([
   "working-capital",
 ]);
 
+/** First-level SA slugs that live under /financials on this clone. */
+export const QUOTE_PATH_ALIASES: Record<string, string[]> = {
+  "income-statement": ["financials", "income-statement"],
+  "balance-sheet": ["financials", "balance-sheet"],
+  "cash-flow-statement": ["financials", "cash-flow-statement"],
+  "cash-flow": ["financials", "cash-flow-statement"],
+  ratios: ["financials", "ratios"],
+  growth: ["financials", "growth"],
+  reports: ["financials", "reports"],
+};
+
+export function quoteSubpath(segment: string) {
+  const key = segment.toLowerCase();
+  if (QUOTE_PATH_ALIASES[key]) return QUOTE_PATH_ALIASES[key];
+  if (QUOTE_SUBPAGES.has(key)) return [key];
+  return null;
+}
+
 export function isQuoteSubpage(segment: string) {
-  return QUOTE_SUBPAGES.has(segment.toLowerCase());
+  const key = segment.toLowerCase();
+  return QUOTE_SUBPAGES.has(key) || key in QUOTE_PATH_ALIASES;
 }

@@ -31,7 +31,7 @@ import {
 } from "@/lib/fmp";
 import { ReturnsTable } from "@/components/returns-table";
 import { decodeTicker, quoteHref, stockPath } from "@/lib/listings";
-import { quoteFundamentalsNav } from "@/lib/nav";
+import { quoteRelatedNav } from "@/lib/nav";
 import { listedPeers } from "@/lib/peers";
 import { ChangePercent } from "@/components/change";
 import { PriceTargetRange } from "@/components/price-target-range";
@@ -160,7 +160,7 @@ export default async function StockOverviewPage({
         </p>
       ) : null}
 
-      <SectionNav items={quoteFundamentalsNav(ticker)} />
+      <SectionNav items={quoteRelatedNav(ticker)} />
 
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
         <div>

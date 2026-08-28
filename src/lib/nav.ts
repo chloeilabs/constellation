@@ -57,6 +57,7 @@ export const STOCKS_NAV: NavItem[] = [
   { href: "/stocks/sector", label: "Sectors", match: "prefix" },
   { href: "/stocks/industry", label: "Industries", match: "prefix" },
   { href: "/stocks/country", label: "Countries", match: "prefix" },
+  { href: "/list/exchanges", label: "Exchanges" },
   { href: "/list/sp-500-stocks", label: "S&P 500" },
   { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },
   { href: "/list/dow-jones-stocks", label: "Dow Jones" },
@@ -98,6 +99,8 @@ export const ETF_NAV: NavItem[] = [
   { href: "/list/crypto-etfs", label: "Crypto ETFs" },
   { href: "/list/bitcoin-etfs", label: "Bitcoin ETFs" },
   { href: "/list/ethereum-etfs", label: "Ethereum ETFs" },
+  { href: "/list/solana-etfs", label: "Solana ETFs" },
+  { href: "/list/xrp-etfs", label: "XRP ETFs" },
   { href: "/list/commodity-etfs", label: "Commodity ETFs" },
   { href: "/list/leveraged-etfs", label: "Leveraged" },
   { href: "/list/sector-etfs", label: "Sector ETFs" },
@@ -162,6 +165,25 @@ export function metricsNav(symbol: string): NavItem[] {
     { href: stockPath(ticker, "/metrics/revenue-by-segment"), label: "Revenue by Segment" },
     { href: stockPath(ticker, "/metrics/revenue-by-geography"), label: "Revenue by Geography" },
     { href: stockPath(ticker, "/metrics/operating-expense-breakdown"), label: "Operating Expenses" },
+  ];
+}
+
+export function quoteRelatedNav(symbol: string): NavItem[] {
+  const ticker = decodeTicker(symbol);
+  const base = stockPath(ticker);
+  return [
+    { href: `${base}/statistics`, label: "Statistics" },
+    { href: `${base}/financials`, label: "Financials" },
+    { href: `${base}/forecast`, label: "Forecast" },
+    { href: `${base}/dividend`, label: "Dividend" },
+    { href: `${base}/company`, label: "Company" },
+    { href: `${base}/pe-ratio`, label: "PE Ratio" },
+    { href: `${base}/market-cap`, label: "Market Cap" },
+    { href: `${base}/revenue`, label: "Revenue" },
+    { href: `${base}/earnings`, label: "EPS" },
+    { href: `${base}/fair-value`, label: "Fair Value" },
+    { href: `${base}/esg`, label: "ESG" },
+    { href: `${base}/peers`, label: "Peers" },
   ];
 }
 

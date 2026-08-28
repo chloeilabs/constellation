@@ -57,6 +57,7 @@ type ForeignList = {
   description: string;
   category: ListCategory;
   source: "foreign-us";
+  originCountry?: string;
 };
 
 type SymbolsList = {
@@ -230,6 +231,48 @@ export const STOCK_LISTS = {
     category: "popular",
     source: "foreign-us",
   },
+  "canadian-stocks-us": {
+    title: "Canadian Stocks on U.S. Exchanges",
+    description: "The largest Canadian companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
+    originCountry: "CA",
+  },
+  "chinese-stocks-us": {
+    title: "Chinese Stocks on U.S. Exchanges",
+    description: "The largest Chinese companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
+    originCountry: "CN",
+  },
+  "indian-stocks-us": {
+    title: "Indian Stocks on U.S. Exchanges",
+    description: "The largest Indian companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
+    originCountry: "IN",
+  },
+  "irish-stocks-us": {
+    title: "Irish Stocks on U.S. Exchanges",
+    description: "The largest Irish companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
+    originCountry: "IE",
+  },
+  "israeli-stocks-us": {
+    title: "Israeli Stocks on U.S. Exchanges",
+    description: "The largest Israeli companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
+    originCountry: "IL",
+  },
+  "uk-stocks-us": {
+    title: "U.K. Stocks on U.S. Exchanges",
+    description: "The largest U.K. companies listed on the NYSE, NASDAQ, or NYSE American.",
+    category: "popular",
+    source: "foreign-us",
+    originCountry: "GB",
+  },
   "nasdaq-stocks": {
     title: "NASDAQ Stocks",
     description: "The largest companies listed on the NASDAQ.",
@@ -388,6 +431,30 @@ export const STOCK_LISTS = {
     listing: "primary",
     hrefBase: "/etf",
     namePattern: "Ethereum|Ether",
+  },
+  "solana-etfs": {
+    title: "Solana ETFs",
+    description: "U.S. Solana-linked ETFs ranked by market value from FMP.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Cryptocurrency" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+    namePattern: "Solana",
+  },
+  "xrp-etfs": {
+    title: "XRP ETFs",
+    description: "U.S. XRP-linked ETFs ranked by market value from FMP.",
+    category: "etf",
+    source: "screener",
+    filters: { isEtf: true, isFund: false, country: "US", industry: "Asset Management - Cryptocurrency" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "primary",
+    hrefBase: "/etf",
+    namePattern: "XRP|Ripple",
   },
   "leveraged-etfs": {
     title: "Leveraged ETFs",
@@ -1038,6 +1105,50 @@ export const STOCK_LISTS = {
     listing: "raw",
     symbolPattern: "^[A-Z0-9]+\\.SA$",
   },
+  "kosdaq-stocks": {
+    title: "KOSDAQ Stocks",
+    description: "The largest companies listed on KOSDAQ, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "KOE", country: "KR" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[0-9]+\\.KQ$",
+  },
+  "bse-india": {
+    title: "Bombay Stock Exchange",
+    description: "The largest companies listed on the BSE in India, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "BSE", country: "IN" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.BO$",
+  },
+  "tsx-venture-stocks": {
+    title: "TSX Venture Exchange",
+    description: "The largest listings on the TSX Venture Exchange, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "TSXV", country: "CA" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.V$",
+  },
+  "shenzhen-stocks": {
+    title: "Shenzhen Stock Exchange",
+    description: "The largest companies listed in Shenzhen, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "SHZ", country: "CN" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.SZ$",
+  },
 } as const satisfies Record<string, StockList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
@@ -1053,6 +1164,7 @@ export const LIST_CATEGORIES = [
 
 export const LIST_NAV = [
   { href: "/list", label: "All Lists" },
+  { href: "/list/exchanges", label: "Exchanges" },
   { href: "/list/sp-500-stocks", label: "S&P 500" },
   { href: "/list/nasdaq-100-stocks", label: "Nasdaq 100" },
   { href: "/list/dow-jones-stocks", label: "Dow Jones" },
@@ -1177,11 +1289,78 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   reits: "reit-stocks",
   airlines: "airline-stocks",
   restaurants: "restaurant-stocks",
+  nyseamerican: "nyse-american-stocks",
+  "nyseamerican-stocks": "nyse-american-stocks",
+  "nyse-american": "nyse-american-stocks",
+  "business-development-companies": "bdc-stocks",
+  "electric-vehicles": "ev-stocks",
+  "gaming-stocks": "video-game-stocks",
+  "covered-call-etfs": "income-etfs",
+  "fixed-income-etfs": "bond-etfs",
+  "monthly-dividend-etfs": "dividend-etfs",
+  "weekly-dividend-etfs": "dividend-etfs",
+  "london-stock-exchange": "london-stocks",
+  "toronto-stock-exchange": "tsx-stocks",
+  "tokyo-stock-exchange": "japan-stocks",
+  "hong-kong-stock-exchange": "hong-kong-stocks",
+  "australian-securities-exchange": "australia-stocks",
+  "deutsche-boerse-xetra": "germany-stocks",
+  "euronext-paris": "france-stocks",
+  "nse-india": "india-stocks",
+  "brazil-stock-exchange": "brazil-stocks",
+  "tsx-venture-exchange": "tsx-venture-stocks",
+  "kosdaq-korea": "kosdaq-stocks",
+  "shenzhen-stock-exchange": "shenzhen-stocks",
+};
+
+/** Stock Analysis list URLs that resolve to a country page, funds hub, or exchanges directory. */
+export const LIST_PATH_ALIASES: Record<string, string> = {
+  exchanges: "/list/exchanges",
+  "mutual-funds": "/funds",
+  "six-swiss-exchange": "/stocks/country/ch",
+  "korea-stock-exchange": "/stocks/country/kr",
+  "taiwan-stock-exchange": "/stocks/country/tw",
+  "singapore-exchange": "/stocks/country/sg",
+  "mexican-stock-exchange": "/stocks/country/mx",
+  "new-zealand-stock-exchange": "/stocks/country/nz",
+  "tel-aviv-stock-exchange": "/stocks/country/il",
+  "johannesburg-stock-exchange": "/stocks/country/za",
+  "nasdaq-stockholm": "/stocks/country/se",
+  "copenhagen-stock-exchange": "/stocks/country/dk",
+  "oslo-bors": "/stocks/country/no",
+  "warsaw-stock-exchange": "/stocks/country/pl",
+  "euronext-brussels": "/stocks/country/be",
+  "nasdaq-helsinki": "/stocks/country/fi",
+  "vienna-stock-exchange": "/stocks/country/at",
+  "euronext-amsterdam": "/stocks/country/nl",
+  "madrid-stock-exchange": "/stocks/country/es",
+  "borsa-italiana": "/stocks/country/it",
+  "euronext-dublin": "/stocks/country/ie",
+  "euronext-lisbon": "/stocks/country/pt",
+  "athens-stock-exchange": "/stocks/country/gr",
+  "prague-stock-exchange": "/stocks/country/cz",
+  "nasdaq-iceland": "/stocks/country/is",
+  "borsa-istanbul": "/stocks/country/tr",
+  "buenos-aires-stock-exchange": "/stocks/country/ar",
+  "santiago-stock-exchange": "/stocks/country/cl",
+  "shanghai-stock-exchange": "/stocks/country/cn",
+  "indonesia-stock-exchange": "/stocks/country/id",
+  "bursa-malaysia": "/stocks/country/my",
+  "stock-exchange-of-thailand": "/stocks/country/th",
+  "saudi-stock-exchange": "/stocks/country/sa",
+  "dubai-financial-market": "/stocks/country/ae",
+  "qatar-stock-exchange": "/stocks/country/qa",
 };
 
 export function resolveStockListSlug(value: string): StockListSlug | null {
   if (isStockListSlug(value)) return value;
   return LIST_SLUG_ALIASES[value] ?? null;
+}
+
+export function resolveListPath(value: string): string | null {
+  if (LIST_PATH_ALIASES[value]) return LIST_PATH_ALIASES[value];
+  const slug = resolveStockListSlug(value);
+  return slug && slug !== value ? `/list/${slug}` : null;
 }
 
 export type IndexMemberFilters = {
@@ -1289,7 +1468,7 @@ export async function loadStockList(slug: StockListSlug): Promise<SymbolTableRow
   }
 
   if (list.source === "foreign-us") {
-    return loadForeignUsStocks();
+    return loadForeignUsStocks("originCountry" in list ? list.originCountry : undefined);
   }
 
   const listing = "listing" in list && list.listing === "raw" ? "raw" : "primary";
@@ -1585,15 +1764,17 @@ async function loadOtcStocks(): Promise<SymbolTableRow[]> {
   return rows.sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 100);
 }
 
-async function loadForeignUsStocks(): Promise<SymbolTableRow[]> {
+async function loadForeignUsStocks(originCountry?: string): Promise<SymbolTableRow[]> {
   const batches = await Promise.all([
     getScreener({ exchange: "NYSE" }, { limit: 100 }),
     getScreener({ exchange: "NASDAQ" }, { limit: 100 }),
     getScreener({ exchange: "AMEX" }, { limit: 100 }),
   ]);
+  const origin = originCountry?.toUpperCase();
   const foreign = uniqueBySymbol(
     batches.flat().filter((row) => {
       if (!row.country || row.country.toUpperCase() === "US") return false;
+      if (origin && row.country.toUpperCase() !== origin) return false;
       if (isForeignListingSymbol(row.symbol)) return false;
       return (row.marketCap ?? 0) > 0;
     }),
