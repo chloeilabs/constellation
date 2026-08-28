@@ -129,6 +129,26 @@ export function annualDividendPayments(frequency: string | null | undefined) {
   return 4;
 }
 
+export function payoutFrequencyLabel(frequency: string | null | undefined) {
+  if (!frequency) return null;
+  const count = annualDividendPayments(frequency);
+  if (count === 12) return "Monthly";
+  if (count === 4) return "Quarterly";
+  if (count === 2) return "Semi-Annual";
+  if (count === 1) return "Annual";
+  return frequency;
+}
+
+export function payoutFrequencyProse(frequency: string | null | undefined) {
+  const count = annualDividendPayments(frequency);
+  if (!frequency) return null;
+  if (count === 12) return "every month";
+  if (count === 4) return "every three months";
+  if (count === 2) return "twice a year";
+  if (count === 1) return "once a year";
+  return null;
+}
+
 /** Indicated annual dividend from the latest payment, matching Stock Analysis quote stats. */
 export function indicatedAnnualDividend(
   dividend?: { dividend?: number | null; frequency?: string | null } | null,

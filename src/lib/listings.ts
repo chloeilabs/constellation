@@ -314,6 +314,15 @@ export function stockPath(symbol: string, suffix = "") {
   return `/stocks/${encodeURIComponent(decodeTicker(symbol))}${suffix}`;
 }
 
+/** Short display name for page titles (Apple Inc. → Apple), matching Stock Analysis. */
+export function displayCompanyName(name?: string | null) {
+  if (!name) return null;
+  return name
+    .replace(/,?\s+(Incorporated|Corporation|Company|Limited)$/i, "")
+    .replace(/,?\s+(Inc|Corp|Ltd|PLC|Co|LLC|LP)\.?$/i, "")
+    .trim();
+}
+
 export function samePath(pathname: string, href: string) {
   const left = safeDecodePath(pathname).replace(/\/$/, "") || "/";
   const right = safeDecodePath(href).replace(/\/$/, "") || "/";

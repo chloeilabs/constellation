@@ -124,12 +124,14 @@ export function YearToggle({
 
 export function RangeToggle({
   range,
+  sixHref,
   oneHref,
   fiveHref,
   tenHref,
   maxHref,
 }: {
-  range: "1" | "5" | "10" | "max";
+  range: "6" | "1" | "5" | "10" | "max";
+  sixHref?: string;
   oneHref: string;
   fiveHref: string;
   tenHref: string;
@@ -139,6 +141,7 @@ export function RangeToggle({
     <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="History range">
       {(
         [
+          ...(sixHref ? ([["6", "6M", sixHref]] as const) : []),
           ["1", "1Y", oneHref],
           ["5", "5Y", fiveHref],
           ["10", "10Y", tenHref],

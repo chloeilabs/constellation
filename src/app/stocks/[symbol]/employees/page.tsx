@@ -16,17 +16,9 @@ import {
   reportingCurrency,
   yearOverYear,
 } from "@/lib/format";
-import { decodeTicker, stockPath } from "@/lib/listings";
+import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
 import { getHistoricalEmployeeCount, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { cn } from "@/lib/utils";
-
-function displayCompanyName(name?: string | null) {
-  if (!name) return null;
-  return name
-    .replace(/,?\s+(Incorporated|Corporation|Company|Limited)$/i, "")
-    .replace(/,?\s+(Inc|Corp|Ltd|PLC|Co|LLC|LP)\.?$/i, "")
-    .trim();
-}
 
 function employeeIntro(
   name: string,

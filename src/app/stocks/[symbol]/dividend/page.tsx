@@ -4,9 +4,9 @@ import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getCashFlowTtm, getDividends, getIncomeStatements, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
-import { decodeTicker } from "@/lib/listings";
+import { decodeTicker, displayCompanyName } from "@/lib/listings";
 import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
-import { cashOutlay, indicatedAnnualDividend, nyDateString, relativeChange } from "@/lib/utils";
+import { cashOutlay, indicatedAnnualDividend, nyDateString, payoutFrequencyLabel, payoutFrequencyProse, relativeChange } from "@/lib/utils";
 import { buybackYieldFromShareChange } from "@/lib/valuation";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
@@ -62,12 +62,26 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
     [...dividends]
       .filter((row) => (row.paymentDate || "") >= today)
       .sort((a, b) => a.paymentDate.localeCompare(b.paymentDate))[0] ?? null;
+  const lastEx = dividends.find((row) => row.date && row.date <= today) ?? latest;
+  const shortName = displayCompanyName(profile?.companyName) || ticker;
+  const cadence = payoutFrequencyProse(latest?.frequency);
+  const dividendIntro = annualized
+    ? `${shortName} has an annual dividend of ${px(annualized)} per share${
+        indicatedYield != null ? `, with a yield of ${formatPercentPlain(indicatedYield)}` : ""
+      }.${
+        cadence && lastEx?.date
+          ? ` The dividend is paid ${cadence} and the last ex-dividend date was ${formatDate(lastEx.date)}.`
+          : lastEx?.date
+            ? ` The last ex-dividend date was ${formatDate(lastEx.date)}.`
+            : ""
+      }`
+    : "Dividend history, yield, payout, and growth from live FMP data.";
 
   return (
     <Container>
       <PageHeader
-        title={`${ticker} Dividend`}
-        description="Dividend history, yield, payout, and growth from live FMP data."
+        title={`${shortName} Dividend`}
+        description={dividendIntro}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -101,28 +115,24 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
           </div>
         ) : null}
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">Last Dividend</div>
-          <div className="mt-1 text-2xl font-semibold tabular">{px(latest?.dividend ?? profile?.lastDividend)}</div>
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/dividend-yield`} className="text-link hover:underline">
+              Dividend Yield
+            </Link>
+          </div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(indicatedYield)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Annual Dividend</div>
           <div className="mt-1 text-2xl font-semibold tabular">{px(annualized)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">
-            <Link href={`/stocks/${ticker}/dividend-yield`} className="text-link hover:underline">
-              Indicated Yield
-            </Link>
-          </div>
-          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(indicatedYield)}</div>
+          <div className="text-sm text-muted">Ex-Dividend Date</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatDate(lastEx?.date)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">
-            <Link href={`/stocks/${ticker}/dividend-yield`} className="text-link hover:underline">
-              TTM Yield
-            </Link>
-          </div>
-          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(ttmYield)}</div>
+          <div className="text-sm text-muted">Payout Frequency</div>
+          <div className="mt-1 text-2xl font-semibold">{payoutFrequencyLabel(latest?.frequency) ?? "—"}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">
@@ -133,20 +143,28 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
           <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(payout)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">Frequency</div>
-          <div className="mt-1 text-2xl font-semibold">{latest?.frequency ?? "—"}</div>
-        </div>
-        <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Dividend Growth (1Y)</div>
           <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(ttmGrowth)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">5Y Dividend CAGR</div>
-          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(cagr)}</div>
+          <div className="text-sm text-muted">Growth Years</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{growthYears > 0 ? growthYears : "—"}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
-          <div className="text-sm text-muted">Years of Dividend Growth</div>
-          <div className="mt-1 text-2xl font-semibold tabular">{growthYears > 0 ? growthYears : "—"}</div>
+          <div className="text-sm text-muted">Last Dividend</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{px(latest?.dividend ?? profile?.lastDividend)}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">
+            <Link href={`/stocks/${ticker}/dividend-yield`} className="text-link hover:underline">
+              TTM Yield
+            </Link>
+          </div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(ttmYield)}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">5Y Dividend CAGR</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(cagr)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">

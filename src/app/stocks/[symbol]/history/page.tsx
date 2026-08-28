@@ -10,18 +10,19 @@ import { decodeTicker, stockPath } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpFullCandle } from "@/lib/types";
 
-function historyRange(value?: string): "1" | "5" | "10" | "max" {
-  if (value === "5" || value === "10" || value === "max") return value;
-  return "1";
+function historyRange(value?: string): "6" | "1" | "5" | "10" | "max" {
+  if (value === "1" || value === "5" || value === "10" || value === "max") return value;
+  return "6";
 }
 
-function historyFrom(range: "1" | "5" | "10" | "max", today: string) {
-  const days = range === "1" ? 400 : range === "5" ? 365 * 5 + 20 : range === "10" ? 365 * 10 + 20 : 365 * 20 + 40;
+function historyFrom(range: "6" | "1" | "5" | "10" | "max", today: string) {
+  const days =
+    range === "6" ? 200 : range === "1" ? 400 : range === "5" ? 365 * 5 + 20 : range === "10" ? 365 * 10 + 20 : 365 * 20 + 40;
   return isoDate(addDays(new Date(`${today}T00:00:00Z`), -days));
 }
 
-function historyCapLimit(range: "1" | "5" | "10" | "max") {
-  return range === "1" ? 400 : range === "5" ? 1500 : range === "10" ? 2800 : 5000;
+function historyCapLimit(range: "6" | "1" | "5" | "10" | "max") {
+  return range === "6" ? 220 : range === "1" ? 400 : range === "5" ? 1500 : range === "10" ? 2800 : 5000;
 }
 
 function finite(value: unknown) {
@@ -93,7 +94,8 @@ export default async function StockHistoryPage({
           <div className="flex flex-wrap items-center gap-2">
             <RangeToggle
               range={range}
-              oneHref={base}
+              sixHref={base}
+              oneHref={`${base}?years=1`}
               fiveHref={`${base}?years=5`}
               tenHref={`${base}?years=10`}
               maxHref={`${base}?years=max`}
@@ -113,7 +115,7 @@ export default async function StockHistoryPage({
           <h2 className="text-lg font-semibold text-header">Daily Prices</h2>
           {daily.length ? (
             <DownloadCsvButton
-              filename={`${ticker}-history-${range === "max" ? "max" : `${range}y`}`}
+              filename={`${ticker}-history-${range === "max" ? "max" : range === "6" ? "6m" : `${range}y`}`}
               headers={
                 showAdjClose
                   ? ["Date", "Open", "High", "Low", "Close", "Adj. Close", "Change %", "Volume"]
