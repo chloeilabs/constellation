@@ -1,14 +1,20 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
-import { formatDate, formatPrice } from "@/lib/format";
-import { getDividends } from "@/lib/fmp";
+import { formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
+import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
+import { getDividends, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { nyDateString, payoutFrequencyLabel } from "@/lib/utils";
 
 export async function VehicleDividend({ symbol }: { symbol: string }) {
   const ticker = decodeTicker(symbol);
-  const dividends = await getDividends(ticker, 40);
+  const [dividends, quote] = await Promise.all([
+    getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
+    getQuote(ticker),
+  ]);
   const latest = dividends[0];
-  const ttm = dividends.slice(0, 4).reduce((sum, row) => sum + (row.dividend || 0), 0);
+  const ttm = trailingDividendWindow(dividends, nyDateString());
+  const ttmYield = dividendYieldFromPrice(ttm, quote?.price);
 
   return (
     <Container>
@@ -20,17 +26,21 @@ export async function VehicleDividend({ symbol }: { symbol: string }) {
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">TTM Distributions</div>
-          <div className="mt-1 text-2xl font-semibold tabular">${formatPrice(ttm || null)}</div>
+          <div className="mt-1 text-2xl font-semibold tabular">${formatPrice(ttm)}</div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Yield</div>
           <div className="mt-1 text-2xl font-semibold tabular">
-            {latest?.yield != null ? `${Number(latest.yield).toFixed(2)}%` : "—"}
+            {ttmYield != null
+              ? formatPercentPlain(ttmYield)
+              : latest?.yield != null
+                ? formatPercentPlain(latest.yield, { alreadyPercent: true })
+                : "—"}
           </div>
         </div>
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Frequency</div>
-          <div className="mt-1 text-2xl font-semibold">{latest?.frequency ?? "—"}</div>
+          <div className="mt-1 text-2xl font-semibold">{payoutFrequencyLabel(latest?.frequency) ?? "—"}</div>
         </div>
       </div>
       <div className="mt-8 overflow-x-auto rounded-lg border border-border">

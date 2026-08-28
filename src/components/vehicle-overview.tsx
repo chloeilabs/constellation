@@ -18,8 +18,9 @@ import {
   getQuote,
   getSymbolNews,
 } from "@/lib/fmp";
+import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
 import { decodeTicker, holdingQuoteHref } from "@/lib/listings";
-import { parseWeightPercentage } from "@/lib/utils";
+import { nyDateString, parseWeightPercentage, payoutFrequencyLabel } from "@/lib/utils";
 import { vehicleNoun, vehiclePath, type VehicleKind } from "@/lib/vehicle";
 
 export async function VehicleOverview({
@@ -44,7 +45,7 @@ export async function VehicleOverview({
     getQuote(ticker),
     getSymbolNews(ticker, 8),
     getPressReleases(ticker, 8),
-    getDividends(ticker, 8),
+    getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
     getPriceChange(ticker),
     loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
     getProfile(ticker),
@@ -60,7 +61,8 @@ export async function VehicleOverview({
   const maxSector = Math.max(...rankedSectors.map((row) => row.weightPercentage || 0), 1);
   const maxCountry = Math.max(...rankedCountries.map((row) => row.weight), 1);
   const latestDividend = dividends[0];
-  const ttmDividend = dividends.slice(0, 4).reduce((sum, row) => sum + (row.dividend || 0), 0);
+  const ttmDividend = trailingDividendWindow(dividends, nyDateString());
+  const ttmYield = dividendYieldFromPrice(ttmDividend, quote?.price);
   const shares =
     quote?.sharesOutstanding ??
     (quote?.marketCap && quote.price ? quote.marketCap / quote.price : null);
@@ -108,14 +110,14 @@ export async function VehicleOverview({
               label: "Dividend Yield",
               href: dividendHref,
               value:
-                latestDividend?.yield != null
-                  ? formatPercentPlain(latestDividend.yield, { alreadyPercent: true })
-                  : quote?.price && ttmDividend && quote.price > 0
-                    ? formatPercentPlain(ttmDividend / quote.price)
+                ttmYield != null
+                  ? formatPercentPlain(ttmYield)
+                  : latestDividend?.yield != null
+                    ? formatPercentPlain(latestDividend.yield, { alreadyPercent: true })
                     : "—",
             },
             { label: "Ex-Dividend Date", value: latestDividend?.date || "—" },
-            { label: "Payout Frequency", value: latestDividend?.frequency || "—" },
+            { label: "Payout Frequency", value: payoutFrequencyLabel(latestDividend?.frequency) || "—" },
           ]}
         />
         <StatGrid

@@ -1,6 +1,7 @@
+import { DISTRIBUTION_TTM_LIMIT, trailingDividendWindow } from "@/lib/dividends";
 import { getDividends, getEtfCountryWeights, getEtfHoldings, getEtfInfo, getEtfSectors, getPriceChange, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
-import { parseWeightPercentage } from "@/lib/utils";
+import { nyDateString, parseWeightPercentage } from "@/lib/utils";
 
 export const POPULAR_ETF_COMPARISONS = [
   ["QQQ", "SPY"],
@@ -26,12 +27,12 @@ export async function loadEtfCompare(symbols: string[]) {
         getEtfInfo(symbol),
         getProfile(symbol),
         getPriceChange(symbol),
-        getDividends(symbol, 4),
+        getDividends(symbol, DISTRIBUTION_TTM_LIMIT),
         getEtfHoldings(symbol),
         getEtfSectors(symbol),
         getEtfCountryWeights(symbol),
       ]);
-      const ttmDividend = dividends.slice(0, 4).reduce((sum, row) => sum + (row.dividend || 0), 0);
+      const ttmDividend = trailingDividendWindow(dividends, nyDateString());
       const top = [...holdings].sort((a, b) => (b.weightPercentage ?? 0) - (a.weightPercentage ?? 0)).slice(0, 10);
       const rankedSectors = [...sectors]
         .map((row) => ({ name: row.sector, weight: row.weightPercentage ?? 0 }))

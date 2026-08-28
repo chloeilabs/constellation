@@ -1,5 +1,9 @@
 import { yearOverYear } from "@/lib/format";
 import type { FmpDividend } from "@/lib/types";
+import { addDays, isoDate } from "@/lib/utils";
+
+/** Payments to fetch so a weekly payer still covers a 365-day TTM window. */
+export const DISTRIBUTION_TTM_LIMIT = 80;
 
 export function payoutRatioFromDps(dps: number | null | undefined, eps: number | null | undefined) {
   if (typeof dps !== "number" || !Number.isFinite(dps) || typeof eps !== "number" || !(eps > 0)) return null;
@@ -25,6 +29,32 @@ export function trailingDividendTotal(
     total += value;
   }
   return total;
+}
+
+/**
+ * Cash distributions with an ex-date in (asOf − days, asOf].
+ * Use this for ETF/fund TTM; keep `trailingDividendTotal(..., 4)` for quarterly stock DPS columns.
+ */
+export function trailingDividendWindow(
+  dividends: Array<{ date?: string; dividend?: number; adjDividend?: number }>,
+  asOf: string,
+  days = 365,
+) {
+  if (!asOf || dividends.length === 0) return null;
+  const startMs = Date.parse(`${asOf}T00:00:00Z`);
+  if (!Number.isFinite(startMs)) return null;
+  const start = isoDate(addDays(new Date(startMs), -days));
+  let total = 0;
+  let count = 0;
+  for (const row of dividends) {
+    const date = row.date;
+    if (!date || date > asOf || date <= start) continue;
+    const value = row.adjDividend || row.dividend || 0;
+    if (!Number.isFinite(value)) continue;
+    total += value;
+    count += 1;
+  }
+  return count > 0 ? total : null;
 }
 
 /** Last four payments on or before a statement date, for trailing income columns. */
