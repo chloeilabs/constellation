@@ -28,6 +28,7 @@ import {
   getLatestEma,
   getLatestInstitutionalOwnership,
   getLatestRsi,
+  getLatestSma,
   getPriceChange,
   getPriceTarget,
   getProfile,
@@ -77,6 +78,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     rsi,
     ema12,
     ema26,
+    sma50,
     growthRows,
     esgRatings,
     target,
@@ -105,6 +107,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getLatestRsi(ticker),
     getLatestEma(ticker, 12),
     getLatestEma(ticker, 26),
+    getLatestSma(ticker, 50),
     getIncomeGrowth(ticker, "annual", 1),
     getEsgRatings(ticker),
     getPriceTarget(ticker),
@@ -393,7 +396,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "Net Cash", href: `/stocks/${ticker}/net-cash`, value: money(netCash) },
               {
                 label: "Net Cash / Share",
-                href: `/stocks/${ticker}/net-cash`,
+                href: `/stocks/${ticker}/net-cash-per-share`,
                 value: netCash != null && shares ? formatMoney(netCash / shares, currency) : "—",
               },
               { label: "Book Value", href: `/stocks/${ticker}/equity`, value: money(num(sheet?.totalStockholdersEquity)) },
@@ -528,6 +531,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "200-Day Average", value: formatMoney(quote?.priceAvg200, currency) },
               { label: "EMA (12)", value: formatMoney(ema12?.ema, currency) },
               { label: "EMA (26)", value: formatMoney(ema26?.ema, currency) },
+              { label: "SMA (50)", value: formatMoney(sma50?.sma, currency) },
               { label: "RSI (14)", value: formatNumber(rsi?.rsi) },
               { label: "Average Volume", value: formatNumber(quote?.avgVolume ?? profile?.averageVolume, 0) },
             ]}
@@ -597,8 +601,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           <h2 className="mb-3 font-semibold text-header">Scores</h2>
           <StatGrid
             items={[
-              { label: "Altman Z-Score", value: formatNumber(live.altmanZScore ?? scores?.altmanZScore) },
-              { label: "Piotroski Score", value: scores?.piotroskiScore ?? "—" },
+              { label: "Altman Z-Score", href: `/stocks/${ticker}/altman-z-score`, value: formatNumber(live.altmanZScore ?? scores?.altmanZScore) },
+              { label: "Piotroski Score", href: `/stocks/${ticker}/piotroski-score`, value: scores?.piotroskiScore ?? "—" },
               { label: "ESG Rating", href: `/stocks/${ticker}/esg`, value: esgRating?.ESGRiskRating ?? "—" },
               { label: "ESG Industry Rank", href: `/stocks/${ticker}/esg`, value: esgRating?.industryRank ?? "—" },
             ]}

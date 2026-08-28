@@ -14,7 +14,7 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const ticker = decodeTicker(symbol);
   const [profile, dividends, quote, annual, cash, ttm] = await Promise.all([
     getProfile(ticker),
-    getDividends(ticker, 80),
+    getDividends(ticker, 200),
     getQuote(ticker),
     getIncomeStatements(ticker, "annual", 20),
     getCashFlowTtm(ticker),

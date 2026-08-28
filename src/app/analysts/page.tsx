@@ -5,15 +5,32 @@ import { SectionNav } from "@/components/section-nav";
 import { NEWS_NAV } from "@/lib/nav";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getGradesLatestNews } from "@/lib/fmp";
-import { gradeActionLabel } from "@/lib/grades";
+import { gradeActionKind, gradeActionLabel } from "@/lib/grades";
 import { isForeignListingSymbol } from "@/lib/listings";
+import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "Analyst Ratings",
   description: "Latest analyst upgrades, downgrades, and initiations from FMP grade news.",
 };
 
-export default async function AnalystsPage() {
+const VIEWS = [
+  { id: "all", label: "All", href: "/analysts" },
+  { id: "upgrades", label: "Upgrades", href: "/analysts?view=upgrades" },
+  { id: "downgrades", label: "Downgrades", href: "/analysts?view=downgrades" },
+  { id: "initiations", label: "Initiations", href: "/analysts?view=initiations" },
+  { id: "maintains", label: "Maintains", href: "/analysts?view=maintains" },
+] as const;
+
+type AnalystView = (typeof VIEWS)[number]["id"];
+
+export default async function AnalystsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view: viewParam } = await searchParams;
+  const view: AnalystView = VIEWS.some((item) => item.id === viewParam) ? (viewParam as AnalystView) : "all";
   const raw = await getGradesLatestNews(80);
   const seen = new Set<string>();
   const rows = raw.filter((row) => {
@@ -21,6 +38,7 @@ export default async function AnalystsPage() {
     const key = `${row.symbol}|${row.publishedDate}|${row.gradingCompany}|${row.action}`;
     if (seen.has(key)) return false;
     seen.add(key);
+    if (view !== "all" && gradeActionKind(row.action) !== view) return false;
     return true;
   });
 
@@ -31,6 +49,20 @@ export default async function AnalystsPage() {
         description="Recent upgrades, downgrades, and initiations from sell-side research, via FMP grade news."
       />
       <SectionNav items={NEWS_NAV} />
+      <div className="mb-5 flex flex-wrap gap-2">
+        {VIEWS.map((item) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            className={cn(
+              "rounded-full px-3 py-1 text-sm font-medium",
+              item.id === view ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
       <p className="mb-3 text-sm text-muted">{rows.length} recent rating actions</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
@@ -58,7 +90,7 @@ export default async function AnalystsPage() {
                 <tr key={`${row.symbol}-${row.publishedDate}-${row.gradingCompany}-${row.action}`}>
                   <td>{formatDate(row.publishedDate)}</td>
                   <td className="symbol">
-                    <Link href={`/stocks/${row.symbol}`} className="text-link hover:underline">
+                    <Link href={`/stocks/${row.symbol}/ratings`} className="text-link hover:underline">
                       {row.symbol}
                     </Link>
                   </td>

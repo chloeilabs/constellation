@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/fmp";
 import { marketAssetHref, quoteHref } from "@/lib/listings";
+import { isQuoteSubpage } from "@/lib/quote-subpages";
 
 const EXCHANGE_SUFFIX: Record<string, string> = {
   nse: "NS",
@@ -22,32 +23,6 @@ const EXCHANGE_SUFFIX: Record<string, string> = {
   sao: "SA",
   b3: "SA",
 };
-
-const QUOTE_SUBPAGES = new Set([
-  "statistics",
-  "company",
-  "financials",
-  "dividend",
-  "forecast",
-  "news",
-  "chart",
-  "history",
-  "insiders",
-  "filings",
-  "transcripts",
-  "ownership",
-  "earnings",
-  "shares",
-  "employees",
-  "holdings",
-  "congress",
-  "market-cap",
-  "revenue",
-  "pe-ratio",
-  "peg-ratio",
-  "ps-ratio",
-  "pb-ratio",
-]);
 
 function withSubpath(href: string, segments: string[]) {
   const extra = segments.map((part) => decodeURIComponent(part)).filter(Boolean);
@@ -95,7 +70,7 @@ export default async function QuoteAliasPage({ params }: { params: Promise<{ par
   if (exchange.toLowerCase() === "13f") {
     redirect(`/institutional/${token}`);
   }
-  if (QUOTE_SUBPAGES.has(token.toLowerCase())) {
+  if (isQuoteSubpage(token)) {
     await redirectQuote(exchange.toUpperCase(), [token, ...rest]);
   }
 
