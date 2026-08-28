@@ -68,7 +68,7 @@ function inferAnnualYear(date: string, actuals: FmpIncomeStatement[]) {
   const last = chrono(actuals).at(-1);
   if (!last?.date || last.fiscalYear == null) return date.slice(0, 4);
   const elapsed = (Date.parse(date) - Date.parse(last.date)) / (365.25 * 86400000);
-  const years = Math.max(1, Math.round(elapsed));
+  const years = Math.max(1, Math.round(elapsed) || 1);
   const base = Number(last.fiscalYear);
   return Number.isFinite(base) ? String(base + years) : date.slice(0, 4);
 }
@@ -205,9 +205,9 @@ export function buildForecastColumns({
 }): ForecastColumn[] {
   const actualChrono = chrono(actuals);
   const estimateChrono = chrono(estimates);
-  const actualKeys = new Set(actualChrono.map((row) => periodKey(row.date)));
+  const lastActualDate = actualChrono.at(-1)?.date ?? "";
   const cash = cashByPeriod(cashFlows);
-  const futureEstimates = estimateChrono.filter((row) => !actualKeys.has(periodKey(row.date)));
+  const futureEstimates = estimateChrono.filter((row) => (lastActualDate ? row.date > lastActualDate : true));
   const displayedActuals = actualChrono.slice(-actualCount);
   const priorActual = actualChrono[actualChrono.length - actualCount - 1] ?? null;
   const displayedEstimates = futureEstimates.slice(0, estimateCount);
@@ -291,12 +291,12 @@ export function forecastRanges(
   columns: ForecastColumn[],
   years = 3,
 ): ForecastRangeYear[] {
-  const actualKeys = new Set(chrono(actuals).map((row) => periodKey(row.date)));
+  const lastActualDate = chrono(actuals).at(-1)?.date ?? "";
   const lastActual = [...columns].reverse().find((column) => column.values.isEstimate !== true) ?? null;
   const lastActualRevenue = num(lastActual?.values.revenue);
   const lastActualEps = num(lastActual?.values.eps);
   const future = chrono(estimates)
-    .filter((row) => !actualKeys.has(periodKey(row.date)))
+    .filter((row) => (lastActualDate ? row.date > lastActualDate : true))
     .slice(0, years);
 
   return future.map((row, index) => {
