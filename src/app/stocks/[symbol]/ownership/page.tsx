@@ -36,9 +36,12 @@ export default async function OwnershipPage({
     getBeneficialOwnership(ticker),
   ]);
   const holdersPage = pageWindow(holderTotal, requestedPage);
+  const shownHolders =
+    holdersPage.from === 0 ? [] : holders.slice(0, holdersPage.to - holdersPage.from + 1);
   const owners = latestBeneficialOwners(beneficial).slice(0, 25);
   const base = stockPath(ticker, "/ownership");
   const holderLinks = pagerLinks(base, holdersPage.page, holdersPage.pageCount);
+  const holderTo = shownHolders.length ? holdersPage.from + shownHolders.length - 1 : 0;
 
   return (
     <Container>
@@ -154,14 +157,14 @@ export default async function OwnershipPage({
               </tr>
             </thead>
             <tbody>
-              {holders.length === 0 ? (
+              {shownHolders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-muted">
                     No 13F holder details for this period.
                   </td>
                 </tr>
               ) : (
-                holders.map((row, index) => (
+                shownHolders.map((row, index) => (
                   <tr key={`${row.cik}-${row.investorName}-${holdersPage.from + index}`}>
                     <td className="text-muted">{holdersPage.from + index}</td>
                     <td className="max-w-[280px] truncate font-medium">
@@ -188,8 +191,8 @@ export default async function OwnershipPage({
           </table>
         </div>
         <TablePager
-          from={holders.length ? holdersPage.from : 0}
-          to={holders.length ? holdersPage.from + holders.length - 1 : 0}
+          from={shownHolders.length ? holdersPage.from : 0}
+          to={holderTo}
           total={holdersPage.total}
           page={holdersPage.page}
           pageCount={holdersPage.pageCount}
