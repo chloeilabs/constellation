@@ -173,7 +173,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
   const cashBuybackYield =
     marketCap && marketCap > 0 && repurchase != null && repurchase !== 0 ? Math.abs(repurchase) / marketCap : null;
   const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
-  const dividendYield = num(ratios?.dividendYieldTTM);
+  const indicatedDividend = indicatedAnnualDividend(dividends[0], profile?.lastDividend);
+  const dividendYield =
+    indicatedDividend != null && quote?.price && quote.price > 0
+      ? indicatedDividend / quote.price
+      : num(ratios?.dividendYieldTTM);
   const derivedTtm = ttm
     ? derivedStatementMetrics({
         ...(ttm as unknown as Record<string, unknown>),

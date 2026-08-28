@@ -24,9 +24,9 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const annualized = indicatedAnnualDividend(latest, profile?.lastDividend);
   const price = quote?.price ?? profile?.price;
   const indicatedYield = annualized && price ? annualized / price : null;
-  const ttmYield = typeof (ratios as Record<string, unknown> | null)?.dividendYieldTTM === "number"
+  const ttmYield = indicatedYield ?? (typeof (ratios as Record<string, unknown> | null)?.dividendYieldTTM === "number"
     ? (ratios as { dividendYieldTTM: number }).dividendYieldTTM
-    : indicatedYield;
+    : null);
   const payout =
     typeof (ratios as Record<string, unknown> | null)?.dividendPayoutRatioTTM === "number"
       ? (ratios as { dividendPayoutRatioTTM: number }).dividendPayoutRatioTTM

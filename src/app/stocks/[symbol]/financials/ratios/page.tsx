@@ -7,6 +7,7 @@ import {
   getCashFlows,
   getCashFlowTtm,
   getDailyChart,
+  getDividends,
   getEnterpriseValues,
   getEstimates,
   getIncomeStatements,
@@ -21,6 +22,7 @@ import {
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
 import { yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { dividendYieldFromPrice, dividendsByFiscalYear, trailingDividendThrough } from "@/lib/dividends";
 import {
   RATIO_SECTIONS,
   derivedBalanceMetrics,
@@ -35,7 +37,7 @@ import {
   withStatementHrefs,
 } from "@/lib/statements";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, StatementPeriod } from "@/lib/types";
-import { addDays, isoDate, nyDateString, relativeChange } from "@/lib/utils";
+import { addDays, indicatedAnnualDividend, isoDate, nyDateString, relativeChange } from "@/lib/utils";
 import {
   actualToEstimateCagr,
   assignFinite,
@@ -103,6 +105,7 @@ function overlayRatioColumn(
     nextEps?: number | null;
     epsCagr?: number | null;
     sharesYoy?: number | null;
+    dividendYield?: number | null;
     date?: string | null;
   },
 ): StatementColumn {
@@ -149,7 +152,10 @@ function overlayRatioColumn(
     ocf: num(mergedIncome.operatingCashFlow),
     netIncome: num(mergedIncome.netIncome),
     sharesYoy: input.sharesYoy,
-    dividendYield: num(column.values.dividendYield) ?? num(mergedIncome.dividendYield),
+    dividendYield:
+      input.dividendYield !== undefined
+        ? input.dividendYield
+        : num(column.values.dividendYield) ?? num(mergedIncome.dividendYield),
     nextEps: input.nextEps,
     epsCagr: input.epsCagr,
   });
@@ -199,6 +205,7 @@ export default async function RatiosPage({
     enterpriseRows,
     yearAgoCap,
     dailyCloses,
+    dividends,
   ] = await Promise.all([
     getRatios(ticker, period, displayCount),
     getRatiosTtm(ticker),
@@ -216,8 +223,11 @@ export default async function RatiosPage({
     getEnterpriseValues(ticker, period, displayCount + 1),
     getYearAgoMarketCap(ticker),
     getDailyChart(ticker, priceFrom),
+    getDividends(ticker, 80),
   ]);
   const periodCloses = toCloseSeries(dailyCloses);
+  const indicatedDividend = indicatedAnnualDividend(dividends[0], null);
+  const dividendByYear = dividendsByFiscalYear(dividends, period === "annual" ? incomeRows : annualIncome);
   const latestAnnual = (annualIncome[0] ?? (period === "annual" ? incomeRows[0] : null)) ?? null;
   const priorAnnual = (annualIncome[1] ?? (period === "annual" ? incomeRows[1] : null)) ?? null;
   const annualShareYoy = relativeChange(
@@ -275,6 +285,13 @@ export default async function RatiosPage({
     const shares = isCurrent
       ? null
       : num(income?.weightedAverageShsOutDil) ?? num(enterprise?.numberOfShares);
+    const periodDps = isCurrent
+      ? indicatedDividend
+      : period === "annual"
+        ? (dividendByYear.get(String(income?.fiscalYear ?? column.values.fiscalYear)) ?? null)
+        : periodDate
+          ? trailingDividendThrough(dividends, periodDate, 4)
+          : null;
     return overlayRatioColumn(column, {
       income: isCurrent ? currentIncome : income,
       balance: isCurrent ? latestSheet : matchRow(balanceRows, column, period),
@@ -291,6 +308,7 @@ export default async function RatiosPage({
       sharesYoy: isCurrent
         ? annualShareYoy
         : yearOverYear(income?.weightedAverageShsOutDil, priorIncome?.weightedAverageShsOutDil),
+      dividendYield: dividendYieldFromPrice(periodDps, periodPrice),
       date: isCurrent ? nyDateString() : undefined,
     });
   });
@@ -313,7 +331,7 @@ export default async function RatiosPage({
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth. Dividend yield is indicated or fiscal dividends divided by the same close."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle

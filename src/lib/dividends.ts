@@ -1,6 +1,11 @@
 import { yearOverYear } from "@/lib/format";
 import type { FmpDividend } from "@/lib/types";
 
+export function dividendYieldFromPrice(dps: number | null | undefined, price: number | null | undefined) {
+  if (typeof dps !== "number" || !Number.isFinite(dps) || typeof price !== "number" || !(price > 0)) return null;
+  return dps / price;
+}
+
 export function trailingDividendTotal(
   dividends: Array<{ dividend?: number; adjDividend?: number }>,
   start = 0,
