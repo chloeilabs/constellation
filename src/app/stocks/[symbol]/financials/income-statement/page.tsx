@@ -13,7 +13,7 @@ import {
 } from "@/lib/fmp";
 import { formatMillions, formatPrice, reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { dividendsByFiscalYear, trailingDividendThrough, trailingDividendTotal } from "@/lib/dividends";
+import { dividendsByFiscalYear, dividendTtmGrowth, trailingDividendThrough, trailingDividendTotal } from "@/lib/dividends";
 import {
   ADDITIONAL_INCOME_ROWS,
   CASH_TRAILING_SUM_KEYS,
@@ -32,6 +32,7 @@ import {
   toTrailingColumns,
   viewFrom,
   viewPeriodFrom,
+  withAdjacentGrowth,
   withDerivedStatementMetrics,
   withStatementHrefs,
   withTtmColumn,
@@ -111,6 +112,13 @@ export default async function IncomeStatementPage({
       };
     });
     columns = withDerivedStatementMetrics(columns);
+    columns = withAdjacentGrowth(
+      columns,
+      "dividendPerShare",
+      "dividendGrowth",
+      trailing ? 4 : 1,
+      dividendTtmGrowth(dividends),
+    );
   }
 
   const hrefRows = withStatementHrefs(INCOME_ROWS, ticker);

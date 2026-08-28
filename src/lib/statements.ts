@@ -43,15 +43,18 @@ export const ADDITIONAL_INCOME_ROWS: StatementRow[] = [
   { key: "freeCashFlow", label: "Free Cash Flow", emphasize: true, format: "money" },
   { key: "fcfPerShare", label: "Free Cash Flow Per Share", format: "eps" },
   { key: "dividendPerShare", label: "Dividend Per Share", format: "eps" },
+  { key: "dividendGrowth", label: "Dividend Growth", format: "percent" },
   { key: "grossProfitMargin", label: "Gross Margin", format: "percent" },
   { key: "operatingProfitMargin", label: "Operating Margin", format: "percent" },
   { key: "netProfitMargin", label: "Profit Margin", format: "percent" },
   { key: "fcfMargin", label: "Free Cash Flow Margin", format: "percent" },
+  { key: "ebitda", label: "EBITDA", format: "money" },
   { key: "ebitdaMargin", label: "EBITDA Margin", format: "percent" },
   { key: "depreciationAndAmortization", label: "D&A For EBITDA", format: "money" },
   { key: "ebit", label: "EBIT", format: "money" },
   { key: "ebitMargin", label: "EBIT Margin", format: "percent" },
   { key: "effectiveTaxRate", label: "Effective Tax Rate", format: "percent" },
+  { key: "revenueAsReported", label: "Revenue as Reported", format: "money" },
 ];
 
 export const STATEMENT_METRIC_HREFS: Record<string, string> = {
@@ -86,6 +89,9 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   ebitMargin: "ebit-margin",
   effectiveTaxRate: "effective-tax-rate",
   fcfPerShare: "free-cash-flow",
+  dividendPerShare: "dividend",
+  dividendGrowth: "dividend",
+  revenueAsReported: "revenue",
   cashAndCashEquivalents: "cash",
   cashAndShortTermInvestments: "cash",
   totalAssets: "assets",
@@ -159,6 +165,13 @@ export const CASH_FLOW_ROWS: StatementRow[] = [
   },
   { key: "netChangeInCash", label: "Net Change in Cash", format: "money" },
   { key: "freeCashFlow", label: "Free Cash Flow", emphasize: true, format: "money" },
+];
+
+/** Supplemental cash lines Stock Analysis shows under the cash-flow statement. */
+export const ADDITIONAL_CASH_ROWS: StatementRow[] = [
+  { key: "interestPaid", label: "Cash Interest Paid", format: "money", zeroAsEmpty: true },
+  { key: "incomeTaxesPaid", label: "Cash Income Tax Paid", format: "money" },
+  { key: "changeInWorkingCapital", label: "Change in Working Capital", format: "money" },
 ];
 
 export const RATIO_ROWS: StatementRow[] = [
@@ -317,14 +330,17 @@ export function derivedStatementMetrics(values: Record<string, unknown>) {
   const pretax = n("incomeBeforeTax");
   const fcf = n("freeCashFlow");
   const shares = n("weightedAverageShsOutDil");
-  const ebit = n("ebit") ?? n("operatingIncome");
-  const ebitda = n("ebitda");
+  const ebit = n("operatingIncome") ?? n("ebit");
+  const da = n("depreciationAndAmortization");
+  const ebitda = ebit != null && da != null ? ebit + da : n("ebitda");
   const tax = n("incomeTaxExpense");
   const gross = n("grossProfit");
   const operating = n("operatingIncome");
   const net = n("netIncome");
   return {
     ebit,
+    ebitda,
+    revenueAsReported: revenue,
     fcfPerShare: fcf != null && shares && shares > 0 ? fcf / shares : null,
     grossProfitMargin: revenue && gross != null ? gross / revenue : null,
     operatingProfitMargin: revenue && operating != null ? operating / revenue : null,
@@ -370,7 +386,62 @@ export const INCOME_TRAILING_SUM_KEYS = INCOME_ROWS.filter(
   (row) => row.format === "money" || row.format === "eps",
 ).map((row) => row.key);
 export const INCOME_TRAILING_LATEST_KEYS = INCOME_ROWS.filter((row) => row.format === "share").map((row) => row.key);
-export const CASH_TRAILING_SUM_KEYS = CASH_FLOW_ROWS.filter((row) => row.format === "money").map((row) => row.key);
+export const CASH_TRAILING_SUM_KEYS = [
+  ...CASH_FLOW_ROWS.filter((row) => row.format === "money").map((row) => row.key),
+  "interestPaid",
+  "incomeTaxesPaid",
+];
+
+export function withAdjacentGrowth(
+  columns: { key: string; label: string; values: Record<string, unknown> }[],
+  sourceKey: string,
+  destKey: string,
+  offset = 1,
+  ttmOverride?: number | null,
+) {
+  return columns.map((column, index) => {
+    const isTtm = column.key === "ttm" || column.label === "TTM";
+    const growth =
+      isTtm && ttmOverride != null
+        ? ttmOverride
+        : yearOverYear(column.values[sourceKey], columns[index + offset]?.values[sourceKey]);
+    return { ...column, values: { ...column.values, [destKey]: growth } };
+  });
+}
+
+/**
+ * FMP sometimes stores a Q4 cash-flow supplemental as the reversal of year-to-date
+ * (Q1+Q2+Q3) instead of the quarter's amount. Rebuild that quarter from the annual total.
+ */
+export function reconcileQuarterlyToAnnual<T extends { fiscalYear: string; period: string }>(
+  quarters: T[],
+  annuals: Array<{ fiscalYear: string } & Record<string, unknown>>,
+  fields: string[],
+): T[] {
+  const annualByYear = new Map(annuals.map((row) => [String(row.fiscalYear), row]));
+  return quarters.map((row) => {
+    if (String(row.period).toUpperCase() !== "Q4") return row;
+    const annual = annualByYear.get(String(row.fiscalYear));
+    if (!annual) return row;
+    const earlier = quarters.filter(
+      (quarter) =>
+        String(quarter.fiscalYear) === String(row.fiscalYear) && String(quarter.period).toUpperCase() !== "Q4",
+    );
+    if (earlier.length < 3) return row;
+    const next = { ...row };
+    for (const field of fields) {
+      const q4 = Number((row as Record<string, unknown>)[field]);
+      const parts = earlier.map((quarter) => Number((quarter as Record<string, unknown>)[field]));
+      const fy = Number(annual[field]);
+      if (!Number.isFinite(q4) || !Number.isFinite(fy) || parts.some((value) => !Number.isFinite(value))) continue;
+      const ytd = parts.reduce((sum, value) => sum + value, 0);
+      const implied = fy - ytd;
+      const reversal = Math.abs(q4 + ytd) <= Math.max(1e6, Math.abs(ytd) * 0.02);
+      if (reversal) (next as Record<string, unknown>)[field] = implied;
+    }
+    return next;
+  });
+}
 
 /** Last four quarters versus the prior four, as a decimal change. */
 export function ttmChange(rows: Array<Record<string, unknown>> | undefined, field: string) {

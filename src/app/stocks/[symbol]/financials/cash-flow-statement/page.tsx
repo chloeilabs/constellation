@@ -7,11 +7,13 @@ import { getCashFlowAsReported, getCashFlows, getCashFlowTtm, getIncomeStatement
 import { formatMillions, reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
+  ADDITIONAL_CASH_ROWS,
   CASH_FLOW_ROWS,
   CASH_TRAILING_SUM_KEYS,
   asReportedColumns,
   asReportedStatementRows,
   mergeStatementValues,
+  reconcileQuarterlyToAnnual,
   sourceFrom,
   spanFrom,
   statementChartItems,
@@ -19,6 +21,7 @@ import {
   statementToolbarHrefs,
   toStatementColumns,
   toTrailingColumns,
+  trailingSum,
   viewFrom,
   viewPeriodFrom,
   withRevenueBase,
@@ -46,9 +49,13 @@ export default async function CashFlowPage({
   const displayCount = trailing ? statementLimit("quarter", span) : statementLimit(period, span);
   const base = stockPath(ticker, "/financials/cash-flow-statement");
   const wantRevenue = source === "standardized" && view === "common-size";
-  const [rows, quarterly, ttm, reported, income, incomeQuarters, incomeTtm] = await Promise.all([
+  const wantSupplement = source === "standardized";
+  const [rows, quarterly, annualExtra, ttm, reported, income, incomeQuarters, incomeTtm] = await Promise.all([
     source === "standardized" && !trailing ? getCashFlows(ticker, period, displayCount) : Promise.resolve([]),
-    source === "standardized" && trailing ? getCashFlows(ticker, "quarter", displayCount + 4) : Promise.resolve([]),
+    wantSupplement ? getCashFlows(ticker, "quarter", trailing ? displayCount + 4 : 8) : Promise.resolve([]),
+    wantSupplement && (trailing || period === "quarter")
+      ? getCashFlows(ticker, "annual", 12)
+      : Promise.resolve([]),
     source === "standardized" ? getCashFlowTtm(ticker) : Promise.resolve(null),
     source === "reported" ? getCashFlowAsReported(ticker, period, displayCount) : Promise.resolve([]),
     wantRevenue && !trailing ? getIncomeStatements(ticker, period, displayCount) : Promise.resolve([]),
@@ -61,12 +68,28 @@ export default async function CashFlowPage({
     ttm?.reportedCurrency,
     reported[0]?.reportedCurrency,
   );
+  const annuals = period === "annual" && !trailing ? rows : annualExtra;
+  const correctedQuarters = reconcileQuarterlyToAnnual(quarterly.length ? quarterly : period === "quarter" ? rows : [], annuals, [
+    "incomeTaxesPaid",
+    "interestPaid",
+  ]);
+  const periodRows =
+    period === "quarter" && source === "standardized"
+      ? reconcileQuarterlyToAnnual(rows, annuals, ["incomeTaxesPaid", "interestPaid"])
+      : rows;
+  const ttmPaid = {
+    incomeTaxesPaid: trailingSum(correctedQuarters, "incomeTaxesPaid"),
+    interestPaid: trailingSum(correctedQuarters, "interestPaid"),
+  };
   let columns =
     source === "reported"
       ? asReportedColumns(reported, period)
       : trailing
-        ? toTrailingColumns(quarterly, displayCount, CASH_TRAILING_SUM_KEYS)
-        : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period));
+        ? toTrailingColumns(correctedQuarters, displayCount, CASH_TRAILING_SUM_KEYS)
+        : withTtmColumn(
+            { ...(ttm ?? {}), ...ttmPaid },
+            toStatementColumns(periodRows, period),
+          );
   if (wantRevenue) {
     if (trailing) {
       const incomeTrailing = toTrailingColumns(incomeQuarters, displayCount, ["revenue"]);
@@ -130,22 +153,38 @@ export default async function CashFlowPage({
           downloadName={`${ticker}-cash-flow-as-reported-${period}-${span}`}
         />
       ) : (
-        <StatementTable
-          rows={withStatementHrefs(CASH_FLOW_ROWS, ticker)}
-          columns={columns}
-          scale="millions"
-          currency={currency}
-          commonSizeBase={view === "common-size" ? "revenue" : undefined}
-          yoyOffset={trailing ? 4 : 1}
-          caption={
-            view === "common-size"
-              ? "Percent of revenue from the matching income statement. Green/red year-over-year change is hidden in this view."
-              : trailing
-                ? `Values in millions of ${currency}. Green/red percentages compare each trailing window with the same quarter a year earlier.`
-                : `Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`
-          }
-          downloadName={`${ticker}-cash-flow-${viewPeriod}-${span}${view === "common-size" ? "-common-size" : ""}`}
-        />
+        <>
+          <StatementTable
+            rows={withStatementHrefs(CASH_FLOW_ROWS, ticker)}
+            columns={columns}
+            scale="millions"
+            currency={currency}
+            commonSizeBase={view === "common-size" ? "revenue" : undefined}
+            yoyOffset={trailing ? 4 : 1}
+            caption={
+              view === "common-size"
+                ? "Percent of revenue from the matching income statement. Green/red year-over-year change is hidden in this view."
+                : trailing
+                  ? `Values in millions of ${currency}. Green/red percentages compare each trailing window with the same quarter a year earlier.`
+                  : `Values in millions of ${currency}. The TTM column is trailing twelve months; green/red percentages are year-over-year change.`
+            }
+            downloadName={`${ticker}-cash-flow-${viewPeriod}-${span}${view === "common-size" ? "-common-size" : ""}`}
+          />
+          {view === "dollars" ? (
+            <section className="mt-10">
+              <h2 className="mb-3 text-lg font-semibold text-header">Additional Metrics</h2>
+              <StatementTable
+                rows={ADDITIONAL_CASH_ROWS}
+                columns={columns}
+                scale="millions"
+                currency={currency}
+                yoyOffset={trailing ? 4 : 1}
+                caption="Cash interest and income taxes paid, plus the working-capital change already on the statement. Zeros for cash interest render as —."
+                downloadName={`${ticker}-cash-additional-${viewPeriod}-${span}`}
+              />
+            </section>
+          ) : null}
+        </>
       )}
     </Container>
   );

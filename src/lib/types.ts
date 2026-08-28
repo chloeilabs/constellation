@@ -312,6 +312,8 @@ export type FmpCashFlow = {
   operatingCashFlow: number;
   capitalExpenditure: number;
   freeCashFlow: number;
+  incomeTaxesPaid?: number;
+  interestPaid?: number;
   [key: string]: string | number | undefined;
 };
 
