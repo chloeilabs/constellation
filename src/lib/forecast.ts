@@ -6,6 +6,7 @@ import type {
   FmpDividend,
   FmpEstimate,
   FmpGrade,
+  FmpGradesConsensus,
   FmpHistoricalGrade,
   FmpIncomeStatement,
   FmpPriceTargetNews,
@@ -362,4 +363,27 @@ export function latestForecasts(grades: FmpGrade[], news: FmpPriceTargetNews[], 
       priceWhenPosted: match?.priceWhenPosted ?? null,
     };
   });
+}
+
+export function consensusAnalystCount(grades?: Pick<FmpGradesConsensus, "strongBuy" | "buy" | "hold" | "sell" | "strongSell"> | null) {
+  if (!grades) return 0;
+  return grades.strongBuy + grades.buy + grades.hold + grades.sell + grades.strongSell;
+}
+
+export function consensusMeaning(consensus?: string | null) {
+  const value = (consensus || "").toLowerCase();
+  if (!value) return null;
+  if (value.includes("strong buy")) {
+    return "analysts see substantial upside versus the market over the next twelve months";
+  }
+  if (value.includes("buy") || value.includes("outperform") || value.includes("overweight") || value.includes("accumulate")) {
+    return "analysts believe this stock is likely to outperform the market over the next twelve months";
+  }
+  if (value.includes("hold") || value.includes("neutral") || value.includes("equal") || value.includes("market perform")) {
+    return "analysts expect the stock to perform in line with the market over the next twelve months";
+  }
+  if (value.includes("sell") || value.includes("underperform") || value.includes("underweight") || value.includes("reduce")) {
+    return "analysts believe this stock is likely to underperform the market over the next twelve months";
+  }
+  return null;
 }

@@ -383,7 +383,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
           />
         </section>
         <section>
-          <h2 className="mb-3 font-semibold text-header">Financial Position</h2>
+          <h2 className="mb-3 font-semibold text-header">Balance Sheet</h2>
           <StatGrid
             items={[
               { label: "Current Ratio", href: `/stocks/${ticker}/current-ratio`, value: formatRatio(num(ratios?.currentRatioTTM ?? metrics?.currentRatioTTM)) },
@@ -418,6 +418,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "WACC", href: `/stocks/${ticker}/wacc`, value: formatPercentPlain(wacc?.wacc) },
             ]}
           />
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials/balance-sheet`} className="text-link hover:underline">
+              Full Balance Sheet
+            </Link>
+          </p>
         </section>
         <section>
           <h2 className="mb-3 font-semibold text-header">Financial Efficiency</h2>
@@ -472,6 +477,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "EPS", href: `/stocks/${ticker}/earnings`, value: formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency) },
             ]}
           />
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials/income-statement`} className="text-link hover:underline">
+              Full Income Statement
+            </Link>
+          </p>
         </section>
         <section>
           <h2 className="mb-3 font-semibold text-header">Cash Flow (ttm)</h2>
@@ -486,6 +496,11 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
               { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(num(cash?.freeCashFlow) != null && marketCap ? cash!.freeCashFlow / marketCap : num(metrics?.freeCashFlowYieldTTM)) },
             ]}
           />
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials/cash-flow-statement`} className="text-link hover:underline">
+              Full Cash Flow Statement
+            </Link>
+          </p>
         </section>
         <section>
           <h2 className="mb-3 font-semibold text-header">Margins</h2>

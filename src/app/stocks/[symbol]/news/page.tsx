@@ -6,19 +6,7 @@ import { getPressReleases, getStockNews, getSymbolNews } from "@/lib/fmp";
 import { isIndexTicker } from "@/lib/indexes";
 import { decodeTicker } from "@/lib/listings";
 import { quoteNewsNav } from "@/lib/nav";
-import type { FmpNewsItem } from "@/lib/types";
-
-function mergeNews(a: FmpNewsItem[], b: FmpNewsItem[]) {
-  const seen = new Set<string>();
-  const merged: FmpNewsItem[] = [];
-  for (const item of [...a, ...b].sort((left, right) => right.publishedDate.localeCompare(left.publishedDate))) {
-    const key = item.url || `${item.title}-${item.publishedDate}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(item);
-  }
-  return merged;
-}
+import { mergeNews } from "@/lib/news";
 
 export default async function StockNewsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;

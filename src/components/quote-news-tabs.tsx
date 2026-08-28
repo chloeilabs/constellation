@@ -5,6 +5,8 @@ import Link from "next/link";
 import { NewsList } from "@/components/news-list";
 import { formatDate } from "@/lib/format";
 import { stockPath } from "@/lib/listings";
+import { mergeNews } from "@/lib/news";
+import { secFormTitle } from "@/lib/filings";
 import { cn } from "@/lib/utils";
 import type { FmpNewsItem, FmpSecFiling, FmpTranscriptDate } from "@/lib/types";
 
@@ -33,6 +35,7 @@ export function QuoteNewsTabs({
   ];
   const [tab, setTab] = useState<TabId>("all");
   const active = tabs.some((item) => item.id === tab) ? tab : "all";
+  const allItems = mergeNews(news, press).slice(0, Math.max(news.length, 12));
   const defaults: Record<TabId, string> = {
     all: stockPath(symbol, "/news"),
     press: stockPath(symbol, "/news/press-releases"),
@@ -75,7 +78,7 @@ export function QuoteNewsTabs({
           );
         })}
       </div>
-      {active === "all" ? <NewsList items={news} showSymbol={false} /> : null}
+      {active === "all" ? <NewsList items={allItems} showSymbol={false} /> : null}
       {active === "press" ? <NewsList items={press} showSymbol={false} /> : null}
       {active === "transcripts" ? <TranscriptList symbol={symbol} rows={transcripts} /> : null}
       {active === "filings" ? <FilingList rows={filings} /> : null}
@@ -126,8 +129,10 @@ function FilingList({ rows }: { rows: FmpSecFiling[] }) {
             className="flex items-center justify-between gap-4 py-3"
           >
             <div>
-              <div className="font-medium text-header">{row.formType}</div>
-              <div className="mt-1 text-xs text-muted">{formatDate(row.acceptedDate || row.filingDate)}</div>
+              <div className="font-medium text-header">{secFormTitle(row.formType)}</div>
+              <div className="mt-1 text-xs text-muted">
+                {row.formType} · {formatDate(row.acceptedDate || row.filingDate)}
+              </div>
             </div>
             {href ? (
               <a href={href} className="shrink-0 text-sm text-link hover:underline" target="_blank" rel="noreferrer">

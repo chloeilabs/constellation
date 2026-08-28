@@ -4,6 +4,7 @@ import { PageHeader, PeriodToggle } from "@/components/page-header";
 import { MetricCards } from "@/components/metric-cards";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { StatementTable } from "@/components/statement-table";
+import { ChangePercent } from "@/components/change";
 import {
   compactMoneyFn,
   formatDate,
@@ -32,6 +33,8 @@ import {
 } from "@/lib/fmp";
 import {
   buildForecastColumns,
+  consensusAnalystCount,
+  consensusMeaning,
   forecastHeadlines,
   forecastRanges,
   latestForecasts,
@@ -40,7 +43,8 @@ import {
 } from "@/lib/forecast";
 import { FORECAST_ROWS, withStatementHrefs } from "@/lib/statements";
 import type { FmpHistoricalGrade } from "@/lib/types";
-import { decodeTicker, stockPath } from "@/lib/listings";
+import { gradeActionLabel } from "@/lib/grades";
+import { decodeTicker, displayCompanyName, stockPath } from "@/lib/listings";
 
 function EstimateRangeTable({
   title,
@@ -91,6 +95,44 @@ function EstimateRangeTable({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function RecommendationMix({ rows }: { rows: FmpHistoricalGrade[] }) {
+  const latest = rows.at(-1);
+  if (!latest) return null;
+  const parts = [
+    ["Strong Buy", latest.analystRatingsStrongBuy, "bg-gain"],
+    ["Buy", latest.analystRatingsBuy, "bg-gain/70"],
+    ["Hold", latest.analystRatingsHold, "bg-chip"],
+    ["Sell", latest.analystRatingsSell, "bg-loss/70"],
+    ["Strong Sell", latest.analystRatingsStrongSell, "bg-loss"],
+  ] as const;
+  const total = parts.reduce((sum, [, value]) => sum + value, 0);
+  if (total <= 0) return null;
+  return (
+    <div className="mb-4">
+      <div className="flex h-8 overflow-hidden rounded-md border border-border" role="img" aria-label="Analyst rating mix">
+        {parts.map(([label, value, color]) =>
+          value > 0 ? (
+            <div
+              key={label}
+              className={color}
+              style={{ width: `${(value / total) * 100}%` }}
+              title={`${label}: ${value}`}
+            />
+          ) : null,
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted">
+        {parts.map(([label, value, color]) => (
+          <span key={label} className="inline-flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-sm ${color}`} />
+            {label} {value}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -240,12 +282,22 @@ export default async function ForecastPage({
   const leveredGap =
     levered?.dcf && quote?.price ? ((levered.dcf - quote.price) / quote.price) * 100 : null;
   const forecastPath = stockPath(ticker, "/forecast");
+  const shortName = displayCompanyName(profile?.companyName) || ticker;
+  const analysts = consensusAnalystCount(grades);
+  const lowPct =
+    target && quote?.price ? ((target.targetLow - quote.price) / quote.price) * 100 : null;
+  const highPct =
+    target && quote?.price ? ((target.targetHigh - quote.price) / quote.price) * 100 : null;
+  const meaning = consensusMeaning(grades?.consensus);
+  const forecastIntro = analysts && target && quote?.price
+    ? `According to ${analysts} analysts in FMP consensus data, ${shortName} stock has a consensus rating of "${grades?.consensus ?? "—"}" and an average price target of ${px(target.targetConsensus)}. The average 1-year stock price forecast is ${formatPercentPlain(Math.abs(upside ?? 0), { alreadyPercent: true })} ${upside != null && upside >= 0 ? "higher" : "lower"} than the current stock price, while the lowest is ${px(target.targetLow)}${lowPct == null ? "" : ` (${formatPercentPlain(lowPct, { alreadyPercent: true })})`} and the highest is ${px(target.targetHigh)}${highPct == null ? "" : ` (${formatPercentPlain(highPct, { alreadyPercent: true })})`}.`
+    : "Analyst ratings, price targets, and earnings estimates from live FMP data.";
 
   return (
     <Container>
       <PageHeader
-        title={`${ticker} Forecasts`}
-        description="Analyst ratings, price targets, and earnings estimates."
+        title={`${shortName} Stock Forecast`}
+        description={forecastIntro}
         actions={
           <Link
             href={stockPath(ticker, "/ratings")}
@@ -263,6 +315,7 @@ export default async function ForecastPage({
             <p className="mt-2 text-sm text-muted">
               {grades.strongBuy} strong buy · {grades.buy} buy · {grades.hold} hold · {grades.sell} sell ·{" "}
               {grades.strongSell} strong sell
+              {meaning ? `. The average analyst rating is "${grades.consensus}". This means that ${meaning}.` : null}
             </p>
           ) : null}
         </div>
@@ -327,6 +380,7 @@ export default async function ForecastPage({
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-header">Recommendation Trends</h2>
+        <RecommendationMix rows={trend} />
         <RecommendationTrendTable rows={trend} />
       </section>
 
@@ -347,28 +401,39 @@ export default async function ForecastPage({
                 <th>From</th>
                 <th>To</th>
                 <th className="num">Price Target</th>
+                <th className="num">Upside</th>
                 <th>Date</th>
               </tr>
             </thead>
             <tbody>
               {actions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-muted">
+                  <td colSpan={8} className="text-muted">
                     No analyst actions available.
                   </td>
                 </tr>
               ) : (
-                actions.map((row, index) => (
+                actions.map((row, index) => {
+                  const base = row.priceWhenPosted ?? quote?.price;
+                  const vs =
+                    row.priceTarget != null && base
+                      ? (row.priceTarget - base) / base
+                      : null;
+                  return (
                   <tr key={`${row.date}-${row.gradingCompany}-${index}`}>
                     <td>{row.analystName || "—"}</td>
                     <td>{row.gradingCompany}</td>
-                    <td className="capitalize">{row.action}</td>
+                    <td>{gradeActionLabel(row.action)}</td>
                     <td>{row.previousGrade || "—"}</td>
                     <td>{row.newGrade}</td>
                     <td className="num">{px(row.priceTarget)}</td>
+                    <td className="num">
+                      {vs == null ? "—" : <ChangePercent value={vs} alreadyPercent={false} />}
+                    </td>
                     <td>{formatDate(row.date)}</td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

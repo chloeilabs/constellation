@@ -19,6 +19,7 @@ import { industrySlug, sectorHref } from "@/lib/industries";
 import { decodeTicker, quoteHref, stockPath } from "@/lib/listings";
 import { companyNav } from "@/lib/nav";
 import { padCik } from "@/lib/institutional";
+import { secFormTitle } from "@/lib/filings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import type { FmpProfile, FmpSecProfile } from "@/lib/types";
 import type { ReactNode } from "react";
@@ -38,25 +39,6 @@ const MONTHS = [
   "November",
   "December",
 ] as const;
-
-const FILING_TITLES: Record<string, string> = {
-  "10-K": "Annual Report",
-  "10-Q": "Quarterly Report",
-  "8-K": "Current Report",
-  "10-K/A": "Annual Report (Amendment)",
-  "10-Q/A": "Quarterly Report (Amendment)",
-  "8-K/A": "Current Report (Amendment)",
-  "DEF 14A": "Proxy Statement",
-  "DEFA14A": "Proxy Statement",
-  SD: "Form - SD",
-  144: "Filing",
-  "SCHEDULE 13G": "Filing",
-  "SC 13G": "Filing",
-  "SC 13G/A": "Filing",
-  3: "Initial Statement of Beneficial Ownership",
-  4: "Statement of Changes in Beneficial Ownership",
-  5: "Annual Statement of Beneficial Ownership",
-};
 
 function IdentifierLink({ value }: { value?: string | null }) {
   if (!value) return "—";
@@ -94,10 +76,6 @@ function employeeLabel(value?: string | null) {
 function websiteHost(url?: string | null) {
   if (!url) return null;
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-}
-
-function filingTitle(formType: string) {
-  return FILING_TITLES[formType] ?? "Filing";
 }
 
 function ProfileTable({ title, rows }: { title?: string; rows: Array<[string, ReactNode]> }) {
@@ -313,7 +291,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
                           target="_blank"
                           rel="noreferrer"
                         >
-                          {filingTitle(row.formType)}
+                          {secFormTitle(row.formType)}
                         </a>
                       </td>
                     </tr>
