@@ -383,9 +383,7 @@ export function uniqueBySymbol<T extends { symbol: string }>(rows: T[]) {
   return unique;
 }
 
-export function preferPrimaryListings<T extends { symbol: string; marketCap?: number | null; exchange?: string; exchangeShortName?: string }>(
-  rows: T[],
-) {
+export function listedUsRows<T extends { symbol: string; exchange?: string; exchangeShortName?: string }>(rows: T[]) {
   const primary = rows.filter((row) => {
     if (isForeignListingSymbol(row.symbol)) return false;
     const exchange = `${row.exchangeShortName ?? ""} ${row.exchange ?? ""}`.toUpperCase();
@@ -393,7 +391,13 @@ export function preferPrimaryListings<T extends { symbol: string; marketCap?: nu
     if (exchange.trim() && !US_EXCHANGE.test(exchange) && !/CBOE/.test(exchange)) return false;
     return true;
   });
-  return uniqueBySymbol(primary.length ? primary : rows).sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
+  return uniqueBySymbol(primary.length ? primary : rows);
+}
+
+export function preferPrimaryListings<T extends { symbol: string; marketCap?: number | null; exchange?: string; exchangeShortName?: string }>(
+  rows: T[],
+) {
+  return listedUsRows(rows).sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0));
 }
 
 export function usEtfHolders<T extends { symbol: string; sharesNumber: number; marketValue: number; weightPercentage: number }>(

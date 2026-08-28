@@ -11,7 +11,7 @@ export default async function GainersPage() {
     <Container>
       <PageHeader title="Top Gainers" description="Stocks with the largest percentage increases today." />
       <SectionNav items={MARKET_NAV} />
-      <MoversTable title="Biggest Gainers" href="/markets/gainers" rows={rows.slice(0, 50)} />
+      <MoversTable title="Biggest Gainers" href="/markets/gainers" rows={rows} />
     </Container>
   );
 }

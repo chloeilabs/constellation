@@ -11,7 +11,7 @@ export default async function ActivePage() {
     <Container>
       <PageHeader title="Most Active" description="Stocks with the highest trading activity today." />
       <SectionNav items={MARKET_NAV} />
-      <MoversTable title="Most Active Stocks" href="/markets/active" rows={rows.slice(0, 50)} />
+      <MoversTable title="Most Active Stocks" href="/markets/active" rows={rows} />
     </Container>
   );
 }

@@ -4,12 +4,14 @@ import {
   getHouseTrades,
   getHouseTradesByName,
   getSenateLatest,
+  getSenateNetWorthArchive,
+  getSenatePositions,
   getSenateProfile,
   getSenateTrades,
   getSenateTradesByName,
 } from "@/lib/fmp";
 import { isForeignListingSymbol } from "@/lib/listings";
-import type { FmpCongressTrade, FmpSenateProfile } from "@/lib/types";
+import type { FmpCongressTrade, FmpSenateNetWorth, FmpSenatePosition, FmpSenateProfile } from "@/lib/types";
 
 export type CongressChamber = "all" | "senate" | "house";
 
@@ -117,7 +119,7 @@ export async function loadSymbolCongressTrades(symbol: string, limit = 60) {
 export async function loadSymbolCongressTradesArchive(symbol: string) {
   const [senatePages, housePages] = await Promise.all([
     Promise.all(Array.from({ length: 4 }, (_, page) => getSenateTrades(symbol, 100, page))),
-    Promise.all(Array.from({ length: 4 }, (_, page) => getHouseTrades(symbol, 100, page))),
+    Promise.all(Array.from({ length: 6 }, (_, page) => getHouseTrades(symbol, 100, page))),
   ]);
   return sortCongressTrades([
     ...withChamber(mergeSymbolCongressPages(senatePages), "Senate"),
@@ -164,12 +166,24 @@ export const loadPoliticianTrades = cache(async (slug: string) => {
   if (matched.length === 0) return null;
 
   const senateID = matched.find((row) => row.senateID)?.senateID;
-  const profile: FmpSenateProfile | null = senateID ? await getSenateProfile(senateID) : null;
+  const [profile, positions, netWorth]: [
+    FmpSenateProfile | null,
+    FmpSenatePosition[],
+    FmpSenateNetWorth[],
+  ] = senateID
+    ? await Promise.all([
+        getSenateProfile(senateID),
+        getSenatePositions(senateID),
+        getSenateNetWorthArchive(senateID),
+      ])
+    : [null, [], []];
   return {
     slug: normalized,
     name: politicianName(matched[0]),
-    rows: matched.slice(0, 200),
+    rows: matched,
     profile,
+    positions,
+    netWorth,
   };
 });
 

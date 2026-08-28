@@ -11,7 +11,7 @@ export default async function LosersPage() {
     <Container>
       <PageHeader title="Top Losers" description="Stocks with the largest percentage declines today." />
       <SectionNav items={MARKET_NAV} />
-      <MoversTable title="Biggest Losers" href="/markets/losers" rows={rows.slice(0, 50)} />
+      <MoversTable title="Biggest Losers" href="/markets/losers" rows={rows} />
     </Container>
   );
 }

@@ -3,10 +3,12 @@ import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { ChangePercent } from "@/components/change";
 import { NewsList } from "@/components/news-list";
+import { TablePager } from "@/components/table-pager";
 import { MARKET_NAV } from "@/lib/nav";
 import { formatPrice } from "@/lib/format";
 import { getForexList, getForexNewsLatest, getForexQuotes } from "@/lib/fmp";
 import { FOREX_CURRENCIES, quoteHref } from "@/lib/listings";
+import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { percentFromPriceChange } from "@/lib/utils";
 import Link from "next/link";
 
@@ -29,11 +31,16 @@ const PINNED = [
   "USDCNY",
 ];
 
-export default async function ForexPage() {
+export default async function ForexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page } = await searchParams;
   const [pairs, quotes, news] = await Promise.all([getForexList(), getForexQuotes(), getForexNewsLatest(12)]);
   const bySymbol = new Map(quotes.map((row) => [row.symbol, row]));
   const pinRank = new Map(PINNED.map((symbol, index) => [symbol, index]));
-  const rows = pairs
+  const ranked = pairs
     .filter(
       (row) =>
         FOREX_CURRENCIES.has(row.fromCurrency) &&
@@ -56,8 +63,8 @@ export default async function ForexPage() {
       };
     })
     .filter((row) => row.price != null && row.price > 0)
-    .sort((a, b) => a.pinned - b.pinned || (b.volume ?? 0) - (a.volume ?? 0) || a.pair.localeCompare(b.pair))
-    .slice(0, 60);
+    .sort((a, b) => a.pinned - b.pinned || (b.volume ?? 0) - (a.volume ?? 0) || a.pair.localeCompare(b.pair));
+  const feed = paginate(ranked, pageNumber(page), TABLE_PAGE_SIZE);
 
   return (
     <Container>
@@ -66,7 +73,7 @@ export default async function ForexPage() {
         description="Major currency pairs with live mid-market rates from FMP batch forex quotes."
       />
       <SectionNav items={MARKET_NAV} />
-      <p className="mb-3 text-sm text-muted">{rows.length} major pairs</p>
+      <p className="mb-3 text-sm text-muted">{ranked.length.toLocaleString("en-US")} major pairs</p>
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="sa-table">
           <thead>
@@ -79,14 +86,14 @@ export default async function ForexPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {feed.rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-muted">
                   No forex quotes available.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              feed.rows.map((row) => (
                 <tr key={row.symbol}>
                   <td className="symbol font-semibold">
                     <Link href={quoteHref(row.symbol, { exchange: "FOREX" })} className="text-link hover:underline">
@@ -105,6 +112,14 @@ export default async function ForexPage() {
           </tbody>
         </table>
       </div>
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks("/markets/forex", feed.page, feed.pageCount)}
+      />
       {news.length > 0 ? (
         <section className="mt-10">
           <div className="mb-3 flex items-end justify-between">

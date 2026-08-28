@@ -85,7 +85,7 @@ export const NEWS_NAV: NavItem[] = [
 ];
 
 export const ETF_NAV: NavItem[] = [
-  { href: "/etf", label: "Largest ETFs" },
+  { href: "/etf", label: "All ETFs" },
   { href: "/etf/lookup", label: "Reverse Lookup" },
   { href: "/etf/compare", label: "Compare ETFs" },
   { href: "/screener?type=etf", label: "ETF Screener" },

@@ -1016,6 +1016,44 @@ export type FmpSenateProfile = {
   yearsActive: number;
 };
 
+export type FmpSenatePosition = {
+  senateID: string;
+  congressNumber: number;
+  startDate: string;
+  endDate: string | null;
+  party: string;
+  position: string;
+  state: string;
+  yearsInTerm: number;
+};
+
+export type FmpSenateNetWorth = {
+  senateID: string;
+  formType: string;
+  year: number;
+  filingDate: string;
+  section: string;
+  category: string;
+  name: string;
+  assetType: string | null;
+  incomeType: string | null;
+  owner: string | null;
+  comment: string | null;
+  value: number | null;
+  income: number | null;
+  link: string;
+};
+
+export type FmpFundDisclosureHolder = {
+  cik: string;
+  holder: string;
+  securityCusip: string;
+  shares: number;
+  dateReported: string;
+  change: number;
+  weightPercent: number;
+};
+
 export type FmpOwnerEarnings = {
   symbol: string;
   reportedCurrency: string;

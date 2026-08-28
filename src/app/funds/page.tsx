@@ -1,46 +1,40 @@
 import Link from "next/link";
-import { Container } from "@/components/container";
-import { PageHeader } from "@/components/page-header";
-import { SectionNav } from "@/components/section-nav";
+import { SymbolDirectory } from "@/components/symbol-directory";
 import { ETF_NAV } from "@/lib/nav";
-import { SymbolTable } from "@/components/symbol-table";
-import { getScreener, withQuoteChanges } from "@/lib/fmp";
+import { getListedUsFunds } from "@/lib/fmp";
 
-export default async function FundsPage() {
-  const raw = await getScreener({ isFund: true, isEtf: false, country: "US" }, { limit: 80 });
-  const ranked = [...raw].sort((a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0)).slice(0, 50);
-  const rows = await withQuoteChanges(ranked);
+export const metadata = {
+  title: "Mutual Funds",
+  description: "U.S. mutual funds listed alphabetically, with live prices from Financial Modeling Prep.",
+};
 
+export default async function FundsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page } = await searchParams;
+  const rows = await getListedUsFunds();
   return (
-    <Container>
-      <PageHeader
-        title="Mutual Funds"
-        description="Largest U.S. mutual funds by assets, with live prices from Financial Modeling Prep."
-        actions={
-          <div className="flex gap-4 text-sm">
-            <Link href="/etf/compare?symbols=VTSAX,VFIAX" className="text-link hover:underline">
-              Compare funds
-            </Link>
-            <Link href="/etf" className="text-link hover:underline">
-              Largest ETFs
-            </Link>
-          </div>
-        }
-      />
-      <SectionNav items={ETF_NAV} />
-      <SymbolTable
-        hrefBase="/funds"
-        showIndustry={false}
-        empty="No mutual fund data available."
-        rows={rows.map((row) => ({
-          symbol: row.symbol,
-          name: row.companyName,
-          marketCap: row.marketCap,
-          price: row.price,
-          changePercentage: row.changePercentage,
-          volume: row.volume,
-        }))}
-      />
-    </Container>
+    <SymbolDirectory
+      title="Mutual Funds"
+      description="U.S. mutual funds from FMP, listed alphabetically with live prices."
+      nav={ETF_NAV}
+      hrefBase="/funds"
+      rows={rows}
+      page={page}
+      showIndustry={false}
+      empty="No mutual fund data available."
+      actions={
+        <div className="flex gap-4 text-sm">
+          <Link href="/etf/compare?symbols=VTSAX,VFIAX" className="text-link hover:underline">
+            Compare funds
+          </Link>
+          <Link href="/etf" className="text-link hover:underline">
+            All ETFs
+          </Link>
+        </div>
+      }
+    />
   );
 }

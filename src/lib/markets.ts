@@ -56,6 +56,33 @@ export function parseBeneficialShares(value: string | number | null | undefined)
   return null;
 }
 
+export function disclosureWeightPercent(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return null;
+  // FMP mixes 0–1 fractions and 0–100 percents on fund-disclosure weights.
+  return value <= 1 ? value * 100 : value;
+}
+
+export function latestFundHolders<T extends { cik: string; holder: string; dateReported: string; shares: number }>(
+  rows: T[],
+) {
+  const byHolder = new Map<string, T>();
+  for (const row of rows) {
+    const holder = (row.holder || "").trim();
+    if (!holder || !(row.shares > 0)) continue;
+    const key = `${row.cik}|${holder.toLowerCase()}`;
+    const prev = byHolder.get(key);
+    if (!prev) {
+      byHolder.set(key, row);
+      continue;
+    }
+    const date = (row.dateReported || "").localeCompare(prev.dateReported || "");
+    if (date > 0 || (date === 0 && (row.shares || 0) > (prev.shares || 0))) {
+      byHolder.set(key, row);
+    }
+  }
+  return [...byHolder.values()].sort((a, b) => (b.shares || 0) - (a.shares || 0));
+}
+
 export function latestBeneficialOwners(rows: FmpBeneficialOwner[], minYear = new Date().getFullYear() - 3) {
   const cutoff = `${minYear}-01-01`;
   const byName = new Map<string, FmpBeneficialOwner>();

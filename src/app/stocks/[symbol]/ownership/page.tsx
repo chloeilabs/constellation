@@ -8,46 +8,53 @@ import { MetricCards } from "@/components/metric-cards";
 import { ChangePercent } from "@/components/change";
 import { formatCompactUsd, formatDate, formatInteger, formatPercentPlain } from "@/lib/format";
 import { TablePager } from "@/components/table-pager";
-import { getBeneficialOwnership, getInstitutionalOwnershipHistory, getLatestInstitutionalOwnership } from "@/lib/fmp";
+import { getBeneficialOwnership, getFundDisclosureHolders, getInstitutionalOwnershipHistory, getLatestInstitutionalOwnership } from "@/lib/fmp";
 import { institutionalHref } from "@/lib/institutional";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
+  disclosureWeightPercent,
   latestBeneficialOwners,
+  latestFundHolders,
   parseBeneficialPercent,
   parseBeneficialShares,
   reportingPersonType,
 } from "@/lib/markets";
-import { pageNumber, pageWindow, pagerLinks } from "@/lib/paging";
+import { pageNumber, pageWindow, paginate, pagerLinks } from "@/lib/paging";
 
 export default async function OwnershipPage({
   params,
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; funds?: string }>;
 }) {
   const { symbol } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, funds: fundsParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const requestedPage = pageNumber(pageParam);
-  const [{ summary, year, quarter, holders, holderTotal }, history, beneficial] = await Promise.all([
+  const [{ summary, year, quarter, holders, holderTotal }, history, beneficial, fundDisclosures] = await Promise.all([
     getLatestInstitutionalOwnership(ticker, { page: requestedPage }),
     getInstitutionalOwnershipHistory(ticker, 8),
     getBeneficialOwnership(ticker),
+    getFundDisclosureHolders(ticker),
   ]);
   const holdersPage = pageWindow(holderTotal, requestedPage);
   const shownHolders =
     holdersPage.from === 0 ? [] : holders.slice(0, holdersPage.to - holdersPage.from + 1);
-  const owners = latestBeneficialOwners(beneficial).slice(0, 25);
+  const owners = latestBeneficialOwners(beneficial);
+  const fundHolders = paginate(latestFundHolders(fundDisclosures), pageNumber(fundsParam));
   const base = stockPath(ticker, "/ownership");
-  const holderLinks = pagerLinks(base, holdersPage.page, holdersPage.pageCount);
+  const holderExtra = { funds: fundHolders.page > 1 ? String(fundHolders.page) : undefined };
+  const fundExtra = { page: holdersPage.page > 1 ? String(holdersPage.page) : undefined };
+  const holderLinks = pagerLinks(base, holdersPage.page, holdersPage.pageCount, holderExtra);
+  const fundLinks = pagerLinks(base, fundHolders.page, fundHolders.pageCount, fundExtra, "funds");
   const holderTo = shownHolders.length ? holdersPage.from + shownHolders.length - 1 : 0;
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Institutional Ownership`}
-        description="13F positions, Schedule 13G/13D beneficial owners, and changes versus the prior quarter."
+        description="13F positions, fund and ETF disclosures, Schedule 13G/13D beneficial owners, and changes versus the prior quarter."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       {summary ? (
@@ -197,6 +204,75 @@ export default async function OwnershipPage({
           page={holdersPage.page}
           pageCount={holdersPage.pageCount}
           {...holderLinks}
+        />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Fund & ETF Holders</h2>
+        <p className="mb-3 text-sm text-muted">
+          Latest mutual-fund and ETF disclosures that list {ticker}, unique by registrant. Weight is the position as a
+          share of that fund, not of shares outstanding.
+        </p>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="sa-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Fund</th>
+                <th className="num">Shares</th>
+                <th className="num">Change</th>
+                <th className="num">Weight</th>
+                <th>Reported</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fundHolders.rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-muted">
+                    No fund or ETF disclosure holders for this symbol.
+                  </td>
+                </tr>
+              ) : (
+                fundHolders.rows.map((row, index) => (
+                  <tr key={`${row.cik}-${row.holder}-${fundHolders.from + index}`}>
+                    <td className="text-muted">{fundHolders.from + index}</td>
+                    <td className="max-w-[320px] truncate font-medium">
+                      {row.cik ? (
+                        <Link href={institutionalHref(row.cik)} className="text-link hover:underline">
+                          {row.holder}
+                        </Link>
+                      ) : (
+                        row.holder
+                      )}
+                    </td>
+                    <td className="num">{formatInteger(row.shares)}</td>
+                    <td className="num">
+                      {row.change ? (
+                        <span className={row.change > 0 ? "text-gain" : "text-loss"}>
+                          {row.change > 0 ? "+" : ""}
+                          {formatInteger(row.change)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="num">
+                      {formatPercentPlain(disclosureWeightPercent(row.weightPercent), { alreadyPercent: true })}
+                    </td>
+                    <td>{formatDate(row.dateReported)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <TablePager
+          from={fundHolders.from}
+          to={fundHolders.to}
+          total={fundHolders.total}
+          page={fundHolders.page}
+          pageCount={fundHolders.pageCount}
+          {...fundLinks}
         />
       </section>
 

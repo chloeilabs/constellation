@@ -194,8 +194,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
 
   const listings = variants
     .filter((row) => row.symbol && row.symbol.toUpperCase() !== ticker)
-    .filter((row, index, rows) => rows.findIndex((item) => item.symbol === row.symbol) === index)
-    .slice(0, 12);
+    .filter((row, index, rows) => rows.findIndex((item) => item.symbol === row.symbol) === index);
 
   return (
     <Container>

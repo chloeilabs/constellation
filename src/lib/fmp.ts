@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { decodeTicker, looksLikeFund, usEtfHolders, WELL_KNOWN_MARKET_ASSETS } from "@/lib/listings";
+import { decodeTicker, listedUsRows, looksLikeFund, uniqueBySymbol, usEtfHolders, WELL_KNOWN_MARKET_ASSETS } from "@/lib/listings";
 import { addDays, chunk, first, isoDate, nyDateString, recentFiscalQuarters } from "@/lib/utils";
 import type {
   FmpAftermarketQuote,
@@ -85,6 +85,9 @@ import type {
   FmpIpoProspectus,
   FmpCongressTrade,
   FmpSenateProfile,
+  FmpSenatePosition,
+  FmpSenateNetWorth,
+  FmpFundDisclosureHolder,
   FmpLatestStatement,
   FmpInstitutionalPerformance,
   FmpInstitutionalIndustry,
@@ -962,6 +965,45 @@ export async function getScreenerPages(
   return rows;
 }
 
+export async function getScreenerArchive(
+  params: Record<string, QueryValue> = {},
+  { pages = 5, limit = 1000, revalidate = 1800 }: { pages?: number; limit?: number; revalidate?: number } = {},
+) {
+  const batches = await Promise.all(
+    Array.from({ length: pages }, (_, page) => getScreener(params, { page, limit, revalidate })),
+  );
+  return uniqueBySymbol(batches.flat());
+}
+
+export async function getListedUsStocks() {
+  const [nasdaq, nyse, amex] = await Promise.all([
+    getScreenerArchive({ exchange: "NASDAQ", isEtf: false, isFund: false }, { pages: 5 }),
+    getScreenerArchive({ exchange: "NYSE", isEtf: false, isFund: false }, { pages: 3 }),
+    getScreenerArchive({ exchange: "AMEX", isEtf: false, isFund: false }, { pages: 1 }),
+  ]);
+  return uniqueBySymbol([...nasdaq, ...nyse, ...amex]);
+}
+
+export async function getListedUsEtfs() {
+  return listedUsRows(
+    await getScreenerArchive({ country: "US", isEtf: true, isFund: false }, { pages: 5 }),
+  );
+}
+
+export async function getListedUsFunds() {
+  return listedUsRows(
+    await getScreenerArchive({ country: "US", isEtf: false, isFund: true }, { pages: 5 }),
+  );
+}
+
+export function getFundDisclosureHolders(symbol: string) {
+  return fmpList<FmpFundDisclosureHolder>(
+    "/funds/disclosure-holders-latest",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 3600 },
+  );
+}
+
 export async function getSectors() {
   const rows = await fmpList<{ sector: string }>("/available-sectors", {}, { revalidate: 86400 });
   return rows.map((row) => row.sector).filter(Boolean);
@@ -1260,6 +1302,39 @@ export function getHouseTradesByName(name: string) {
 
 export function getSenateProfile(senateID: string) {
   return fmpFirst<FmpSenateProfile>("/senate-profile", { senateID }, { revalidate: 86400 });
+}
+
+export function getSenatePositions(senateID: string) {
+  return fmpList<FmpSenatePosition>(
+    "/senate-positions",
+    { senateID },
+    { revalidate: 86400 },
+  );
+}
+
+export function getSenateNetWorth(senateID: string, page = 0, limit = 250) {
+  return fmpList<FmpSenateNetWorth>(
+    "/senate-net-worth",
+    { senateID, page, limit },
+    { revalidate: 86400 },
+  );
+}
+
+export async function getSenateNetWorthArchive(senateID: string) {
+  const pages = await Promise.all(
+    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getSenateNetWorth(senateID, page, 250)),
+  );
+  const seen = new Set<string>();
+  const out: FmpSenateNetWorth[] = [];
+  for (const rows of pages) {
+    for (const row of rows) {
+      const key = `${row.year}|${row.section}|${row.category}|${row.name}|${row.value}|${row.link}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+  }
+  return out.sort((a, b) => (b.year || 0) - (a.year || 0) || (b.filingDate || "").localeCompare(a.filingDate || ""));
 }
 
 export function getLatestFinancialStatements(page = 0, limit = 100) {

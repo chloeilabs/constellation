@@ -6,7 +6,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
 import { congressSide, loadCongressTradesArchive, loadPoliticianTrades, uniquePoliticians, type CongressChamber } from "@/lib/congress";
-import { formatDate, formatInteger } from "@/lib/format";
+import { formatCompactUsd, formatDate, formatInteger } from "@/lib/format";
 import { CONGRESS_NAV } from "@/lib/nav";
 import { TABLE_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { TablePager } from "@/components/table-pager";
@@ -49,14 +49,14 @@ export default async function CongressPage({
   searchParams,
 }: {
   params: Promise<{ slug?: string[] }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; worth?: string }>;
 }) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, worth: worthParam } = await searchParams;
   if (slug && slug.length > 1) notFound();
   const part = slug?.[0];
   if (part && !RESERVED.has(part)) {
-    return <PoliticianPage slug={part} page={pageParam} />;
+    return <PoliticianPage slug={part} page={pageParam} worth={worthParam} />;
   }
   const chamber: CongressChamber = part === "senate" || part === "house" ? part : "all";
   const rows = await loadCongressTradesArchive(chamber);
@@ -95,11 +95,12 @@ export default async function CongressPage({
   );
 }
 
-async function PoliticianPage({ slug, page }: { slug: string; page?: string }) {
+async function PoliticianPage({ slug, page, worth }: { slug: string; page?: string; worth?: string }) {
   const politician = await loadPoliticianTrades(slug);
   if (!politician) notFound();
-  const { name, rows, profile } = politician;
+  const { name, rows, profile, positions, netWorth } = politician;
   const feed = paginate(rows, pageNumber(page), TABLE_PAGE_SIZE);
+  const worthFeed = paginate(netWorth, pageNumber(worth), TABLE_PAGE_SIZE);
   const buys = rows.filter((row) => congressSide(row.type) === "Buy").length;
   const sells = rows.filter((row) => congressSide(row.type) === "Sell").length;
   const latest = rows[0];
@@ -107,6 +108,9 @@ async function PoliticianPage({ slug, page }: { slug: string; page?: string }) {
   const party = profile?.latestParty;
   const state = profile?.latestState || latest?.district;
   const subtitle = [party, state, profile?.latestPosition || chamber].filter(Boolean).join(" · ");
+  const path = `/congress/${slug}`;
+  const tradeExtra = { worth: worthFeed.page > 1 ? String(worthFeed.page) : undefined };
+  const worthExtra = { page: feed.page > 1 ? String(feed.page) : undefined };
 
   return (
     <Container>
@@ -146,6 +150,39 @@ async function PoliticianPage({ slug, page }: { slug: string; page?: string }) {
           },
         ]}
       />
+      {positions.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold text-header">Congressional Terms</h2>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Congress</th>
+                  <th>Position</th>
+                  <th>Party</th>
+                  <th>State</th>
+                  <th>Start</th>
+                  <th>End</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...positions]
+                  .sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""))
+                  .map((row) => (
+                    <tr key={`${row.congressNumber}-${row.startDate}-${row.position}`}>
+                      <td>{row.congressNumber || "—"}</td>
+                      <td>{row.position || "—"}</td>
+                      <td>{row.party || "—"}</td>
+                      <td>{row.state || "—"}</td>
+                      <td>{formatDate(row.startDate)}</td>
+                      <td>{row.endDate ? formatDate(row.endDate) : "Present"}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
       <section className="mt-8">
         <CongressTable rows={feed.rows} showPolitician={false} empty={`No trades found for ${name}.`} />
         <TablePager
@@ -154,9 +191,60 @@ async function PoliticianPage({ slug, page }: { slug: string; page?: string }) {
           total={feed.total}
           page={feed.page}
           pageCount={feed.pageCount}
-          {...pagerLinks(`/congress/${slug}`, feed.page, feed.pageCount)}
+          {...pagerLinks(path, feed.page, feed.pageCount, tradeExtra)}
         />
       </section>
+      {netWorth.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-header">Periodic Transaction / Net Worth Filings</h2>
+          <p className="mb-3 text-sm text-muted">
+            Itemized assets, liabilities, and income from FMP congressional financial disclosures. Values are range
+            midpoints when FMP supplies a range.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Section</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th className="num">Value</th>
+                  <th>Filing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {worthFeed.rows.map((row, index) => (
+                  <tr key={`${row.year}-${row.section}-${row.name}-${worthFeed.from + index}`}>
+                    <td>{row.year || "—"}</td>
+                    <td className="text-muted">{row.section || "—"}</td>
+                    <td className="max-w-[280px] truncate font-medium">{row.name || row.assetType || "—"}</td>
+                    <td className="text-muted">{row.category || "—"}</td>
+                    <td className="num">{formatCompactUsd(row.value)}</td>
+                    <td>
+                      {row.link ? (
+                        <a href={row.link} className="text-link hover:underline" target="_blank" rel="noreferrer">
+                          PDF
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <TablePager
+            from={worthFeed.from}
+            to={worthFeed.to}
+            total={worthFeed.total}
+            page={worthFeed.page}
+            pageCount={worthFeed.pageCount}
+            {...pagerLinks(path, worthFeed.page, worthFeed.pageCount, worthExtra, "worth")}
+          />
+        </section>
+      ) : null}
     </Container>
   );
 }
