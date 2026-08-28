@@ -489,6 +489,15 @@ export function getCompanyEarnings(symbol: string, limit = 12) {
   );
 }
 
+/** Full `/earnings` dump. AAPL is 165 rows through 1985 when `limit` is omitted. */
+export function getCompanyEarningsHistory(symbol: string) {
+  return fmpList<FmpEarnings>(
+    "/earnings",
+    { symbol: decodeTicker(symbol) },
+    { revalidate: 3600 },
+  );
+}
+
 export function getDividends(symbol: string, limit = 40) {
   return fmpList<FmpDividend>(
     "/dividends",
@@ -1792,10 +1801,10 @@ export function getCommoditiesList() {
 }
 
 /** CFTC positioning. Omit `from`/`to` and FMP returns a 2024 snapshot instead of the latest week. */
-export function getCotAnalysis(from: string, to: string) {
+export function getCotAnalysis(from: string, to: string, symbol?: string) {
   return fmpList<FmpCotAnalysis>(
     "/commitment-of-traders-analysis",
-    { from, to },
+    { from, to, symbol: symbol || undefined },
     { revalidate: 3600 },
   );
 }

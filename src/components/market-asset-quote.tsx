@@ -7,11 +7,11 @@ import { StatGrid } from "@/components/quote-stats";
 import { ReturnsTable } from "@/components/returns-table";
 import { SectionNav } from "@/components/section-nav";
 import { WatchlistButton } from "@/components/watchlist-button";
-import { ChangeValue } from "@/components/change";
+import { ChangePercent, ChangeValue } from "@/components/change";
 import { QuoteHeaderStats } from "@/components/quote-header-stats";
-import { formatCompact, formatCompactUsd, formatInteger, formatMoney, formatPrice } from "@/lib/format";
+import { formatCompact, formatCompactUsd, formatDate, formatInteger, formatMoney, formatPercentPlain, formatPrice } from "@/lib/format";
 import { loadQuoteChart } from "@/lib/chart";
-import { getCryptoNews, getForexNews, getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
+import { getCotAnalysis, getCryptoNews, getForexNews, getPriceChange, getQuote, getSymbolNews, hasFmpKey } from "@/lib/fmp";
 import { MARKET_NAV } from "@/lib/nav";
 import {
   MARKET_ASSET_LABEL,
@@ -21,6 +21,8 @@ import {
   normalizeMarketTicker,
   type MarketAssetKind,
 } from "@/lib/listings";
+import { commodityContractRoot } from "@/lib/markets";
+import { addDays, cn, isoDate, nyDateString } from "@/lib/utils";
 
 function priceLabel(kind: MarketAssetKind, value: number | null | undefined, digits?: number) {
   if (kind === "forex") return formatPrice(value, digits ?? 4);
@@ -54,11 +56,15 @@ export async function MarketAssetQuote({
   range?: string;
 }) {
   const ticker = normalizeMarketTicker(symbol);
-  const [quote, chart, priceChange, news] = await Promise.all([
+  const today = nyDateString();
+  const cotFrom = isoDate(addDays(new Date(`${today}T00:00:00Z`), -90));
+  const cotSymbol = expected === "commodity" ? commodityContractRoot(ticker) : "";
+  const [quote, chart, priceChange, news, cotRows] = await Promise.all([
     getQuote(ticker),
     loadQuoteChart(ticker, rangeParam),
     getPriceChange(ticker),
     kindNews(ticker, expected),
+    cotSymbol ? getCotAnalysis(cotFrom, today, cotSymbol) : Promise.resolve([]),
   ]);
   const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries } = chart;
 
@@ -85,6 +91,8 @@ export async function MarketAssetQuote({
   const kindLabel = MARKET_ASSET_LABEL[kind];
   const priceDigits = kind === "forex" ? 4 : 2;
   const href = `${listHref}/${ticker}`;
+  const cotHistory = [...cotRows].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const latestCot = cotHistory[0] ?? null;
 
   return (
     <>
@@ -203,6 +211,62 @@ export async function MarketAssetQuote({
             ]}
           />
         </div>
+
+        {kind === "commodity" && latestCot ? (
+          <section className="mt-10">
+            <div className="mb-3 flex items-end justify-between gap-4">
+              <h2 className="text-xl font-semibold text-header">Commitment of Traders</h2>
+              <Link href="/markets/commodities" className="text-sm text-link hover:underline">
+                All commodities
+              </Link>
+            </div>
+            <p className="mb-3 text-sm text-muted">
+              CFTC positioning from FMP for {latestCot.name || ticker}
+              {latestCot.date ? ` · week of ${formatDate(latestCot.date)}` : ""}. Net position is non-commercial
+              longs minus shorts.
+            </p>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th>Situation</th>
+                    <th>Sentiment</th>
+                    <th className="num">Net Position</th>
+                    <th className="num">Net Chg</th>
+                    <th className="num">Long %</th>
+                    <th className="num">Short %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cotHistory.map((row) => {
+                    const bullish = /bullish/i.test(row.marketSituation || "");
+                    const bearish = /bearish/i.test(row.marketSituation || "");
+                    return (
+                      <tr key={row.date}>
+                        <td>{formatDate(row.date)}</td>
+                        <td className={cn("font-medium", bullish && "text-gain", bearish && "text-loss")}>
+                          {row.marketSituation || "—"}
+                        </td>
+                        <td className="text-muted">{row.marketSentiment || "—"}</td>
+                        <td className="num">{formatInteger(row.netPostion)}</td>
+                        <td className="num">
+                          <ChangePercent value={row.changeInNetPosition} alreadyPercent />
+                        </td>
+                        <td className="num">
+                          {formatPercentPlain(row.currentLongMarketSituation, { alreadyPercent: true })}
+                        </td>
+                        <td className="num">
+                          {formatPercentPlain(row.currentShortMarketSituation, { alreadyPercent: true })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
 
         <section className="mt-10">
           <div className="mb-3 flex items-end justify-between">

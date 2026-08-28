@@ -7,8 +7,10 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatMoney, formatPercent, reportingCurrency, yearOverYear } from "@/lib/format";
-import { getCompanyEarnings, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import { TablePager } from "@/components/table-pager";
+import { getCompanyEarningsHistory, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
+import { pageNumber, paginate, pagerLinks } from "@/lib/paging";
 import { ANNUAL_FILING_LIMIT, QUARTER_FILING_LIMIT, ttmChange } from "@/lib/statements";
 import { earningsSurprise, revenueSurprise, splitCompanyEarnings } from "@/lib/earnings";
 
@@ -17,17 +19,17 @@ export default async function EarningsPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; page?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, page: pageParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const [annual, quarterly, ttm, reported] = await Promise.all([
     getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
     getIncomeStatements(ticker, "quarter", QUARTER_FILING_LIMIT),
     getIncomeTtm(ticker),
-    getCompanyEarnings(ticker, 16),
+    getCompanyEarningsHistory(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const eps = ttm?.epsDiluted ?? ttm?.eps;
@@ -39,17 +41,16 @@ export default async function EarningsPage({
   const currency = reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency);
   const money = compactMoneyFn(currency);
   const px = (value: number | null | undefined) => formatMoney(value, currency);
-  const surpriseBars = [...reported]
-    .map((row) => {
+  const surpriseBars = reported
+    .flatMap((row) => {
       const value = earningsSurprise(row);
-      if (value == null) return null;
-      return {
-        label: formatDate(row.date),
-        value,
-      };
+      return value == null ? [] : [{ label: formatDate(row.date), value }];
     })
-    .filter((row): row is { label: string; value: number } => row != null)
+    .slice(0, 16)
     .reverse();
+  const surprises = paginate(reported, pageNumber(pageParam));
+  const base = stockPath(ticker, "/earnings");
+  const surpriseExtra = { period: period === "quarter" ? "quarter" : undefined };
 
   return (
     <Container>
@@ -106,14 +107,14 @@ export default async function EarningsPage({
               </tr>
             </thead>
             <tbody>
-              {reported.length === 0 ? (
+              {surprises.rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-muted">
                     No reported earnings available.
                   </td>
                 </tr>
               ) : (
-                reported.map((row) => {
+                surprises.rows.map((row) => {
                   const epsSurprise = earningsSurprise(row);
                   const revSurprise = revenueSurprise(row);
                   return (
@@ -136,6 +137,14 @@ export default async function EarningsPage({
             </tbody>
           </table>
         </div>
+        <TablePager
+          from={surprises.from}
+          to={surprises.to}
+          total={surprises.total}
+          page={surprises.page}
+          pageCount={surprises.pageCount}
+          {...pagerLinks(base, surprises.page, surprises.pageCount, surpriseExtra)}
+        />
       </section>
       <div className="mt-10">
         <MetricHistory
