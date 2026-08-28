@@ -38,7 +38,6 @@ export async function VehicleOverview({
 }) {
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
-  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const infoPromise = getEtfInfo(ticker);
   const profilePromise = getProfile(ticker);
   const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, profile, performance] =
@@ -53,7 +52,7 @@ export async function VehicleOverview({
       getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
       getPriceChange(ticker),
       loadQuoteChart(ticker, rangeParam, {
-        adjusted: wantAdjusted,
+        adj: adjParam,
         fallbackRange: kind === "fund" ? "1Y" : undefined,
       }),
       profilePromise,
@@ -101,7 +100,7 @@ export async function VehicleOverview({
           rsiSeries={rsiSeries}
           adjusted={adjusted}
           showAdjustedToggle={canDividendAdjust(range)}
-          query={wantAdjusted ? { adj: "1" } : undefined}
+          query={canDividendAdjust(range) && !adjusted ? { adj: "0" } : undefined}
         />
         <ReturnsTable changes={changes} />
       </div>

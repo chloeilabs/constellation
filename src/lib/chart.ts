@@ -39,6 +39,46 @@ export function canDividendAdjust(range: ChartRange) {
   return range !== "1D" && range !== "5D";
 }
 
+/** Daily ranges default to FMP dividend-adjusted closes. Pass adj=0 for raw close. */
+export function resolveAdjustedClose(adjParam: string | undefined, range: ChartRange) {
+  if (!canDividendAdjust(range)) return false;
+  if (adjParam === "0" || adjParam === "false") return false;
+  return true;
+}
+
+/** Keep MAX/5Y SVG payloads small without dropping the first or last close. */
+export function downsampleChartPoints(points: ChartPoint[], maxPoints = 1000): ChartPoint[] {
+  if (points.length <= maxPoints) return points;
+  const lastIndex = points.length - 1;
+  const out: ChartPoint[] = [];
+  let prev = -1;
+  for (let i = 0; i < maxPoints; i++) {
+    const index = i === maxPoints - 1 ? lastIndex : Math.round((i * lastIndex) / (maxPoints - 1));
+    if (index === prev) continue;
+    out.push(points[index]);
+    prev = index;
+  }
+  return out;
+}
+
+function keepDays(series: ChartPoint[], days: Set<string>) {
+  if (series.length === 0 || days.size === 0) return series;
+  return series.filter((point) => days.has(point.time.slice(0, 10)));
+}
+
+function displaySeries<T extends Record<string, ChartPoint[]>>(
+  points: ChartPoint[],
+  extras: T,
+): { points: ChartPoint[] } & T {
+  const sampled = downsampleChartPoints(points);
+  const days = new Set(sampled.map((point) => point.time.slice(0, 10)));
+  const sampledExtras = {} as T;
+  for (const key of Object.keys(extras) as (keyof T)[]) {
+    sampledExtras[key] = keepDays(extras[key], days) as T[keyof T];
+  }
+  return { points: sampled, ...sampledExtras };
+}
+
 function toIntradayPoints(rows: FmpIntradayCandle[]): ChartPoint[] {
   return [...rows]
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -293,10 +333,13 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
 export async function loadQuoteChart(
   symbol: string,
   rangeParam?: string | null,
-  options?: { adjusted?: boolean; fallbackRange?: ChartRange },
+  options?: { adjusted?: boolean; adj?: string; fallbackRange?: ChartRange },
 ) {
   const range = resolveChartRange(rangeParam, options?.fallbackRange);
-  const adjusted = Boolean(options?.adjusted) && canDividendAdjust(range);
+  const adjusted =
+    options?.adjusted != null
+      ? Boolean(options.adjusted) && canDividendAdjust(range)
+      : resolveAdjustedClose(options?.adj, range);
   if (adjusted) {
     const chartFrom = fromDateForRange(range);
     const lookbackFrom =
@@ -305,23 +348,41 @@ export async function loadQuoteChart(
         : isoDate(addDays(new Date(`${chartFrom}T00:00:00Z`), -420));
     const full = toAdjustedPoints(await getDividendAdjustedChart(symbol, lookbackFrom));
     const points = sliceFrom(full, chartFrom);
-    return {
-      range,
-      points,
-      adjusted: true,
-      ma50Series: smaFromPoints(full, 50),
-      ma200Series: smaFromPoints(full, 200),
-      ...dailyIndicatorSeries(points, range),
-    };
+    if (points.length >= 2) {
+      const indicators = dailyIndicatorSeries(points, range);
+      const display = displaySeries(points, {
+        ma50Series: smaFromPoints(full, 50),
+        ma200Series: smaFromPoints(full, 200),
+        ema12Series: indicators.ema12Series,
+        ema26Series: indicators.ema26Series,
+        rsiSeries: indicators.rsiSeries,
+        macdSeries: indicators.macdSeries,
+        macdSignalSeries: indicators.macdSignalSeries,
+        macdHistogramSeries: indicators.macdHistogramSeries,
+      });
+      return {
+        range,
+        adjusted: true,
+        ...display,
+      };
+    }
   }
   const [points, averages] = await Promise.all([getChartData(symbol, range), getChartMovingAverages(symbol, range)]);
-  return {
-    range,
-    points,
-    adjusted: false,
+  const indicators = dailyIndicatorSeries(points, range);
+  const display = displaySeries(points, {
     ma50Series: averages.ma50,
     ma200Series: averages.ma200,
-    ...dailyIndicatorSeries(points, range),
+    ema12Series: indicators.ema12Series,
+    ema26Series: indicators.ema26Series,
+    rsiSeries: indicators.rsiSeries,
+    macdSeries: indicators.macdSeries,
+    macdSignalSeries: indicators.macdSignalSeries,
+    macdHistogramSeries: indicators.macdHistogramSeries,
+  });
+  return {
+    range,
+    adjusted: false,
+    ...display,
   };
 }
 

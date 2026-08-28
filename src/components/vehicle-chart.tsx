@@ -19,10 +19,9 @@ export async function VehicleChart({
   kind: VehicleKind;
 }) {
   const ticker = decodeTicker(symbol);
-  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [chart, changes, quote] = await Promise.all([
     loadQuoteChart(ticker, rangeParam, {
-      adjusted: wantAdjusted,
+      adj: adjParam,
       fallbackRange: kind === "fund" ? "1Y" : undefined,
     }),
     getPriceChange(ticker),
@@ -57,7 +56,7 @@ export async function VehicleChart({
         macdHistogramSeries={macdHistogramSeries}
         adjusted={adjusted}
         showAdjustedToggle={canDividendAdjust(range)}
-        query={wantAdjusted ? { adj: "1" } : undefined}
+        query={canDividendAdjust(range) && !adjusted ? { adj: "0" } : undefined}
       />
       <ReturnsTable changes={changes} />
     </Container>

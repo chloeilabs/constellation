@@ -342,7 +342,7 @@ export function PriceChart({
           {showAdjustedToggle ? (
             <div className="inline-flex rounded-md border border-border p-0.5 text-xs" role="group" aria-label="Price adjustment">
               <Link
-                href={`${pathname}${chartSearch(query, range, { adj: undefined })}`}
+                href={`${pathname}${chartSearch(query, range, { adj: "0" })}`}
                 scroll={false}
                 className={cn(
                   "rounded px-2 py-1 font-semibold",

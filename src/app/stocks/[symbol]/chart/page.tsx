@@ -17,9 +17,8 @@ export default async function ChartPage({
   const { symbol } = await params;
   const { range: rangeParam, adj: adjParam } = await searchParams;
   const ticker = decodeTicker(symbol);
-  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [chart, changes, quote] = await Promise.all([
-    loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
+    loadQuoteChart(ticker, rangeParam, { adj: adjParam }),
     getPriceChange(ticker),
     getQuoteSafe(ticker),
   ]);
@@ -52,7 +51,7 @@ export default async function ChartPage({
         macdHistogramSeries={macdHistogramSeries}
         adjusted={adjusted}
         showAdjustedToggle={showAdjustedToggle}
-        query={wantAdjusted ? { adj: "1" } : undefined}
+        query={showAdjustedToggle && !adjusted ? { adj: "0" } : undefined}
       />
       <ReturnsTable changes={changes} />
     </Container>

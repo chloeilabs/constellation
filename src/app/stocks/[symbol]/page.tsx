@@ -60,7 +60,6 @@ export default async function StockOverviewPage({
 
   const filingTo = nyDateString();
   const filingFrom = isoDate(addDays(new Date(`${filingTo}T00:00:00Z`), -540));
-  const wantAdjusted = adjParam === "1" || adjParam === "true";
   const [quote, profile, ttm, target, grades, dividends, news, peers, chart, annual, quarterly, earnings, estimates, etfHolders, priceChange, yearAgoCap, press, transcriptDates, filings, shareFloat] =
     await Promise.all([
       getQuote(ticker),
@@ -71,7 +70,7 @@ export default async function StockOverviewPage({
       getDividends(ticker, 8),
       getSymbolNews(ticker, 12),
       getPeers(ticker),
-      loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
+      loadQuoteChart(ticker, rangeParam, { adj: adjParam }),
       getIncomeStatements(ticker, "annual", 2),
       getIncomeStatements(ticker, "quarter", 8),
       getCompanyEarnings(ticker, 12),
@@ -178,7 +177,7 @@ export default async function StockOverviewPage({
               rsiSeries={rsiSeries}
               adjusted={adjusted}
               showAdjustedToggle={canDividendAdjust(range)}
-              query={wantAdjusted ? { adj: "1" } : undefined}
+              query={canDividendAdjust(range) && !adjusted ? { adj: "0" } : undefined}
             />
           </Suspense>
           <ReturnsTable changes={priceChange} />
