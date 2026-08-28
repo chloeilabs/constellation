@@ -13,6 +13,7 @@ const NAV = [
   { href: "/screener", label: "Screener" },
   { href: "/news", label: "News" },
   { href: "/calendar/earnings", label: "Calendar" },
+  { href: "/tools", label: "Tools" },
 ];
 
 export function SiteHeader() {

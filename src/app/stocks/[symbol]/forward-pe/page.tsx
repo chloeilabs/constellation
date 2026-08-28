@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { formatDate, formatMoney, formatRatio } from "@/lib/format";
-import { getEstimates, getIncomeTtm, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getEstimates, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { forwardPe, futureEstimates, nextEstimate, trailingPe } from "@/lib/valuation";
 
@@ -16,18 +16,17 @@ function num(value: unknown) {
 export default async function ForwardPePage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [quote, profile, estimates, ratios, ttm] = await Promise.all([
+  const [quote, profile, estimates, ttm] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getEstimates(ticker, "annual"),
-    getRatiosTtm(ticker),
     getIncomeTtm(ticker),
   ]);
   const currency = profile?.currency || "USD";
   const price = num(quote?.price);
   const next = nextEstimate(estimates);
   const fwd = forwardPe(price, estimates);
-  const trailing = trailingPe(price, ttm?.epsDiluted ?? ttm?.eps) ?? num(ratios?.priceToEarningsRatioTTM) ?? num(quote?.pe);
+  const trailing = trailingPe(price, ttm?.epsDiluted ?? ttm?.eps) ?? num(quote?.pe);
   const ranked = futureEstimates(estimates);
 
   return (

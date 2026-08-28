@@ -22,7 +22,6 @@ import {
   getPriceTarget,
   getProfile,
   getQuote,
-  getRatiosTtm,
   getSecFilings,
   getShareFloat,
   getSymbolNews,
@@ -37,7 +36,7 @@ import { listedPeers } from "@/lib/peers";
 import { ChangePercent } from "@/components/change";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { QuoteFaq } from "@/components/quote-faq";
-import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
+import { forwardPe as forwardPeFromEstimates, multiplesFromFilings, trailingPe } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
 import { splitCompanyEarnings } from "@/lib/earnings";
@@ -113,7 +112,7 @@ export default async function StockOverviewPage({
     .sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0))
     .slice(0, 12);
   const peerList = listedPeers(peers, ticker, 8);
-  const [peerRows, peerRatioRows] = await Promise.all([
+  const [peerRows, peerIncome] = await Promise.all([
     withQuoteChanges(
       peerList.map((peer) => ({
         symbol: peer.symbol,
@@ -122,10 +121,22 @@ export default async function StockOverviewPage({
         mktCap: peer.mktCap,
       })),
     ),
-    Promise.all(peerList.map((peer) => getRatiosTtm(peer.symbol))),
+    Promise.all(peerList.map((peer) => getIncomeTtm(peer.symbol))),
   ]);
   const peerPe = new Map(
-    peerList.map((peer, index) => [peer.symbol, peerRatioRows[index]?.priceToEarningsRatioTTM ?? null]),
+    peerList.map((peer, index) => {
+      const income = peerIncome[index];
+      return [
+        peer.symbol,
+        multiplesFromFilings({
+          price: peer.price,
+          marketCap: peer.mktCap,
+          revenue: income?.revenue,
+          netIncome: income?.netIncome,
+          eps: income?.epsDiluted ?? income?.eps,
+        }).pe,
+      ];
+    }),
   );
 
   return (

@@ -22,6 +22,7 @@ export default async function TangibleBookPage({
       ttmField="tangibleBookValuePerShareTTM"
       valueLabel="Tangible Book / Share"
       formula="Tangible Book / Share = (Equity − Intangibles) ÷ Shares"
+      priceBased
     />
   );
 }

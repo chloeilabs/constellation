@@ -331,6 +331,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
                 </a>
               </>
             ) : null}
+            .{" "}
+            <Link href={stockPath(ticker, "/esg")} className="text-link hover:underline">
+              Full ESG page
+            </Link>
             .
           </p>
         </section>

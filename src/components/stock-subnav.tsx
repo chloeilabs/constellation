@@ -16,6 +16,7 @@ const STOCK_TABS = [
   { href: "/earnings", label: "Earnings" },
   { href: "/dividend", label: "Dividend" },
   { href: "/company", label: "Company" },
+  { href: "/esg", label: "ESG" },
   { href: "/news", label: "News" },
   { href: "/history", label: "History" },
   { href: "/insiders", label: "Insiders" },

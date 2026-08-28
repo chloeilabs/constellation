@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { formatDate, formatPercentPlain, formatRatio } from "@/lib/format";
-import { getBalanceSheets, getIncomeTtm, getProfile, getQuote, getRatiosTtm, getTreasuryRates } from "@/lib/fmp";
+import { getBalanceSheets, getIncomeTtm, getProfile, getQuote, getTreasuryRates } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
 import { estimatedWacc } from "@/lib/wacc";
@@ -15,14 +15,17 @@ export default async function WaccPage({ params }: { params: Promise<{ symbol: s
   const ticker = decodeTicker(symbol);
   const today = nyDateString();
   const from = isoDate(addDays(new Date(`${today}T00:00:00Z`), -30));
-  const [quote, profile, incomeTtm, ratios, balance, rates] = await Promise.all([
+  const [quote, profile, incomeTtm, balance, rates] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getIncomeTtm(ticker),
-    getRatiosTtm(ticker),
     getBalanceSheets(ticker, "quarter", 1),
     getTreasuryRates(from, today),
   ]);
+  const pretax = incomeTtm?.incomeBeforeTax;
+  const taxExpense = incomeTtm?.incomeTaxExpense;
+  const taxRate =
+    typeof pretax === "number" && pretax !== 0 && typeof taxExpense === "number" ? taxExpense / pretax : null;
   const latestRate = [...rates].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
   const wacc = estimatedWacc({
     marketCap: quote?.marketCap ?? profile?.marketCap,
@@ -30,14 +33,14 @@ export default async function WaccPage({ params }: { params: Promise<{ symbol: s
     riskFreeYield: latestRate?.year10,
     totalDebt: balance[0]?.totalDebt,
     interestExpense: incomeTtm?.interestExpense,
-    taxRate: ratios?.effectiveTaxRateTTM,
+    taxRate,
   });
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Weighted Average Cost of Capital`}
-        description="Estimated WACC from live FMP market cap, beta, the latest 10-year Treasury, reported total debt, TTM interest expense, and TTM effective tax rate. The equity risk premium is a disclosed 5% assumption — not Stock Analysis Pro."
+        description="Estimated WACC from live FMP market cap, beta, the latest 10-year Treasury, reported total debt, TTM interest expense, and TTM tax ÷ pretax income. The equity risk premium is a disclosed 5% assumption — not Stock Analysis Pro."
       />
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       {wacc ? (

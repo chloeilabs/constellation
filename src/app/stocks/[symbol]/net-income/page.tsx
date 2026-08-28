@@ -6,8 +6,9 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
-import { getIncomeStatements, getIncomeTtm, getRatiosTtm } from "@/lib/fmp";
+import { getIncomeStatements, getIncomeTtm, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
+import { trailingPe } from "@/lib/valuation";
 
 export default async function NetIncomePage({
   params,
@@ -20,11 +21,11 @@ export default async function NetIncomePage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [annual, quarterly, ttm, ratios] = await Promise.all([
+  const [annual, quarterly, ttm, quote] = await Promise.all([
     getIncomeStatements(ticker, "annual", 20),
     getIncomeStatements(ticker, "quarter", 12),
     getIncomeTtm(ticker),
-    getRatiosTtm(ticker),
+    getQuote(ticker),
   ]);
   const history = period === "quarter" ? quarterly : annual;
   const growth = yearOverYear(annual[0]?.netIncome, annual[1]?.netIncome);
@@ -51,7 +52,10 @@ export default async function NetIncomePage({
           },
           {
             label: "P/E (ttm)",
-            value: typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM.toFixed(2) : "—",
+            value: (() => {
+              const pe = trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps);
+              return pe == null ? "—" : pe.toFixed(2);
+            })(),
           },
         ]}
       />

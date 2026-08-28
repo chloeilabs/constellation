@@ -12,11 +12,7 @@ import {
   getEstimates,
   getIncomeStatements,
   getIncomeTtm,
-  getKeyMetrics,
-  getKeyMetricsTtm,
   getQuote,
-  getRatios,
-  getRatiosTtm,
   getYearAgoMarketCap,
 } from "@/lib/fmp";
 import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
@@ -28,11 +24,9 @@ import {
   derivedBalanceMetrics,
   derivedEfficiencyMetrics,
   derivedStatementMetrics,
-  mergeStatementValues,
   spanFrom,
   statementHref,
   statementLimit,
-  stripTtmSuffix,
   toStatementColumns,
   trailingSum,
   withAdjacentGrowth,
@@ -50,24 +44,6 @@ import {
 } from "@/lib/valuation";
 
 type StatementColumn = { key: string; label: string; values: Record<string, unknown> };
-
-const METRIC_KEYS = [
-  "marketCap",
-  "enterpriseValue",
-  "evToSales",
-  "evToEBITDA",
-  "evToEBIT",
-  "evToFreeCashFlow",
-  "evToEarnings",
-  "returnOnAssets",
-  "returnOnEquity",
-  "returnOnInvestedCapital",
-  "returnOnCapitalEmployed",
-  "earningsYield",
-  "freeCashFlowYield",
-  "netDebtToEBITDA",
-  "currentRatio",
-];
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -200,10 +176,6 @@ export default async function RatiosPage({
   const displayCount = statementLimit(period, span);
   const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), period === "quarter" ? -365 * 12 : -365 * 22));
   const [
-    rows,
-    ttm,
-    metrics,
-    metricsTtm,
     incomeTtm,
     incomeRows,
     annualIncome,
@@ -218,10 +190,6 @@ export default async function RatiosPage({
     dailyCloses,
     dividends,
   ] = await Promise.all([
-    getRatios(ticker, period, displayCount),
-    getRatiosTtm(ticker),
-    getKeyMetrics(ticker, period, displayCount),
-    getKeyMetricsTtm(ticker),
     getIncomeTtm(ticker),
     getIncomeStatements(ticker, period, displayCount + (period === "quarter" ? 4 : 1)),
     period === "annual" ? Promise.resolve([] as FmpIncomeStatement[]) : getIncomeStatements(ticker, "annual", 2),
@@ -269,15 +237,10 @@ export default async function RatiosPage({
     {
       key: "ttm",
       label: "Current",
-      values: {
-        ...stripTtmSuffix(metricsTtm as Record<string, unknown> | null),
-        ...stripTtmSuffix(ttm as Record<string, unknown> | null),
-        date: nyDateString(),
-      },
+      values: { date: nyDateString() },
     },
-    ...toStatementColumns(rows, period),
+    ...toStatementColumns(incomeRows.slice(0, displayCount), period),
   ];
-  columns = mergeStatementValues(columns, metrics, METRIC_KEYS, period === "annual" ? "fiscalYear" : "date");
   columns = columns.map((column) => {
     const isCurrent = column.key === "ttm";
     const income = isCurrent ? null : matchRow(incomeRows, column, period);

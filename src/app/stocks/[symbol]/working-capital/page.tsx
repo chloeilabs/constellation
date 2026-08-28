@@ -17,13 +17,13 @@ export default async function WorkingCapitalPage({
       period={periodFrom(periodParam)}
       slug="working-capital"
       title={`${ticker} Working Capital`}
-      description="Current assets minus current liabilities from FMP key metrics."
+      description="Current assets minus current liabilities from the latest balance sheet."
       field="workingCapital"
       ttmField="workingCapitalTTM"
       valueLabel="Working Capital"
       formula="Working Capital = Current Assets − Current Liabilities"
-      source="metrics"
       format="money"
+      priceBased
     />
   );
 }

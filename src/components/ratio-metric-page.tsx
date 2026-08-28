@@ -5,7 +5,6 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { formatCompactUsd, formatNumber, formatPercentPlain, formatRatio } from "@/lib/format";
-import { getKeyMetrics, getKeyMetricsTtm, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { historyLabel, loadLiveValuation, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { periodFrom } from "@/components/statement-metric-page";
@@ -26,9 +25,7 @@ export async function RatioMetricPage({
   valueLabel,
   formula,
   format = "ratio",
-  source = "ratios",
   zeroAsEmpty = false,
-  priceBased = false,
 }: {
   symbol: string;
   period: StatementPeriod;
@@ -36,7 +33,7 @@ export async function RatioMetricPage({
   title: string;
   description: string;
   field: string;
-  ttmField: string;
+  ttmField?: string;
   valueLabel: string;
   formula?: string;
   format?: "ratio" | "percent" | "money" | "days";
@@ -47,23 +44,12 @@ export async function RatioMetricPage({
   const ticker = decodeTicker(symbol);
   const path = stockPath(ticker, `/${slug}`);
   const limit = period === "quarter" ? 12 : 20;
-  let historyRows: Array<{ date: string; fiscalYear?: string | number; period?: string } & Record<string, unknown>>;
-  let latestTtm: number | null;
-  if (priceBased) {
-    const [history, live] = await Promise.all([
-      loadPeriodValuationHistory(ticker, period, limit),
-      loadLiveValuation(ticker),
-    ]);
-    historyRows = history;
-    latestTtm = num((live as Record<string, unknown>)[field]);
-  } else {
-    const [rows, ttm] =
-      source === "metrics"
-        ? await Promise.all([getKeyMetrics(ticker, period, limit), getKeyMetricsTtm(ticker)])
-        : await Promise.all([getRatios(ticker, period, limit), getRatiosTtm(ticker)]);
-    historyRows = rows;
-    latestTtm = num((ttm as Record<string, unknown> | null)?.[ttmField]);
-  }
+  const [historyRows, live] = await Promise.all([
+    loadPeriodValuationHistory(ticker, period, limit),
+    loadLiveValuation(ticker),
+  ]);
+  const liveRecord = live as Record<string, unknown>;
+  const latestTtm = num(liveRecord[field]) ?? (ttmField ? num(liveRecord[ttmField]) : null);
   const display = (value: number | null) => (zeroAsEmpty && value === 0 ? null : value);
   const formatValue = (value: number | null | undefined) => {
     const shown = display(num(value));
@@ -90,7 +76,7 @@ export async function RatioMetricPage({
           key: `${row.date}-${"period" in row ? row.period : period}`,
           date: row.date,
           label: historyLabel(row, period),
-          value: display(num(row[field])),
+          value: display(num((row as Record<string, unknown>)[field])),
         }))}
       />
       {formula ? <p className="mt-4 text-sm text-muted">{formula}</p> : null}

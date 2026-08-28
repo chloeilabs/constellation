@@ -151,6 +151,7 @@ export function companyNav(symbol: string): NavItem[] {
   return [
     { href: stockPath(ticker, "/company"), label: "Profile" },
     { href: stockPath(ticker, "/company/executives"), label: "Executives" },
+    { href: stockPath(ticker, "/esg"), label: "ESG" },
   ];
 }
 
@@ -232,6 +233,8 @@ export function quoteFundamentalsNav(symbol: string) {
     { href: `${base}/enterprise-value`, label: "EV" },
     { href: `${base}/owner-earnings`, label: "Owner Earnings" },
     { href: `${base}/fair-value`, label: "Fair Value" },
+    { href: `${base}/graham-number`, label: "Graham Number" },
+    { href: `${base}/altman-z-score`, label: "Altman Z" },
     { href: `${base}/wacc`, label: "WACC" },
     { href: `${base}/employees`, label: "Employees" },
     { href: `${base}/splits`, label: "Splits" },

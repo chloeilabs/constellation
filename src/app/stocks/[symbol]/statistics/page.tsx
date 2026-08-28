@@ -599,8 +599,8 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
             items={[
               { label: "Altman Z-Score", value: formatNumber(live.altmanZScore ?? scores?.altmanZScore) },
               { label: "Piotroski Score", value: scores?.piotroskiScore ?? "—" },
-              { label: "ESG Rating", href: `/stocks/${ticker}/company`, value: esgRating?.ESGRiskRating ?? "—" },
-              { label: "ESG Industry Rank", href: `/stocks/${ticker}/company`, value: esgRating?.industryRank ?? "—" },
+              { label: "ESG Rating", href: `/stocks/${ticker}/esg`, value: esgRating?.ESGRiskRating ?? "—" },
+              { label: "ESG Industry Rank", href: `/stocks/${ticker}/esg`, value: esgRating?.industryRank ?? "—" },
             ]}
           />
         </section>

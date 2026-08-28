@@ -16,7 +16,6 @@ import {
   getPriceChange,
   getProfile,
   getQuote,
-  getRatiosTtm,
   getSymbolNews,
 } from "@/lib/fmp";
 import { decodeTicker, holdingQuoteHref } from "@/lib/listings";
@@ -37,7 +36,7 @@ export async function VehicleOverview({
   const ticker = decodeTicker(symbol);
   const noun = vehicleNoun(kind);
   const wantAdjusted = adjParam === "1" || adjParam === "true";
-  const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, ratios, profile] = await Promise.all([
+  const [info, holdings, sectors, countries, quote, news, press, dividends, changes, chart, profile] = await Promise.all([
     getEtfInfo(ticker),
     getEtfHoldings(ticker),
     getEtfSectors(ticker),
@@ -48,7 +47,6 @@ export async function VehicleOverview({
     getDividends(ticker, 8),
     getPriceChange(ticker),
     loadQuoteChart(ticker, rangeParam, { adjusted: wantAdjusted }),
-    getRatiosTtm(ticker),
     getProfile(ticker),
   ]);
   const { range, points, ma50Series, ma200Series, ema12Series, ema26Series, rsiSeries, adjusted } = chart;
@@ -66,7 +64,7 @@ export async function VehicleOverview({
   const shares =
     quote?.sharesOutstanding ??
     (quote?.marketCap && quote.price ? quote.marketCap / quote.price : null);
-  const pe = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe;
+  const pe = quote?.pe;
   const about = info?.description || profile?.description;
   const dividendHref = vehiclePath(kind, ticker, "/dividend");
   const holdingsHref = vehiclePath(kind, ticker, "/holdings");
@@ -112,16 +110,12 @@ export async function VehicleOverview({
               value:
                 latestDividend?.yield != null
                   ? formatPercentPlain(latestDividend.yield, { alreadyPercent: true })
-                  : formatPercentPlain(typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null),
+                  : quote?.price && ttmDividend && quote.price > 0
+                    ? formatPercentPlain(ttmDividend / quote.price)
+                    : "—",
             },
             { label: "Ex-Dividend Date", value: latestDividend?.date || "—" },
             { label: "Payout Frequency", value: latestDividend?.frequency || "—" },
-            {
-              label: "Payout Ratio",
-              value: formatPercentPlain(
-                typeof ratios?.dividendPayoutRatioTTM === "number" ? ratios.dividendPayoutRatioTTM : null,
-              ),
-            },
           ]}
         />
         <StatGrid

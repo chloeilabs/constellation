@@ -3,7 +3,7 @@ import { Container } from "@/components/container";
 import { HistoryBars } from "@/components/history-bars";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
-import { getCashFlowTtm, getDividends, getIncomeStatements, getIncomeTtm, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getCashFlowTtm, getDividends, getIncomeStatements, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, displayCompanyName } from "@/lib/listings";
 import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
 import { cashOutlay, indicatedAnnualDividend, nyDateString, payoutFrequencyLabel, payoutFrequencyProse, relativeChange } from "@/lib/utils";
@@ -12,11 +12,10 @@ import { buybackYieldFromShareChange } from "@/lib/valuation";
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [profile, dividends, quote, ratios, annual, cash, ttm] = await Promise.all([
+  const [profile, dividends, quote, annual, cash, ttm] = await Promise.all([
     getProfile(ticker),
     getDividends(ticker, 80),
     getQuote(ticker),
-    getRatiosTtm(ticker),
     getIncomeStatements(ticker, "annual", 20),
     getCashFlowTtm(ticker),
     getIncomeTtm(ticker),
@@ -25,14 +24,8 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const annualized = indicatedAnnualDividend(latest, profile?.lastDividend);
   const price = quote?.price ?? profile?.price;
   const indicatedYield = annualized && price ? annualized / price : null;
-  const ttmYield = indicatedYield ?? (typeof (ratios as Record<string, unknown> | null)?.dividendYieldTTM === "number"
-    ? (ratios as { dividendYieldTTM: number }).dividendYieldTTM
-    : null);
-  const payout =
-    payoutRatioFromDps(annualized, ttm?.epsDiluted ?? ttm?.eps) ??
-    (typeof (ratios as Record<string, unknown> | null)?.dividendPayoutRatioTTM === "number"
-      ? (ratios as { dividendPayoutRatioTTM: number }).dividendPayoutRatioTTM
-      : null);
+  const ttmYield = indicatedYield;
+  const payout = payoutRatioFromDps(annualized, ttm?.epsDiluted ?? ttm?.eps);
 
   const ttmGrowth = dividendTtmGrowth(dividends);
   const byYear = dividendsByFiscalYear(dividends, annual);

@@ -5,7 +5,7 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { formatMoney, formatPercentPlain, formatRatio, yearOverYear } from "@/lib/format";
-import { getEstimates, getIncomeStatements, getIncomeTtm, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getEstimates, getIncomeStatements, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { historyLabel, loadPeriodValuationHistory } from "@/lib/period-valuation";
 import { actualToEstimateCagr, estimateCagr, pegRatio, trailingPe } from "@/lib/valuation";
@@ -26,9 +26,8 @@ export default async function PegRatioPage({
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
   const path = stockPath(ticker, "/peg-ratio");
-  const [history, ttmRatios, ttmIncome, quote, profile, estimates, annualIncome] = await Promise.all([
+  const [history, ttmIncome, quote, profile, estimates, annualIncome] = await Promise.all([
     loadPeriodValuationHistory(ticker, period, period === "quarter" ? 12 : 20),
-    getRatiosTtm(ticker),
     getIncomeTtm(ticker),
     getQuote(ticker),
     getProfile(ticker),
@@ -46,10 +45,9 @@ export default async function PegRatioPage({
     lastAnnual?.epsDiluted ?? lastAnnual?.eps,
     priorAnnual?.epsDiluted ?? priorAnnual?.eps,
   );
-  const reportedPeg = num(ttmRatios?.priceToEarningsGrowthRatioTTM) ?? num(ttmRatios?.priceToEarningsDilutedGrowthRatioTTM);
   const forwardPeg = pegRatio(pe, epsCagr);
   const trailingPeg = pegRatio(pe, trailingGrowth);
-  const peg = forwardPeg ?? trailingPeg ?? reportedPeg;
+  const peg = forwardPeg ?? trailingPeg;
   const currency = profile?.currency || "USD";
 
   return (
@@ -64,7 +62,6 @@ export default async function PegRatioPage({
           { label: "PEG Ratio", value: formatRatio(peg) },
           { label: "Forward PEG", value: formatRatio(forwardPeg) },
           { label: "Trailing PEG", value: formatRatio(trailingPeg) },
-          { label: "FMP Trailing PEG", value: formatRatio(reportedPeg) },
           { label: "PE Ratio (ttm)", href: stockPath(ticker, "/pe-ratio"), value: formatRatio(pe) },
           { label: "EPS Growth Forecast (3Y)", value: formatPercentPlain(epsCagr) },
           { label: "Last FY EPS Growth", value: formatPercentPlain(trailingGrowth) },

@@ -6,7 +6,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
-import { getCashFlows, getCashFlowTtm, getIncomeTtm, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getCashFlows, getCashFlowTtm, getIncomeTtm, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { ttmChange } from "@/lib/statements";
 
@@ -21,11 +21,10 @@ export default async function FreeCashFlowPage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [annual, quarterly, ttm, ratios, quote, income] = await Promise.all([
+  const [annual, quarterly, ttm, quote, income] = await Promise.all([
     getCashFlows(ticker, "annual", 20),
     getCashFlows(ticker, "quarter", 12),
     getCashFlowTtm(ticker),
-    getRatiosTtm(ticker),
     getQuote(ticker),
     getIncomeTtm(ticker),
   ]);
@@ -34,6 +33,10 @@ export default async function FreeCashFlowPage({
   const ttmGrowth = ttmChange(quarterly as Array<Record<string, unknown>>, "freeCashFlow");
   const fcfYield =
     ttm?.freeCashFlow && quote?.marketCap ? ttm.freeCashFlow / quote.marketCap : null;
+  const pfcf =
+    ttm?.freeCashFlow && quote?.marketCap && ttm.freeCashFlow !== 0
+      ? quote.marketCap / ttm.freeCashFlow
+      : null;
   const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency));
 
   return (
@@ -64,10 +67,7 @@ export default async function FreeCashFlowPage({
           {
             label: "P/FCF",
             href: `/stocks/${ticker}/pfcf-ratio`,
-            value:
-              typeof ratios?.priceToFreeCashFlowRatioTTM === "number"
-                ? ratios.priceToFreeCashFlowRatioTTM.toFixed(2)
-                : "—",
+            value: pfcf == null ? "—" : pfcf.toFixed(2),
           },
           {
             label: "FCF Margin",

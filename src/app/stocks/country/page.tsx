@@ -18,7 +18,7 @@ export default function CountryIndexPage() {
         description="Largest companies on each local exchange. Country screens always pair FMP country with the home venue so dual listings on Warsaw or OTC do not inflate the ranking."
       />
       <SectionNav items={STOCKS_NAV} />
-      <div className="space-y-10">
+      <div className="flex flex-col gap-10">
         {COUNTRY_REGIONS.map((region) => {
           const markets = COUNTRY_MARKETS.filter((market) => market.region === region.id);
           return (

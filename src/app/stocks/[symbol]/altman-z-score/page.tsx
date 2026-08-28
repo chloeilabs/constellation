@@ -1,7 +1,7 @@
 import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
-export default async function BookValuePage({
+export default async function AltmanZScorePage({
   params,
   searchParams,
 }: {
@@ -15,13 +15,12 @@ export default async function BookValuePage({
     <RatioMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
-      slug="book-value"
-      title={`${ticker} Book Value Per Share`}
-      description="Shareholders' equity per diluted share."
-      field="bookValuePerShare"
-      ttmField="bookValuePerShareTTM"
-      valueLabel="Book Value / Share"
-      formula="Book Value / Share = Shareholders' Equity ÷ Shares"
+      slug="altman-z-score"
+      title={`${ticker} Altman Z-Score`}
+      description="Original Altman Z-Score from filings and the period-end (or live) market cap. Working capital, retained earnings, EBIT, and sales are scaled by total assets; market cap is scaled by total liabilities."
+      field="altmanZScore"
+      valueLabel="Altman Z-Score"
+      formula="Z = 1.2A + 1.4B + 3.3C + 0.6D + 1.0E"
       priceBased
     />
   );

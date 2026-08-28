@@ -10,7 +10,7 @@ export default function ListsIndexPage() {
         title="Stock Lists"
         description="Index constituents, U.S. exchanges, market-cap groups, dividend lists, and other ranked stock lists."
       />
-      <div className="space-y-10">
+      <div className="flex flex-col gap-10">
         {LIST_CATEGORIES.map((category) => {
           const lists = Object.entries(STOCK_LISTS).filter(([, list]) => list.category === category.id);
           return (

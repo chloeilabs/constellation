@@ -1,7 +1,7 @@
 import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
-export default async function BookValuePage({
+export default async function GrahamNumberPage({
   params,
   searchParams,
 }: {
@@ -15,13 +15,12 @@ export default async function BookValuePage({
     <RatioMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
-      slug="book-value"
-      title={`${ticker} Book Value Per Share`}
-      description="Shareholders' equity per diluted share."
-      field="bookValuePerShare"
-      ttmField="bookValuePerShareTTM"
-      valueLabel="Book Value / Share"
-      formula="Book Value / Share = Shareholders' Equity ÷ Shares"
+      slug="graham-number"
+      title={`${ticker} Graham Number`}
+      description="Benjamin Graham's number from diluted EPS and book value per share: the square root of 22.5 × EPS × book value per share."
+      field="grahamNumber"
+      valueLabel="Graham Number"
+      formula="Graham Number = √(22.5 × EPS × Book Value / Share)"
       priceBased
     />
   );

@@ -16,8 +16,6 @@ import {
   getIncomeStatements,
   getIncomeTtm,
   getQuote,
-  getRatios,
-  getRatiosTtm,
   getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
@@ -39,7 +37,7 @@ import { addDays, cashAndInvestments, indicatedAnnualDividend, isoDate, netCashP
 import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
 import { marketCapFromPrice, nextEstimate } from "@/lib/valuation";
 import { valuationFromFilings } from "@/lib/period-valuation";
-import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
+import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -126,17 +124,27 @@ function balanceColumn(
   };
 }
 
-function ratioColumn(
+function marginColumn(
   label: string,
   key: string,
-  row: FmpRatios | Record<string, unknown> | null,
-  map: Record<string, string>,
+  income: FmpIncomeStatement | null,
+  cash: FmpCashFlow | null,
 ): YearMetricColumn {
-  const values: Record<string, number | null> = {};
-  for (const [outKey, inKey] of Object.entries(map)) {
-    values[outKey] = n(row?.[inKey]);
-  }
-  return { key, label, values };
+  const derived = derivedStatementMetrics({
+    ...((income as unknown as Record<string, unknown> | null) ?? {}),
+    freeCashFlow: n(income?.freeCashFlow) ?? n(cash?.freeCashFlow),
+  });
+  return {
+    key,
+    label,
+    values: {
+      grossMargin: derived.grossProfitMargin,
+      operatingMargin: derived.operatingProfitMargin,
+      pretaxMargin: derived.pretaxProfitMargin,
+      profitMargin: derived.netProfitMargin,
+      fcfMargin: derived.fcfMargin,
+    },
+  };
 }
 
 function overlayValuationColumn(
@@ -186,32 +194,6 @@ function matchEnterprise(
     rows.find((row) => fiscalYear != null && row.date.slice(0, 4) === String(fiscalYear)) ??
     null
   );
-}
-
-function fillMarginGaps(
-  columns: YearMetricColumn[],
-  income: Array<{ label: string; row: FmpIncomeStatement | null }>,
-  cash: Array<{ label: string; row: FmpCashFlow | null }>,
-) {
-  const incomeMap = new Map(income.map((item) => [item.label, item.row]));
-  const cashMap = new Map(cash.map((item) => [item.label, item.row]));
-  return columns.map((column) => {
-    const statement = incomeMap.get(column.label);
-    const flow = cashMap.get(column.label);
-    const revenue = n(statement?.revenue);
-    const pretax = n(statement?.incomeBeforeTax);
-    const fcf = n(flow?.freeCashFlow);
-    return {
-      ...column,
-      values: {
-        ...column.values,
-        pretaxMargin:
-          n(column.values.pretaxMargin) ??
-          (revenue && pretax != null ? pretax / revenue : null),
-        fcfMargin: n(column.values.fcfMargin) ?? (revenue && fcf != null ? fcf / revenue : null),
-      },
-    };
-  });
 }
 
 function cleanSegmentName(name: string) {
@@ -310,7 +292,7 @@ export default async function FinancialsOverviewPage({
   const fiscalLimit = Math.max(annualLimit, 16);
   const base = stockPath(ticker, "/financials");
   const priceFrom = isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -365 * 22));
-  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, annualRatios, ttmRatios, products, productQuarters, geos, geoQuarters, dividends, quote, estimates, enterpriseRows, dailyCloses] =
+  const [annualIncome, quarterlyIncome, ttmIncome, annualBalance, currentBalance, annualCash, quarterlyCash, ttmCash, products, productQuarters, geos, geoQuarters, dividends, quote, estimates, enterpriseRows, dailyCloses] =
     await Promise.all([
       getIncomeStatements(ticker, "annual", fiscalLimit),
       getIncomeStatements(ticker, "quarter", 8),
@@ -320,8 +302,6 @@ export default async function FinancialsOverviewPage({
       getCashFlows(ticker, "annual", annualLimit),
       getCashFlows(ticker, "quarter", 8),
       getCashFlowTtm(ticker),
-      getRatios(ticker, "annual", annualLimit),
-      getRatiosTtm(ticker),
       getRevenueProductSegments(ticker, "annual"),
       getRevenueProductSegments(ticker, "quarter"),
       getRevenueGeographicSegments(ticker, "annual"),
@@ -438,69 +418,18 @@ export default async function FinancialsOverviewPage({
     ),
   ];
 
-  const ratioYears = annualRatios.slice(0, yearCount);
-  const ttmRatioMap = {
-    grossMargin: "grossProfitMarginTTM",
-    operatingMargin: "operatingProfitMarginTTM",
-    pretaxMargin: "pretaxProfitMarginTTM",
-    profitMargin: "netProfitMarginTTM",
-    fcfMargin: "freeCashFlowMarginTTM",
-    pe: "priceToEarningsRatioTTM",
-    ps: "priceToSalesRatioTTM",
-    pfcf: "priceToFreeCashFlowRatioTTM",
-    dividendYield: "dividendYieldTTM",
-  };
-  const annualRatioMap = {
-    grossMargin: "grossProfitMargin",
-    operatingMargin: "operatingProfitMargin",
-    pretaxMargin: "pretaxProfitMargin",
-    profitMargin: "netProfitMargin",
-    fcfMargin: "freeCashFlowMargin",
-    pe: "priceToEarningsRatio",
-    ps: "priceToSalesRatio",
-    pfcf: "priceToFreeCashFlowRatio",
-    dividendYield: "dividendYield",
-  };
-  const derivedTtm = ttmIncomeSynthetic
-    ? derivedStatementMetrics({
-        ...(ttmIncomeSynthetic as unknown as Record<string, unknown>),
-        depreciationAndAmortization:
-          (ttmIncomeSynthetic as unknown as Record<string, unknown>).depreciationAndAmortization ??
-          ttmCashRow?.depreciationAndAmortization,
-        freeCashFlow: ttmCashRow?.freeCashFlow,
-      })
-    : null;
-  const marginColumns = fillMarginGaps(
-    [
-      ...(ttmRatios
-        ? [withEnded(ratioColumn("TTM", "ttm-m", ttmRatios as Record<string, unknown>, ttmRatioMap), quarterlyIncome[0]?.date)]
-        : []),
-      ...ratioYears.map((row) =>
-        withEnded(ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap), row.date),
+  const cashByYear = new Map(cashYears.map((row) => [String(row.fiscalYear), row]));
+  const marginColumns = [
+    ...(ttmIncomeSynthetic
+      ? [withEnded(marginColumn("TTM", "ttm-m", ttmIncomeSynthetic, ttmCashRow), quarterlyIncome[0]?.date)]
+      : []),
+    ...incomeYears.map((row) =>
+      withEnded(
+        marginColumn(fyLabel(row.fiscalYear), String(row.date), row, cashByYear.get(String(row.fiscalYear)) ?? null),
+        row.date,
       ),
-    ],
-    [
-      { label: "TTM", row: ttmIncomeSynthetic },
-      ...incomeYears.map((row) => ({ label: fyLabel(row.fiscalYear), row })),
-    ],
-    [
-      { label: "TTM", row: ttmCashRow },
-      ...cashYears.map((row) => ({ label: fyLabel(row.fiscalYear), row })),
-    ],
-  ).map((column) => {
-    if (column.key !== "ttm-m" || !derivedTtm) return column;
-    return {
-      ...column,
-      values: {
-        ...column.values,
-        grossMargin: derivedTtm.grossProfitMargin,
-        operatingMargin: derivedTtm.operatingProfitMargin,
-        pretaxMargin: derivedTtm.pretaxProfitMargin,
-        profitMargin: derivedTtm.netProfitMargin,
-        fcfMargin: derivedTtm.fcfMargin,
-      },
-    };
-  });
+    ),
+  ];
   let valuationColumns = [
     ...(quote
       ? [
@@ -513,12 +442,8 @@ export default async function FinancialsOverviewPage({
             nyDateString(),
           ),
         ]
-      : ttmRatios
-        ? [withEnded(ratioColumn("Current", "current-v", ttmRatios as Record<string, unknown>, ttmRatioMap), nyDateString())]
-        : []),
-    ...ratioYears.map((row) =>
-      withEnded(ratioColumn(fyLabel(row.fiscalYear), String(row.date), row, annualRatioMap), row.date),
-    ),
+      : []),
+    ...incomeYears.map((row) => withEnded({ key: String(row.date), label: fyLabel(row.fiscalYear), values: {} }, row.date)),
   ];
   valuationColumns = valuationColumns.map((column) => {
     if (column.key === "current-v") {
@@ -611,9 +536,7 @@ export default async function FinancialsOverviewPage({
           dividend: dps,
           dividendGrowth: yearOverYear(dps, priorYear ? dividendByYear.get(priorYear) : null),
           yield:
-            dps != null && yearEndPrice != null && yearEndPrice > 0
-              ? dps / yearEndPrice
-              : n(ratioYears.find((ratio) => String(ratio.fiscalYear) === year)?.dividendYield),
+            dps != null && yearEndPrice != null && yearEndPrice > 0 ? dps / yearEndPrice : null,
         },
       };
     }),

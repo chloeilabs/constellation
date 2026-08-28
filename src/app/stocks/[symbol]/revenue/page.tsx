@@ -10,7 +10,7 @@ import {
   getHistoricalEmployeeCount,
   getIncomeStatements,
   getIncomeTtm,
-  getRatiosTtm,
+  getQuote,
   getRevenueGeographicSegments,
   getRevenueProductSegments,
 } from "@/lib/fmp";
@@ -41,11 +41,11 @@ export default async function RevenuePage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   const period = periodParam === "quarter" ? "quarter" : "annual";
-  const [annual, quarterly, ttm, ratios, employees, products, productQuarters, geos, geoQuarters] = await Promise.all([
+  const [annual, quarterly, ttm, quote, employees, products, productQuarters, geos, geoQuarters] = await Promise.all([
     getIncomeStatements(ticker, "annual", 20),
     getIncomeStatements(ticker, "quarter", 8),
     getIncomeTtm(ticker),
-    getRatiosTtm(ticker),
+    getQuote(ticker),
     getHistoricalEmployeeCount(ticker, 5),
     getRevenueProductSegments(ticker, "annual"),
     getRevenueProductSegments(ticker, "quarter"),
@@ -62,6 +62,8 @@ export default async function RevenuePage({
   const headcount = employees[0]?.employeeCount;
   const revenuePerEmployee =
     ttm?.revenue && headcount ? ttm.revenue / headcount : latestAnnual?.revenue && headcount ? latestAnnual.revenue / headcount : null;
+  const ps =
+    ttm?.revenue && quote?.marketCap && ttm.revenue > 0 ? quote.marketCap / ttm.revenue : null;
   const productTtm = ttmSegmentMap(productQuarters);
   const geoTtm = ttmSegmentMap(geoQuarters);
   const productLatest = products[0];
@@ -101,7 +103,7 @@ export default async function RevenuePage({
           },
           {
             label: "P/S Ratio",
-            value: typeof ratios?.priceToSalesRatioTTM === "number" ? ratios.priceToSalesRatioTTM.toFixed(2) : "—",
+            value: ps == null ? "—" : ps.toFixed(2),
           },
           { label: "Revenue / Employee", value: revenuePerEmployee ? money(revenuePerEmployee) : "—" },
           { label: "Employees", value: formatInteger(headcount) },

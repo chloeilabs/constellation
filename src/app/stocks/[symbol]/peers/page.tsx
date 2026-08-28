@@ -5,9 +5,10 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { ChangePercent } from "@/components/change";
 import { currencyForSymbol, formatCompactUsd, formatPercentPlain, formatPlausiblePe, formatPrice, formatRatio } from "@/lib/format";
-import { getPeers, getProfile, getQuote, getRatiosTtm, withQuoteChanges } from "@/lib/fmp";
+import { getBalanceSheets, getIncomeTtm, getPeers, getProfile, getQuote, withQuoteChanges } from "@/lib/fmp";
 import { decodeTicker, quoteHref, stockPath } from "@/lib/listings";
 import { compareHref, listedPeers } from "@/lib/peers";
+import { multiplesFromFilings } from "@/lib/valuation";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -24,8 +25,26 @@ export default async function PeersPage({ params }: { params: Promise<{ symbol: 
     price: quote?.price,
     mktCap: quote?.marketCap ?? profile?.marketCap ?? 0,
   };
-  const rows = await withQuoteChanges([subject, ...peerList]);
-  const ratioRows = await Promise.all(rows.map((row) => getRatiosTtm(row.symbol)));
+  const compareSet = [subject, ...peerList];
+  const [rows, peerFundamentals] = await Promise.all([
+    withQuoteChanges(compareSet),
+    Promise.all(
+      compareSet.map(async (row) => {
+        const [income, sheets] = await Promise.all([
+          getIncomeTtm(row.symbol),
+          getBalanceSheets(row.symbol, "quarter", 1),
+        ]);
+        return multiplesFromFilings({
+          price: row.price,
+          marketCap: row.mktCap,
+          revenue: income?.revenue,
+          netIncome: income?.netIncome,
+          eps: income?.epsDiluted ?? income?.eps,
+          equity: sheets[0]?.totalStockholdersEquity,
+        });
+      }),
+    ),
+  ]);
   const compareSymbols = rows.map((row) => row.symbol);
 
   return (
@@ -69,7 +88,7 @@ export default async function PeersPage({ params }: { params: Promise<{ symbol: 
               </tr>
             ) : (
               rows.map((row, index) => {
-                const ratios = ratioRows[index];
+                const multiples = peerFundamentals[index];
                 const isSubject = row.symbol.toUpperCase() === ticker;
                 return (
                   <tr key={row.symbol} className={isSubject ? "bg-muted-bg/60 font-medium" : undefined}>
@@ -89,10 +108,10 @@ export default async function PeersPage({ params }: { params: Promise<{ symbol: 
                     <td className="num">
                       <ChangePercent value={row.changePercentage} alreadyPercent />
                     </td>
-                    <td className="num">{formatPlausiblePe(num(ratios?.priceToEarningsRatioTTM) ?? row.pe)}</td>
-                    <td className="num">{formatRatio(num(ratios?.priceToSalesRatioTTM))}</td>
-                    <td className="num">{formatRatio(num(ratios?.priceToBookRatioTTM))}</td>
-                    <td className="num">{formatPercentPlain(num(ratios?.netProfitMarginTTM))}</td>
+                    <td className="num">{formatPlausiblePe(multiples?.pe ?? row.pe)}</td>
+                    <td className="num">{formatRatio(num(multiples?.ps))}</td>
+                    <td className="num">{formatRatio(num(multiples?.pb))}</td>
+                    <td className="num">{formatPercentPlain(num(multiples?.profitMargin))}</td>
                     <td className="num">{formatCompactUsd(row.mktCap, currencyForSymbol(row.symbol))}</td>
                   </tr>
                 );

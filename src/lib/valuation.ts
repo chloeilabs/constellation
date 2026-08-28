@@ -109,6 +109,26 @@ function ratio(numerator: number | null, denominator: number | null) {
   return numerator / denominator;
 }
 
+/** Trailing PE, PS, PB, and profit margin from a live quote plus TTM filings. */
+export function multiplesFromFilings(input: {
+  price?: number | null;
+  marketCap?: number | null;
+  revenue?: number | null;
+  netIncome?: number | null;
+  eps?: number | null;
+  equity?: number | null;
+}) {
+  const revenue = finite(input.revenue);
+  const marketCap = finite(input.marketCap);
+  const netIncome = finite(input.netIncome);
+  return {
+    pe: trailingPe(input.price, input.eps),
+    ps: ratio(marketCap, revenue),
+    pb: ratio(marketCap, finite(input.equity)),
+    profitMargin: revenue && revenue !== 0 && netIncome != null ? netIncome / revenue : null,
+  };
+}
+
 /** Price, EV, leverage, and yield ratios from live price and filings (cash includes marketable securities). */
 export function derivedValuationMetrics(input: {
   price?: number | null;

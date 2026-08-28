@@ -5,7 +5,7 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { compactMoneyFn, formatDate, formatRatio, reportingCurrency } from "@/lib/format";
-import { getEstimates, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getEstimates, getIncomeTtm, getProfile, getQuote } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { forwardPs, nextEstimate } from "@/lib/valuation";
 
@@ -16,16 +16,17 @@ function num(value: unknown) {
 export default async function ForwardPsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [quote, profile, estimates, ratios] = await Promise.all([
+  const [quote, profile, estimates, ttm] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getEstimates(ticker, "annual"),
-    getRatiosTtm(ticker),
+    getIncomeTtm(ticker),
   ]);
   const marketCap = num(quote?.marketCap) ?? num(profile?.marketCap);
   const next = nextEstimate(estimates);
   const fwd = forwardPs(marketCap, estimates);
-  const trailing = num(ratios?.priceToSalesRatioTTM);
+  const trailing =
+    marketCap != null && ttm?.revenue && ttm.revenue > 0 ? marketCap / ttm.revenue : null;
   const money = compactMoneyFn(reportingCurrency(profile?.currency));
   const ranked = [...estimates].filter((row) => row.date).sort((a, b) => a.date.localeCompare(b.date));
 

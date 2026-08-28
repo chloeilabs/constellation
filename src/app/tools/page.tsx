@@ -53,7 +53,7 @@ export default function ToolsPage() {
         title="Tools"
         description="Screen stocks, compare ETFs, calculate returns from live prices, and look up ETF holders."
       />
-      <div className="space-y-10">
+      <div className="flex flex-col gap-10">
         {GROUPS.map((group) => (
           <section key={group.title}>
             <h2 className="mb-4 text-xl font-semibold text-header">{group.title}</h2>
