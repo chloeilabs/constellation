@@ -2428,13 +2428,14 @@ async function loadDividendFrequencyList(
         changePercentage: quote?.changePercentage ?? null,
         volume: quote?.volume ?? null,
         dividendYield,
-        exchange: quote?.exchange ?? null,
       };
     })
     .filter((row) => {
       if (!(row.price && row.price > 0)) return false;
       if (!(row.dividendYield && row.dividendYield > 0 && row.dividendYield < yieldMax)) return false;
-      if (vehicle === "etf") return isListedUsVenue(row.exchange);
+      if (vehicle === "etf") {
+        return isListedUsVenue(bySymbol.get(row.symbol.toUpperCase())?.exchange);
+      }
       if (looksLikeFund(row.name)) return false;
       return true;
     })
