@@ -12,11 +12,13 @@ export function EtfHeader({
   quote,
   info,
   afterHours,
+  holdingsCount,
 }: {
   symbol: string;
   quote: FmpQuote | null;
   info: FmpEtfInfo | null;
   afterHours: FmpAftermarketQuote | null;
+  holdingsCount?: number | null;
 }) {
   const name = info?.name ?? quote?.name ?? symbol;
   const price = quote?.price;
@@ -62,7 +64,7 @@ export function EtfHeader({
                   label: "Expense Ratio",
                   value: info?.expenseRatio != null ? formatPercentPlain(info.expenseRatio, { alreadyPercent: true }) : "—",
                 },
-                { label: "Holdings", value: formatInteger(info?.holdingsCount) },
+                { label: "Holdings", value: formatInteger(holdingsCount ?? info?.holdingsCount) },
                 { label: "Volume", value: formatInteger(quote?.volume ?? info?.avgVolume) },
               ]}
             />

@@ -11,11 +11,13 @@ export function FundHeader({
   quote,
   profile,
   info,
+  holdingsCount,
 }: {
   symbol: string;
   quote: FmpQuote | null;
   profile: FmpProfile | null;
   info: FmpEtfInfo | null;
+  holdingsCount?: number | null;
 }) {
   const name = info?.name ?? profile?.companyName ?? quote?.name ?? symbol;
   const price = quote?.price ?? profile?.price;
@@ -54,7 +56,7 @@ export function FundHeader({
                   label: "Expense Ratio",
                   value: info?.expenseRatio != null ? formatPercentPlain(info.expenseRatio, { alreadyPercent: true }) : "—",
                 },
-                { label: "Holdings", value: formatInteger(info?.holdingsCount) },
+                { label: "Holdings", value: formatInteger(holdingsCount ?? info?.holdingsCount) },
                 { label: "Volume", value: formatInteger(quote?.volume ?? profile?.volume) },
                 {
                   label: "52-Week",

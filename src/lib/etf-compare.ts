@@ -50,7 +50,7 @@ export async function loadEtfCompare(symbols: string[]) {
         changes,
         latestDividend: dividends[0] ?? null,
         ttmDividend,
-        holdingsCount: info?.holdingsCount || holdings.length,
+        holdingsCount: holdings.length || info?.holdingsCount,
         topHoldings: top,
         sectors: rankedSectors,
         countries: rankedCountries,

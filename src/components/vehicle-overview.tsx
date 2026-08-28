@@ -139,7 +139,7 @@ export async function VehicleOverview({
             { label: "52-Week Low", value: formatPrice(quote?.yearLow) },
             { label: "52-Week High", value: formatPrice(quote?.yearHigh) },
             { label: "Beta", value: formatRatio(profile?.beta) },
-            { label: "Holdings", href: holdingsHref, value: formatInteger(info?.holdingsCount || holdings.length) },
+            { label: "Holdings", href: holdingsHref, value: formatInteger(holdings.length || info?.holdingsCount) },
             { label: "NAV", value: info?.nav != null ? formatPrice(info.nav) : formatPrice(quote?.price ?? profile?.price) },
             { label: "Inception Date", value: info?.inceptionDate || profile?.ipoDate || "—" },
             { label: "Issuer", value: info?.etfCompany || "—" },
