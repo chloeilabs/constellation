@@ -60,6 +60,10 @@ function fromDateForRange(range: ChartRange) {
       return isoDate(addDays(today, -400));
     case "5Y":
       return isoDate(addDays(today, -365 * 5 - 20));
+    case "MAX":
+      // FMP's unpaged EOD call is only ~5 years. An explicit epoch lets the
+      // 5,000-row pager walk back to IPO-length history.
+      return "1970-01-01";
     default:
       return undefined;
   }
@@ -281,7 +285,7 @@ export async function getChartData(symbol: string, range: ChartRange): Promise<C
     return dailySessionPoints(symbol, 5);
   }
   if (range === "MAX") {
-    return toDailyPoints(await getDailyChart(symbol));
+    return toDailyPoints(await getDailyChart(symbol, fromDateForRange("MAX")));
   }
   return toDailyPoints(await getDailyChart(symbol, fromDateForRange(range)));
 }
@@ -295,11 +299,10 @@ export async function loadQuoteChart(
   const adjusted = Boolean(options?.adjusted) && canDividendAdjust(range);
   if (adjusted) {
     const chartFrom = fromDateForRange(range);
-    const today = new Date(`${nyDateString()}T00:00:00Z`);
     const lookbackFrom =
-      range === "MAX"
-        ? undefined
-        : isoDate(addDays(chartFrom ? new Date(`${chartFrom}T00:00:00Z`) : today, -420));
+      range === "MAX" || !chartFrom
+        ? chartFrom
+        : isoDate(addDays(new Date(`${chartFrom}T00:00:00Z`), -420));
     const full = toAdjustedPoints(await getDividendAdjustedChart(symbol, lookbackFrom));
     const points = sliceFrom(full, chartFrom);
     return {

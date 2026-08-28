@@ -16,8 +16,9 @@ function historyRange(value?: string): "6" | "1" | "5" | "10" | "max" {
 }
 
 function historyFrom(range: "6" | "1" | "5" | "10" | "max", today: string) {
+  if (range === "max") return "1970-01-01";
   const days =
-    range === "6" ? 200 : range === "1" ? 400 : range === "5" ? 365 * 5 + 20 : range === "10" ? 365 * 10 + 20 : 365 * 20 + 40;
+    range === "6" ? 200 : range === "1" ? 400 : range === "5" ? 365 * 5 + 20 : 365 * 10 + 20;
   return isoDate(addDays(new Date(`${today}T00:00:00Z`), -days));
 }
 
