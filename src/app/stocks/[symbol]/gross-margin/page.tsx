@@ -1,4 +1,4 @@
-import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
+import { StatementMetricPage, periodFrom } from "@/components/statement-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
 export default async function GrossMarginPage({
@@ -12,17 +12,17 @@ export default async function GrossMarginPage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   return (
-    <RatioMetricPage
+    <StatementMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
       slug="gross-margin"
       title={`${ticker} Gross Margin`}
       description="Gross profit as a percentage of revenue."
       field="grossProfitMargin"
-      ttmField="grossProfitMarginTTM"
-      valueLabel="Gross Margin"
-      formula="Gross Margin = Gross Profit ÷ Revenue"
+      ttmField="grossProfitMargin"
+      kind="income"
       format="percent"
+      formula="Gross Margin = Gross Profit ÷ Revenue"
     />
   );
 }

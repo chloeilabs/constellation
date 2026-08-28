@@ -8,7 +8,7 @@ import { ChangePercent } from "@/components/change";
 import { formatMoney, formatRatio } from "@/lib/format";
 import { getEstimates, getIncomeTtm, getProfile, getQuote, getRatios, getRatiosTtm } from "@/lib/fmp";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
-import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
+import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
 import { decodeTicker, stockPath } from "@/lib/listings";
 
 function num(value: unknown) {
@@ -38,10 +38,8 @@ export default async function PeRatioPage({
   ]);
   const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
   const history = period === "quarter" ? quarterly : annual;
-  const pe = num(ttmRatios?.priceToEarningsRatioTTM);
   const eps = ttmIncome?.epsDiluted ?? ttmIncome?.eps;
-  const impliedPe = quote?.price && eps ? quote.price / eps : null;
-  const peValue = pe ?? impliedPe;
+  const peValue = trailingPe(quote?.price, eps) ?? num(ttmRatios?.priceToEarningsRatioTTM) ?? quote?.pe ?? null;
   const sectorPeVs = peValue != null && sectorPe ? peValue / sectorPe - 1 : null;
   const industryPeVs = peValue != null && industryPe ? peValue / industryPe - 1 : null;
   const currency = profile?.currency || "USD";

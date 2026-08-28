@@ -433,7 +433,10 @@ export default async function ForecastPage({
           </div>
         ) : null}
         <StatementTable
-          rows={withStatementHrefs(FORECAST_ROWS, ticker)}
+          rows={withStatementHrefs(
+            period === "quarter" ? FORECAST_ROWS.filter((row) => row.key !== "forwardPe") : FORECAST_ROWS,
+            ticker,
+          )}
           columns={columns}
           currency={currency}
           inlineYoy={false}

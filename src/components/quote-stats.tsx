@@ -90,6 +90,9 @@ export function QuoteStats({
   shareholderYield,
   fcfYield,
   earningsYield,
+  pe: peOverride,
+  peg: pegOverride,
+  profitMargin,
 }: {
   symbol: string;
   quote: FmpQuote | null;
@@ -115,6 +118,9 @@ export function QuoteStats({
   shareholderYield?: number | null;
   fcfYield?: number | null;
   earningsYield?: number | null;
+  pe?: number | null;
+  peg?: number | null;
+  profitMargin?: number | null;
   ttmYoy?: {
     revenue?: number | null;
     grossProfit?: number | null;
@@ -123,14 +129,22 @@ export function QuoteStats({
     eps?: number | null;
   } | null;
 }) {
-  const pe = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe ?? null;
   const currency = profile?.currency || "USD";
   const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
   const px = (value: number | null | undefined) => formatMoney(value, currency);
+  const eps = ttm?.epsDiluted ?? ttm?.eps;
+  const impliedPe = quote?.price && eps && eps > 0 ? quote.price / eps : null;
+  const pe =
+    peOverride ??
+    impliedPe ??
+    (typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe ?? null);
   const epsGrowth = ttmYoy?.eps ?? growth?.growthEPSDiluted ?? growth?.growthEPS;
-  const reportedPeg = typeof ratios?.priceToEarningsGrowthRatioTTM === "number" ? ratios.priceToEarningsGrowthRatioTTM : null;
+  const reportedPeg =
+    typeof ratios?.priceToEarningsGrowthRatioTTM === "number" ? ratios.priceToEarningsGrowthRatioTTM : null;
   const derivedPeg = pe != null && typeof epsGrowth === "number" && epsGrowth > 0 ? pe / (epsGrowth * 100) : null;
-  const peg = reportedPeg ?? derivedPeg;
+  const peg = pegOverride ?? reportedPeg ?? derivedPeg;
+  const netMargin =
+    profitMargin ?? (typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null);
   const upside =
     target?.targetConsensus && quote?.price
       ? ((target.targetConsensus - quote.price) / quote.price) * 100
@@ -177,7 +191,7 @@ export function QuoteStats({
         { label: "Beta", value: formatRatio(profile?.beta) },
         { label: "50-Day Average", value: px(quote?.priceAvg50) },
         { label: "200-Day Average", value: px(quote?.priceAvg200) },
-        { label: "Profit Margin", href: `${base}/profit-margin`, value: formatPercentPlain(typeof ratios?.netProfitMarginTTM === "number" ? ratios.netProfitMarginTTM : null) },
+        { label: "Profit Margin", href: `${base}/profit-margin`, value: formatPercentPlain(netMargin) },
         { label: "Analysts", href: `${base}/ratings`, value: formatAnalystConsensus(grades) },
         {
           label: "Price Target",

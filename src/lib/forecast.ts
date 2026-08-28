@@ -122,6 +122,7 @@ function actualValues(
   cash: FmpCashFlow | undefined,
   dps: number | null,
   price: number | null,
+  showForwardPe: boolean,
 ): Record<string, unknown> {
   const derived = derivedStatementMetrics(row as unknown as Record<string, unknown>);
   const revenue = num(row.revenue);
@@ -138,14 +139,14 @@ function actualValues(
     operatingIncome: num(row.operatingIncome),
     netIncome: num(row.netIncome),
     eps,
-    forwardPe: price != null && eps && eps > 0 ? price / eps : null,
+    forwardPe: showForwardPe && price != null && eps && eps > 0 ? price / eps : null,
     dividendPerShare: dps,
     freeCashFlow: fcf,
     analysts: null,
   };
 }
 
-function estimateValues(row: FmpEstimate, price: number | null): Record<string, unknown> {
+function estimateValues(row: FmpEstimate, price: number | null, showForwardPe: boolean): Record<string, unknown> {
   const revenue = num(row.revenueAvg);
   const eps = num(row.epsAvg);
   const operating = num(row.ebitAvg);
@@ -159,7 +160,7 @@ function estimateValues(row: FmpEstimate, price: number | null): Record<string, 
     operatingIncome: operating,
     netIncome: net,
     eps,
-    forwardPe: price != null && eps && eps > 0 ? price / eps : null,
+    forwardPe: showForwardPe && price != null && eps && eps > 0 ? price / eps : null,
     dividendPerShare: null,
     freeCashFlow: null,
     analysts: analystCount(row),
@@ -214,6 +215,7 @@ export function buildForecastColumns({
   const dpsByYear =
     period === "annual" ? dividendsByFiscalYear(dividends, actualChrono) : null;
   const px = price ?? null;
+  const showForwardPe = period === "annual";
 
   const toActualColumn = (row: FmpIncomeStatement, previousDate: string | null): ForecastColumn => {
     const fy = String(row.fiscalYear);
@@ -224,7 +226,7 @@ export function buildForecastColumns({
     return {
       key: `${row.date}-actual`,
       label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : `FY ${row.fiscalYear}`,
-      values: actualValues(row, cash.get(periodKey(row.date)), dps, px),
+      values: actualValues(row, cash.get(periodKey(row.date)), dps, px, showForwardPe),
     };
   };
 
@@ -237,7 +239,7 @@ export function buildForecastColumns({
   const estimateColumns = displayedEstimates.map((row) => {
     const annualYear = inferAnnualYear(row.date, actualChrono);
     const quarter = period === "quarter" ? inferQuarterLabel(row.date, actualChrono) : null;
-    const values = estimateValues(row, px);
+    const values = estimateValues(row, px, showForwardPe);
     if (period === "annual") {
       values.fiscalYear = annualYear;
       values.period = "FY";

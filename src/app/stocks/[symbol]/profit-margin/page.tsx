@@ -1,4 +1,4 @@
-import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
+import { StatementMetricPage, periodFrom } from "@/components/statement-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
 export default async function ProfitMarginPage({
@@ -12,17 +12,17 @@ export default async function ProfitMarginPage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   return (
-    <RatioMetricPage
+    <StatementMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
       slug="profit-margin"
       title={`${ticker} Profit Margin`}
       description="Net income as a percentage of revenue."
       field="netProfitMargin"
-      ttmField="netProfitMarginTTM"
-      valueLabel="Profit Margin"
-      formula="Profit Margin = Net Income ÷ Revenue"
+      ttmField="netProfitMargin"
+      kind="income"
       format="percent"
+      formula="Profit Margin = Net Income ÷ Revenue"
     />
   );
 }

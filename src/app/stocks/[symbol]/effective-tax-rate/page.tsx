@@ -1,4 +1,4 @@
-import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
+import { StatementMetricPage, periodFrom } from "@/components/statement-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
 export default async function EffectiveTaxRatePage({
@@ -12,17 +12,17 @@ export default async function EffectiveTaxRatePage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   return (
-    <RatioMetricPage
+    <StatementMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
       slug="effective-tax-rate"
       title={`${ticker} Effective Tax Rate`}
-      description="Income tax expense divided by pretax income from FMP ratios."
+      description="Income tax expense divided by pretax income."
       field="effectiveTaxRate"
-      ttmField="effectiveTaxRateTTM"
-      valueLabel="Effective Tax Rate"
-      formula="Effective Tax Rate = Income Tax ÷ Pretax Income"
+      ttmField="effectiveTaxRate"
+      kind="income"
       format="percent"
+      formula="Effective Tax Rate = Income Tax ÷ Pretax Income"
     />
   );
 }

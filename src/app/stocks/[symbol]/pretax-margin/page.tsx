@@ -1,4 +1,4 @@
-import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
+import { StatementMetricPage, periodFrom } from "@/components/statement-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
 export default async function PretaxMarginPage({
@@ -12,17 +12,17 @@ export default async function PretaxMarginPage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   return (
-    <RatioMetricPage
+    <StatementMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
       slug="pretax-margin"
       title={`${ticker} Pretax Margin`}
       description="Income before tax as a percentage of revenue."
       field="pretaxProfitMargin"
-      ttmField="pretaxProfitMarginTTM"
-      valueLabel="Pretax Margin"
-      formula="Pretax Margin = Pretax Income ÷ Revenue"
+      ttmField="pretaxProfitMargin"
+      kind="income"
       format="percent"
+      formula="Pretax Margin = Pretax Income ÷ Revenue"
     />
   );
 }

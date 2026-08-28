@@ -15,7 +15,7 @@ import {
 import { getProfilesAndQuotes, POPULAR_STOCK_COMPARISONS } from "@/lib/compare";
 import { industryHref, sectorHref } from "@/lib/industries";
 import { quoteHref } from "@/lib/listings";
-import { forwardPe, forwardPs } from "@/lib/valuation";
+import { estimateCagr, forwardPe, forwardPs, pegRatio, trailingPe } from "@/lib/valuation";
 
 type CompareRow = Awaited<ReturnType<typeof getProfilesAndQuotes>>[number];
 
@@ -44,8 +44,13 @@ function MetricRow({
   );
 }
 
-function pegRatio(row: CompareRow) {
-  return num(row.ratios?.priceToEarningsGrowthRatioTTM) ?? num(row.metrics?.pegRatioTTM);
+function pegForRow(row: CompareRow) {
+  const pe = trailingPe(row.quote?.price, row.ttm?.epsDiluted ?? row.ttm?.eps);
+  return (
+    pegRatio(pe, estimateCagr(row.estimates, "epsAvg", 3)) ??
+    num(row.ratios?.priceToEarningsGrowthRatioTTM) ??
+    num(row.metrics?.pegRatioTTM)
+  );
 }
 
 function targetUpside(row: CompareRow) {
@@ -154,7 +159,7 @@ export default async function ComparePage({
               {(row) => formatPlausiblePe(forwardPe(row.quote?.price, row.estimates))}
             </MetricRow>
             <MetricRow label="PEG Ratio" rows={rows}>
-              {(row) => formatRatio(pegRatio(row))}
+              {(row) => formatRatio(pegForRow(row))}
             </MetricRow>
             <MetricRow label="PS Ratio" rows={rows}>
               {(row) => formatRatio(row.ratios?.priceToSalesRatioTTM)}

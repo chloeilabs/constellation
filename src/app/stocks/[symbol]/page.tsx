@@ -41,7 +41,7 @@ import { listedPeers } from "@/lib/peers";
 import { ChangePercent } from "@/components/change";
 import { PriceTargetRange } from "@/components/price-target-range";
 import { QuoteFaq } from "@/components/quote-faq";
-import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
+import { actualToEstimateCagr, buybackYieldFromShareChange, forwardPe as forwardPeFromEstimates, pegRatio, trailingPe } from "@/lib/valuation";
 import { isIndexTicker } from "@/lib/indexes";
 import { IndexQuote } from "@/components/index-quote";
 import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
@@ -94,11 +94,16 @@ export default async function StockOverviewPage({
       getCashFlowTtm(ticker),
       getShareFloat(ticker),
     ]);
-  const derivedTtm = (() => {
-    if (!ttm) return null;
-    const derived = derivedStatementMetrics(ttm as unknown as Record<string, unknown>);
-    return typeof derived.ebitda === "number" ? { ...ttm, ebitda: derived.ebitda } : ttm;
-  })();
+  const derivedTtm = ttm
+    ? derivedStatementMetrics({
+        ...(ttm as unknown as Record<string, unknown>),
+        depreciationAndAmortization:
+          (ttm as unknown as Record<string, unknown>).depreciationAndAmortization ?? cash?.depreciationAndAmortization,
+        freeCashFlow: cash?.freeCashFlow,
+      })
+    : null;
+  const ttmWithEbitda =
+    ttm && typeof derivedTtm?.ebitda === "number" ? { ...ttm, ebitda: derivedTtm.ebitda } : ttm;
   const { range, points, ma50Series, ma200Series } = chart;
   const latestYear = annual[0];
   const priorYear = annual[1];
@@ -110,14 +115,26 @@ export default async function StockOverviewPage({
   const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
   const sharesYoy = relativeChange(latestYear?.weightedAverageShsOutDil, priorYear?.weightedAverageShsOutDil);
   const ttmBuybacks = cashOutlay(cash?.commonStockRepurchased);
-  const buybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
+  const cashBuybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
+  const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
   const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
   const shareholderYield =
     buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
   const fcfYield =
     cash?.freeCashFlow != null && marketCap ? cash.freeCashFlow / marketCap : null;
-  const peForYield = typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe;
-  const earningsYield = peForYield && peForYield > 0 ? 1 / peForYield : null;
+  const impliedPe = trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps);
+  const peValue = impliedPe ?? (typeof ratios?.priceToEarningsRatioTTM === "number" ? ratios.priceToEarningsRatioTTM : quote?.pe);
+  const epsCagr = actualToEstimateCagr(
+    latestYear?.epsDiluted ?? latestYear?.eps,
+    latestYear?.date,
+    estimates,
+    "epsAvg",
+    3,
+  );
+  const pegValue =
+    pegRatio(peValue, epsCagr) ??
+    (typeof ratios?.priceToEarningsGrowthRatioTTM === "number" ? ratios.priceToEarningsGrowthRatioTTM : null);
+  const earningsYield = peValue && peValue > 0 ? 1 / peValue : null;
   const quarterlyRows = quarterly as Array<Record<string, unknown>>;
   const ttmYoy = {
     revenue: ttmChange(quarterlyRows, "revenue"),
@@ -193,7 +210,7 @@ export default async function StockOverviewPage({
           symbol={ticker}
           quote={quote}
           profile={profile}
-          ttm={derivedTtm ?? ttm}
+          ttm={ttmWithEbitda ?? ttm}
           ratios={ratios}
           target={target}
           grades={grades}
@@ -214,6 +231,9 @@ export default async function StockOverviewPage({
           shareholderYield={shareholderYield}
           fcfYield={fcfYield}
           earningsYield={earningsYield}
+          pe={peValue}
+          peg={pegValue}
+          profitMargin={derivedTtm?.netProfitMargin}
         />
       </div>
 

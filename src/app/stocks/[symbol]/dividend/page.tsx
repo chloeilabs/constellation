@@ -6,7 +6,8 @@ import { formatDate, formatMoney, formatPercentPlain } from "@/lib/format";
 import { getCashFlowTtm, getDividends, getIncomeStatements, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
-import { cashOutlay, indicatedAnnualDividend, nyDateString } from "@/lib/utils";
+import { cashOutlay, indicatedAnnualDividend, nyDateString, relativeChange } from "@/lib/utils";
+import { buybackYieldFromShareChange } from "@/lib/valuation";
 
 export default async function DividendPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
@@ -45,7 +46,9 @@ export default async function DividendPage({ params }: { params: Promise<{ symbo
   const growthYears = consecutiveDividendGrowthYears(byYear, complete);
   const marketCap = quote?.marketCap ?? profile?.marketCap ?? null;
   const ttmBuybacks = cashOutlay(cash?.commonStockRepurchased);
-  const buybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
+  const sharesYoy = relativeChange(annual[0]?.weightedAverageShsOutDil, annual[1]?.weightedAverageShsOutDil);
+  const cashBuybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
+  const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
   const shareholderYield =
     buybackYield != null || ttmYield != null ? (buybackYield ?? 0) + (ttmYield ?? 0) : null;
   const currency = profile?.currency || "USD";

@@ -33,7 +33,7 @@ import {
 } from "@/lib/statements";
 import { cashAndInvestments, indicatedAnnualDividend, netCashPosition, nyDateString } from "@/lib/utils";
 import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
-import { forwardPe as forwardPeFromEstimates } from "@/lib/valuation";
+import { forwardPe as forwardPeFromEstimates, trailingPe } from "@/lib/valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpIncomeStatement, FmpRatios, FmpRevenueSegment } from "@/lib/types";
 
 function n(value: unknown) {
@@ -435,6 +435,9 @@ export default async function FinancialsOverviewPage({
       values: {
         ...valuationColumns[0].values,
         forwardPe: forwardPeFromEstimates(quote?.price, estimates),
+        pe:
+          trailingPe(quote?.price, ttmIncome?.epsDiluted ?? ttmIncome?.eps) ??
+          valuationColumns[0].values.pe,
       },
     };
   }

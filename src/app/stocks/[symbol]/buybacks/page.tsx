@@ -10,6 +10,7 @@ import { compactMoneyFn, formatPercentPlain, reportingCurrency, yearOverYear } f
 import { getCashFlows, getCashFlowTtm, getIncomeGrowth, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { cashOutlay } from "@/lib/utils";
+import { buybackYieldFromShareChange } from "@/lib/valuation";
 
 export default async function BuybacksPage({
   params,
@@ -38,15 +39,16 @@ export default async function BuybacksPage({
   const priorBuybacks = cashOutlay(annual[1]?.commonStockRepurchased);
   const fyGrowth = yearOverYear(fyBuybacks, priorBuybacks);
   const marketCap = quote?.marketCap;
-  const buybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
-  const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
-  const shareholderYield =
-    buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
-  const tenYear = annual.slice(0, 10).reduce((sum, row) => sum + (cashOutlay(row.commonStockRepurchased) ?? 0), 0);
+  const cashBuybackYield = ttmBuybacks != null && marketCap ? ttmBuybacks / marketCap : null;
   const sharesYoy =
     typeof growthRows[0]?.growthWeightedAverageShsOutDil === "number"
       ? growthRows[0].growthWeightedAverageShsOutDil
       : null;
+  const buybackYield = buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
+  const dividendYield = typeof ratios?.dividendYieldTTM === "number" ? ratios.dividendYieldTTM : null;
+  const shareholderYield =
+    buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
+  const tenYear = annual.slice(0, 10).reduce((sum, row) => sum + (cashOutlay(row.commonStockRepurchased) ?? 0), 0);
   const money = compactMoneyFn(reportingCurrency(ttm?.reportedCurrency, annual[0]?.reportedCurrency));
 
   return (
@@ -71,9 +73,10 @@ export default async function BuybacksPage({
         items={[
           { label: "Buybacks (ttm)", value: money(ttmBuybacks) },
           {
-            label: "Buyback Yield",
+            label: "Buyback Yield / Dilution",
             value: formatPercentPlain(buybackYield),
           },
+          { label: "Cash Yield", value: formatPercentPlain(cashBuybackYield) },
           { label: "Dividends Paid (ttm)", value: money(ttmDividends) },
           {
             label: "Shareholder Yield",
@@ -111,8 +114,9 @@ export default async function BuybacksPage({
       </div>
       <p className="mt-4 text-sm text-muted">
         Buybacks are the absolute value of <span className="text-header">commonStockRepurchased</span> from FMP cash flow
-        statements (reported as a financing outflow). Buyback yield is trailing repurchases divided by market cap.
-        Shareholder yield adds the trailing dividend yield.
+        statements (reported as a financing outflow). Buyback yield / dilution is the inverse of diluted share-count
+        change, matching Stock Analysis. Cash yield is trailing repurchases divided by market cap. Shareholder yield adds
+        the trailing dividend yield.
       </p>
     </Container>
   );

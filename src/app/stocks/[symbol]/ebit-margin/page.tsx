@@ -1,4 +1,4 @@
-import { RatioMetricPage, periodFrom } from "@/components/ratio-metric-page";
+import { StatementMetricPage, periodFrom } from "@/components/statement-metric-page";
 import { decodeTicker } from "@/lib/listings";
 
 export default async function EbitMarginPage({
@@ -12,17 +12,17 @@ export default async function EbitMarginPage({
   const { period: periodParam } = await searchParams;
   const ticker = decodeTicker(symbol);
   return (
-    <RatioMetricPage
+    <StatementMetricPage
       symbol={ticker}
       period={periodFrom(periodParam)}
       slug="ebit-margin"
       title={`${ticker} EBIT Margin`}
-      description="EBIT as a percentage of revenue."
+      description="Operating income (EBIT) as a percentage of revenue."
       field="ebitMargin"
-      ttmField="ebitMarginTTM"
-      valueLabel="EBIT Margin"
-      formula="EBIT Margin = EBIT ÷ Revenue"
+      ttmField="ebitMargin"
+      kind="income"
       format="percent"
+      formula="EBIT Margin = Operating Income ÷ Revenue"
     />
   );
 }

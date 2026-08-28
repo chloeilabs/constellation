@@ -5,9 +5,9 @@ import { SectionNav } from "@/components/section-nav";
 import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { formatDate, formatMoney, formatRatio } from "@/lib/format";
-import { getEstimates, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
+import { getEstimates, getIncomeTtm, getProfile, getQuote, getRatiosTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { forwardPe, nextEstimate } from "@/lib/valuation";
+import { forwardPe, futureEstimates, nextEstimate, trailingPe } from "@/lib/valuation";
 
 function num(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -16,18 +16,19 @@ function num(value: unknown) {
 export default async function ForwardPePage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const ticker = decodeTicker(symbol);
-  const [quote, profile, estimates, ratios] = await Promise.all([
+  const [quote, profile, estimates, ratios, ttm] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
     getEstimates(ticker, "annual"),
     getRatiosTtm(ticker),
+    getIncomeTtm(ticker),
   ]);
   const currency = profile?.currency || "USD";
   const price = num(quote?.price);
   const next = nextEstimate(estimates);
   const fwd = forwardPe(price, estimates);
-  const trailing = num(ratios?.priceToEarningsRatioTTM) ?? num(quote?.pe);
-  const ranked = [...estimates].filter((row) => row.date).sort((a, b) => a.date.localeCompare(b.date));
+  const trailing = trailingPe(price, ttm?.epsDiluted ?? ttm?.eps) ?? num(ratios?.priceToEarningsRatioTTM) ?? num(quote?.pe);
+  const ranked = futureEstimates(estimates);
 
   return (
     <Container>
@@ -92,7 +93,7 @@ export default async function ForwardPePage({ params }: { params: Promise<{ symb
         </div>
       </section>
       <p className="mt-4 text-sm text-muted">
-        Forward PE = Price ÷ next fiscal-year consensus EPS. Trailing PE uses FMP ratio TTM.{" "}
+        Forward PE = Price ÷ next fiscal-year consensus EPS. Trailing PE is last price divided by diluted EPS (ttm).{" "}
         <Link href={stockPath(ticker, "/forecast")} className="text-link hover:underline">
           Full estimate tables
         </Link>

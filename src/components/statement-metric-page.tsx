@@ -5,10 +5,10 @@ import { quoteFundamentalsNav } from "@/lib/nav";
 import { MetricCards } from "@/components/metric-cards";
 import { MetricHistory } from "@/components/metric-history";
 import { ChangePercent } from "@/components/change";
-import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
+import { compactMoneyFn, formatPercentPlain, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getCashFlows, getCashFlowTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { derivedStatementMetrics, ttmChange } from "@/lib/statements";
+import { derivedStatementMetrics, trailingDerivedMetric, ttmChange } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 function withDerivedIncome<T extends Record<string, unknown>>(row: T): T {
@@ -25,6 +25,8 @@ export async function StatementMetricPage({
   kind,
   ttmField,
   zeroAsEmpty = false,
+  format = "money",
+  formula,
 }: {
   symbol: string;
   period: StatementPeriod;
@@ -35,6 +37,8 @@ export async function StatementMetricPage({
   kind: "income" | "balance" | "cash";
   ttmField?: string;
   zeroAsEmpty?: boolean;
+  format?: "money" | "percent";
+  formula?: string;
 }) {
   const ticker = decodeTicker(symbol);
   const path = stockPath(ticker, `/${slug}`);
@@ -60,12 +64,16 @@ export async function StatementMetricPage({
     ttmRow && ttmField && typeof ttmRow[ttmField] === "number" ? (ttmRow[ttmField] as number) : latestValue,
   );
   const fyGrowth = yearOverYear(latestValue, priorValue);
+  const quarterRecords = quarterlyRows as Array<Record<string, unknown>>;
   const growth =
-    (kind === "income" || kind === "cash") && ttmField
-      ? ttmChange(quarterlyRows as Array<Record<string, unknown>>, ttmField) ?? fyGrowth
-      : fyGrowth;
+    format === "percent" && kind === "income"
+      ? yearOverYear(ttmValue, trailingDerivedMetric(quarterRecords, field, 4)) ?? fyGrowth
+      : (kind === "income" || kind === "cash") && ttmField
+        ? ttmChange(quarterRecords, ttmField) ?? fyGrowth
+        : fyGrowth;
   const currency = reportingCurrency(typeof latest?.reportedCurrency === "string" ? latest.reportedCurrency : null);
   const money = compactMoneyFn(currency);
+  const formatValue = format === "percent" ? formatPercentPlain : money;
 
   return (
     <Container>
@@ -73,7 +81,7 @@ export async function StatementMetricPage({
       <SectionNav items={quoteFundamentalsNav(ticker)} />
       <MetricCards
         items={[
-          { label: ttmField ? "Trailing 12 Months" : "Latest", value: money(ttmValue) },
+          { label: ttmField ? "Trailing 12 Months" : "Latest", value: formatValue(ttmValue) },
           {
             label: ttmField ? "TTM Growth" : "Change",
             value: growth == null ? "—" : <ChangePercent value={growth} alreadyPercent={false} className="text-2xl" />,
@@ -86,7 +94,7 @@ export async function StatementMetricPage({
         quarterHref={`${path}?period=quarter`}
         title={`${period === "quarter" ? "Quarterly" : "Annual"} History`}
         valueLabel="Value"
-        formatValue={money}
+        formatValue={formatValue}
         empty="No history available."
         rows={history.map((row) => {
           const values = row as Record<string, unknown>;
@@ -102,6 +110,7 @@ export async function StatementMetricPage({
           };
         })}
       />
+      {formula ? <p className="mt-4 text-sm text-muted">{formula}</p> : null}
     </Container>
   );
 }

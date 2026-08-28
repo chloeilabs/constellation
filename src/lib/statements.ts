@@ -54,6 +54,7 @@ export const ADDITIONAL_INCOME_ROWS: StatementRow[] = [
   { key: "depreciationAndAmortization", label: "D&A For EBITDA", format: "money" },
   { key: "ebit", label: "EBIT", format: "money" },
   { key: "ebitMargin", label: "EBIT Margin", format: "percent" },
+  { key: "pretaxProfitMargin", label: "Pretax Margin", format: "percent" },
   { key: "effectiveTaxRate", label: "Effective Tax Rate", format: "percent" },
   { key: "revenueAsReported", label: "Revenue as Reported", format: "money" },
 ];
@@ -106,6 +107,7 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   fcfMargin: "fcf-margin",
   ebitdaMargin: "ebitda-margin",
   ebitMargin: "ebit-margin",
+  pretaxProfitMargin: "pretax-margin",
   effectiveTaxRate: "effective-tax-rate",
   fcfPerShare: "free-cash-flow",
   dividendPerShare: "dividend",
@@ -134,6 +136,7 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   earningsYield: "earnings-yield",
   freeCashFlowYield: "fcf-yield",
   netDebtToEBITDA: "net-debt-ebitda",
+  priceToEarningsGrowthRatio: "peg-ratio",
 };
 
 export function withStatementHrefs(rows: StatementRow[], symbol: string): StatementRow[] {
@@ -237,6 +240,8 @@ export const RATIO_ROWS: StatementRow[] = [
   { key: "assetTurnover", label: "Asset Turnover", format: "ratio" },
   { key: "inventoryTurnover", label: "Inventory Turnover", format: "ratio" },
   { key: "priceToEarningsRatio", label: "PE Ratio", format: "ratio" },
+  { key: "forwardPe", label: "Forward PE", format: "ratio" },
+  { key: "priceToEarningsGrowthRatio", label: "PEG Ratio", format: "ratio" },
   { key: "priceToBookRatio", label: "PB Ratio", format: "ratio" },
   { key: "priceToSalesRatio", label: "PS Ratio", format: "ratio" },
   { key: "priceToFreeCashFlowRatio", label: "P/FCF", format: "ratio" },
@@ -404,6 +409,7 @@ export function derivedStatementMetrics(values: Record<string, unknown>) {
     fcfMargin: revenue && fcf != null ? fcf / revenue : null,
     ebitdaMargin: revenue && ebitda != null ? ebitda / revenue : null,
     ebitMargin: revenue && ebit != null ? ebit / revenue : null,
+    pretaxProfitMargin: revenue && pretax != null ? pretax / revenue : null,
     effectiveTaxRate: pretax && pretax !== 0 && tax != null ? tax / pretax : null,
   };
 }
@@ -538,6 +544,42 @@ export function reconcileQuarterlyToAnnual<T extends { fiscalYear: string; perio
 export function ttmChange(rows: Array<Record<string, unknown>> | undefined, field: string) {
   if (!rows?.length) return null;
   return yearOverYear(trailingSum(rows, field, 0), trailingSum(rows, field, 4));
+}
+
+export function trailingSnapshot(rows: Array<Record<string, unknown>>, start = 0, count = 4) {
+  const slice = rows.slice(start, start + count);
+  if (slice.length < count) return null;
+  const keys = new Set<string>();
+  for (const row of slice) {
+    for (const key of Object.keys(row)) keys.add(key);
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of keys) {
+    let total = 0;
+    let seen = 0;
+    for (const row of slice) {
+      const value = row[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        total += value;
+        seen += 1;
+      }
+    }
+    if (seen === count) out[key] = total;
+  }
+  return out;
+}
+
+export function trailingDerivedMetric(
+  rows: Array<Record<string, unknown>> | undefined,
+  field: string,
+  start = 0,
+) {
+  if (!rows?.length) return null;
+  const snap = trailingSnapshot(rows, start);
+  if (!snap) return null;
+  const derived = derivedStatementMetrics(snap) as Record<string, number | null>;
+  const value = derived[field];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 export function canonicalSegmentName(name: string) {
