@@ -1,7 +1,12 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatPercentPlain, formatPrice } from "@/lib/format";
-import { DISTRIBUTION_TTM_LIMIT, dividendYieldFromPrice, trailingDividendWindow } from "@/lib/dividends";
+import {
+  DISTRIBUTION_TTM_LIMIT,
+  dividendTtmGrowth,
+  dividendYieldFromPrice,
+  trailingDividendWindow,
+} from "@/lib/dividends";
 import { getDividends, getQuote } from "@/lib/fmp";
 import { decodeTicker } from "@/lib/listings";
 import { nyDateString, payoutFrequencyLabel } from "@/lib/utils";
@@ -13,13 +18,15 @@ export async function VehicleDividend({ symbol }: { symbol: string }) {
     getQuote(ticker),
   ]);
   const latest = dividends[0];
-  const ttm = trailingDividendWindow(dividends, nyDateString());
+  const asOf = nyDateString();
+  const ttm = trailingDividendWindow(dividends, asOf);
   const ttmYield = dividendYieldFromPrice(ttm, quote?.price);
+  const ttmGrowth = dividendTtmGrowth(dividends, asOf);
 
   return (
     <Container>
       <PageHeader title={`${ticker} Dividend`} description="Distribution history, yield, and payment dates." />
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Last Distribution</div>
           <div className="mt-1 text-2xl font-semibold tabular">${formatPrice(latest?.dividend)}</div>
@@ -41,6 +48,10 @@ export async function VehicleDividend({ symbol }: { symbol: string }) {
         <div className="rounded-lg border border-border p-4">
           <div className="text-sm text-muted">Frequency</div>
           <div className="mt-1 text-2xl font-semibold">{payoutFrequencyLabel(latest?.frequency) ?? "—"}</div>
+        </div>
+        <div className="rounded-lg border border-border p-4">
+          <div className="text-sm text-muted">Dividend Growth (1Y)</div>
+          <div className="mt-1 text-2xl font-semibold tabular">{formatPercentPlain(ttmGrowth)}</div>
         </div>
       </div>
       <div className="mt-8 overflow-x-auto rounded-lg border border-border">

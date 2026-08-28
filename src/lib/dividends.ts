@@ -1,9 +1,9 @@
 import { yearOverYear } from "@/lib/format";
 import type { FmpDividend } from "@/lib/types";
-import { addDays, isoDate } from "@/lib/utils";
+import { addDays, isoDate, nyDateString } from "@/lib/utils";
 
-/** Payments to fetch so a weekly payer still covers a 365-day TTM window. */
-export const DISTRIBUTION_TTM_LIMIT = 80;
+/** Payments to fetch so a weekly payer covers two 365-day windows (TTM and 1Y growth). */
+export const DISTRIBUTION_TTM_LIMIT = 120;
 
 export function payoutRatioFromDps(dps: number | null | undefined, eps: number | null | undefined) {
   if (typeof dps !== "number" || !Number.isFinite(dps) || typeof eps !== "number" || !(eps > 0)) return null;
@@ -69,9 +69,22 @@ export function trailingDividendThrough(
   return trailingDividendTotal(eligible, 0, count);
 }
 
-/** Last four payments versus the prior four, matching Stock Analysis 1-year dividend growth. */
-export function dividendTtmGrowth(dividends: Array<{ dividend?: number; adjDividend?: number }>) {
-  return yearOverYear(trailingDividendTotal(dividends, 0), trailingDividendTotal(dividends, 4));
+/**
+ * Trailing-year cash versus the prior year, for labels such as Dividend Growth (1Y).
+ * Returns null when history does not reach the start of the prior window (truncated or too new).
+ * Keep `trailingDividendTotal(..., 4)` for quarterly DPS columns on statements.
+ */
+export function dividendTtmGrowth(
+  dividends: Array<{ date?: string; dividend?: number; adjDividend?: number }>,
+  asOf = nyDateString(),
+) {
+  const endMs = Date.parse(`${asOf}T00:00:00Z`);
+  if (!Number.isFinite(endMs)) return null;
+  const priorEnd = isoDate(addDays(new Date(endMs), -365));
+  const priorStart = isoDate(addDays(new Date(endMs), -730));
+  const coversPriorYear = dividends.some((row) => row.date && row.date <= priorStart);
+  if (!coversPriorYear) return null;
+  return yearOverYear(trailingDividendWindow(dividends, asOf), trailingDividendWindow(dividends, priorEnd));
 }
 
 export function consecutiveDividendGrowthYears(byYear: Map<string, number>, yearsAscending: string[]) {

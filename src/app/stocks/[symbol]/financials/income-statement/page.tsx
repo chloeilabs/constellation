@@ -13,7 +13,7 @@ import {
 } from "@/lib/fmp";
 import { formatMillions, formatPrice, reportingCurrency, yearOverYear } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { dividendsByFiscalYear, dividendTtmGrowth, trailingDividendThrough, trailingDividendTotal } from "@/lib/dividends";
+import { DISTRIBUTION_TTM_LIMIT, dividendsByFiscalYear, dividendTtmGrowth, trailingDividendThrough, trailingDividendTotal } from "@/lib/dividends";
 import {
   ADDITIONAL_INCOME_ROWS,
   CASH_TRAILING_SUM_KEYS,
@@ -68,7 +68,7 @@ export default async function IncomeStatementPage({
     source === "standardized" && !trailing ? getCashFlows(ticker, period, displayCount) : Promise.resolve([]),
     source === "standardized" && trailing ? getCashFlows(ticker, "quarter", displayCount + 4) : Promise.resolve([]),
     source === "standardized" ? getCashFlowTtm(ticker) : Promise.resolve(null),
-    source === "standardized" ? getDividends(ticker, 80) : Promise.resolve([]),
+    source === "standardized" ? getDividends(ticker, DISTRIBUTION_TTM_LIMIT) : Promise.resolve([]),
   ]);
   const currency = reportingCurrency(
     annual[0]?.reportedCurrency,

@@ -44,7 +44,7 @@ import { decodeTicker } from "@/lib/listings";
 import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
 import { padCik } from "@/lib/institutional";
 import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString, relativeChange } from "@/lib/utils";
-import { consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
+import { DISTRIBUTION_TTM_LIMIT, consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
 import { derivedStatementMetrics } from "@/lib/statements";
 import { valuationFromFilings } from "@/lib/period-valuation";
 import { estimatedWacc } from "@/lib/wacc";
@@ -99,7 +99,7 @@ export default async function StatisticsPage({ params }: { params: Promise<{ sym
     getCashFlowTtm(ticker),
     getBalanceSheets(ticker, "quarter", 5),
     getCompanyEarnings(ticker, 12),
-    getDividends(ticker, 80),
+    getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
     getSplits(ticker, 5),
     getEmployeeCount(ticker, 1),
     getEstimates(ticker, "annual"),

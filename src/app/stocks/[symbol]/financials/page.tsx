@@ -34,7 +34,7 @@ import {
   withSegmentGrowth,
 } from "@/lib/statements";
 import { addDays, cashAndInvestments, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString } from "@/lib/utils";
-import { dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
+import { DISTRIBUTION_TTM_LIMIT, dividendTtmGrowth, dividendsByFiscalYear } from "@/lib/dividends";
 import { marketCapFromPrice, nextEstimate } from "@/lib/valuation";
 import { valuationFromFilings } from "@/lib/period-valuation";
 import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, FmpRevenueSegment } from "@/lib/types";
@@ -306,7 +306,7 @@ export default async function FinancialsOverviewPage({
       getRevenueProductSegments(ticker, "quarter"),
       getRevenueGeographicSegments(ticker, "annual"),
       getRevenueGeographicSegments(ticker, "quarter"),
-      getDividends(ticker, span === "5" ? 40 : 80),
+      getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
       getQuote(ticker),
       getEstimates(ticker, "annual"),
       getEnterpriseValues(ticker, "annual", annualLimit),
