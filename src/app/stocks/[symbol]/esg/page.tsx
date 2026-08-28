@@ -22,7 +22,7 @@ export default async function EsgPage({ params }: { params: Promise<{ symbol: st
   const esg = esgDisclosures[0] ?? null;
   const history = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0));
   const industry = esgRating?.industry || profile?.industry || null;
-  const industryBench = matchEsgBenchmark(benchmarks, industry);
+  const industryBench = matchEsgBenchmark(benchmarks, industry, esgRating?.fiscalYear);
 
   return (
     <Container>
