@@ -550,6 +550,12 @@ export type FmpEstimate = {
   ebitdaAvg?: number;
   ebitdaHigh?: number;
   ebitdaLow?: number;
+  ebitAvg?: number;
+  ebitHigh?: number;
+  ebitLow?: number;
+  sgaExpenseAvg?: number;
+  sgaExpenseHigh?: number;
+  sgaExpenseLow?: number;
   netIncomeAvg?: number;
   netIncomeHigh?: number;
   netIncomeLow?: number;

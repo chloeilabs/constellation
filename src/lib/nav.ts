@@ -146,6 +146,14 @@ export function fundQuoteNav(symbol: string): NavItem[] {
   ];
 }
 
+export function companyNav(symbol: string): NavItem[] {
+  const ticker = decodeTicker(symbol);
+  return [
+    { href: stockPath(ticker, "/company"), label: "Profile" },
+    { href: stockPath(ticker, "/company/executives"), label: "Executives" },
+  ];
+}
+
 export function quoteFundamentalsNav(symbol: string) {
   const base = stockPath(symbol);
   return [

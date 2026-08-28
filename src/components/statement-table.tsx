@@ -89,6 +89,7 @@ export function StatementTable({
   downloadName,
   inlineYoy = true,
   yoyOffset = 1,
+  cornerLabel = "Fiscal Year",
 }: {
   rows: StatementRow[];
   columns: { key: string; label: string; values: Record<string, unknown> }[];
@@ -99,6 +100,7 @@ export function StatementTable({
   downloadName?: string;
   inlineYoy?: boolean;
   yoyOffset?: number;
+  cornerLabel?: string;
 }) {
   if (columns.length === 0) {
     return <p className="text-sm text-muted">No statement data available for this period.</p>;
@@ -128,13 +130,16 @@ export function StatementTable({
         <table className="sa-table sa-statement">
           <thead>
             <tr>
-              <th>Fiscal Year</th>
+              <th>{cornerLabel}</th>
               {columns.map((column) => {
                 const ended = periodEnd(column.values);
                 return (
                   <th key={column.key} className="num">
                     <div>{column.label}</div>
                     {ended ? <div className="text-[11px] font-normal text-muted">{ended}</div> : null}
+                    {column.values.isEstimate === true ? (
+                      <div className="text-[11px] font-normal text-muted">Est.</div>
+                    ) : null}
                   </th>
                 );
               })}

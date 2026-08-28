@@ -58,6 +58,23 @@ export const ADDITIONAL_INCOME_ROWS: StatementRow[] = [
   { key: "revenueAsReported", label: "Revenue as Reported", format: "money" },
 ];
 
+/** Mixed actual + consensus estimate rows for the quote forecast table. */
+export const FORECAST_ROWS: StatementRow[] = [
+  { key: "revenue", label: "Revenue", emphasize: true, format: "money" },
+  { key: "revenueGrowth", label: "Revenue Growth", format: "percent" },
+  { key: "grossProfit", label: "Gross Profit", format: "money" },
+  { key: "grossProfitMargin", label: "Gross Margin", format: "percent" },
+  { key: "operatingIncome", label: "Operating Income", format: "money" },
+  { key: "netIncome", label: "Net Income", emphasize: true, format: "money" },
+  { key: "eps", label: "EPS", format: "eps" },
+  { key: "epsGrowth", label: "EPS Growth", format: "percent" },
+  { key: "forwardPe", label: "Forward PE", format: "ratio" },
+  { key: "dividendPerShare", label: "Dividend / Share", format: "eps" },
+  { key: "dividendGrowth", label: "Dividend Growth", format: "percent" },
+  { key: "freeCashFlow", label: "Free Cash Flow", format: "money" },
+  { key: "analysts", label: "No. Analysts", format: "number" },
+];
+
 export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   revenue: "revenue",
   costOfRevenue: "cost-of-revenue",
@@ -72,6 +89,7 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   incomeTaxExpense: "income-tax",
   netIncome: "net-income",
   epsDiluted: "earnings",
+  eps: "earnings",
   ebitda: "ebitda",
   ebit: "ebit",
   freeCashFlow: "free-cash-flow",
@@ -92,6 +110,9 @@ export const STATEMENT_METRIC_HREFS: Record<string, string> = {
   fcfPerShare: "free-cash-flow",
   dividendPerShare: "dividend",
   dividendGrowth: "dividend",
+  forwardPe: "forward-pe",
+  revenueGrowth: "revenue",
+  epsGrowth: "earnings",
   revenueAsReported: "revenue",
   cashAndCashEquivalents: "cash",
   cashAndShortTermInvestments: "cash",

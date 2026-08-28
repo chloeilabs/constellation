@@ -852,10 +852,10 @@ export function getPeers(symbol: string) {
   );
 }
 
-export function getEstimates(symbol: string, period: StatementPeriod = "annual") {
+export function getEstimates(symbol: string, period: StatementPeriod = "annual", limit = 16) {
   return fmpList<FmpEstimate>(
     "/analyst-estimates",
-    { symbol: decodeTicker(symbol), period, limit: 8 },
+    { symbol: decodeTicker(symbol), period, limit },
     { revalidate: 3600 },
   );
 }

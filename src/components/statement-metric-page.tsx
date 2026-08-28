@@ -8,8 +8,12 @@ import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, reportingCurrency, yearOverYear } from "@/lib/format";
 import { getBalanceSheets, getCashFlows, getCashFlowTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
 import { decodeTicker, stockPath } from "@/lib/listings";
-import { ttmChange } from "@/lib/statements";
+import { derivedStatementMetrics, ttmChange } from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
+
+function withDerivedIncome<T extends Record<string, unknown>>(row: T): T {
+  return { ...row, ...derivedStatementMetrics(row) };
+}
 
 export async function StatementMetricPage({
   symbol,
@@ -41,21 +45,24 @@ export async function StatementMetricPage({
         ? [getCashFlows(ticker, "annual", 20), getCashFlows(ticker, "quarter", 12), getCashFlowTtm(ticker)]
         : [getBalanceSheets(ticker, "annual", 20), getBalanceSheets(ticker, "quarter", 12), Promise.resolve(null)],
   );
-  const history = period === "quarter" ? quarterly : annual;
+  const annualRows = kind === "income" ? annual.map((row) => withDerivedIncome(row as Record<string, unknown>)) : annual;
+  const quarterlyRows =
+    kind === "income" ? quarterly.map((row) => withDerivedIncome(row as Record<string, unknown>)) : quarterly;
+  const ttmRow =
+    kind === "income" && ttm ? withDerivedIncome(ttm as Record<string, unknown>) : (ttm as Record<string, unknown> | null);
+  const history = period === "quarter" ? quarterlyRows : annualRows;
   const latest = history[0] as Record<string, unknown> | undefined;
   const prior = history[1] as Record<string, unknown> | undefined;
   const display = (value: number | null) => (zeroAsEmpty && value === 0 ? null : value);
   const latestValue = display(typeof latest?.[field] === "number" ? (latest[field] as number) : null);
   const priorValue = display(typeof prior?.[field] === "number" ? (prior[field] as number) : null);
   const ttmValue = display(
-    ttm && ttmField && typeof (ttm as Record<string, unknown>)[ttmField] === "number"
-      ? ((ttm as Record<string, unknown>)[ttmField] as number)
-      : latestValue,
+    ttmRow && ttmField && typeof ttmRow[ttmField] === "number" ? (ttmRow[ttmField] as number) : latestValue,
   );
   const fyGrowth = yearOverYear(latestValue, priorValue);
   const growth =
     (kind === "income" || kind === "cash") && ttmField
-      ? ttmChange(quarterly as Array<Record<string, unknown>>, ttmField) ?? fyGrowth
+      ? ttmChange(quarterlyRows as Array<Record<string, unknown>>, ttmField) ?? fyGrowth
       : fyGrowth;
   const currency = reportingCurrency(typeof latest?.reportedCurrency === "string" ? latest.reportedCurrency : null);
   const money = compactMoneyFn(currency);
@@ -84,10 +91,13 @@ export async function StatementMetricPage({
         rows={history.map((row) => {
           const values = row as Record<string, unknown>;
           const raw = typeof values[field] === "number" ? (values[field] as number) : null;
+          const date = typeof values.date === "string" ? values.date : "";
+          const periodLabel = typeof values.period === "string" ? values.period : "";
+          const fiscalYear = values.fiscalYear != null ? String(values.fiscalYear) : "";
           return {
-            key: `${row.date}-${row.period}`,
-            date: row.date,
-            label: period === "quarter" ? `${row.period} ${row.fiscalYear}` : String(row.fiscalYear),
+            key: `${date}-${periodLabel}`,
+            date,
+            label: period === "quarter" ? `${periodLabel} ${fiscalYear}` : fiscalYear,
             value: display(raw),
           };
         })}
