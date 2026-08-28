@@ -337,6 +337,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "IE",
     exchange: "DUB",
     symbolPattern: "^[A-Z0-9]+\\.IR$",
+    listSlug: "dublin-stocks",
   },
   {
     code: "pt",
@@ -379,6 +380,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "IS",
     exchange: "ICE",
     symbolPattern: "^[A-Z0-9]+\\.IC$",
+    listSlug: "iceland-stocks",
   },
   {
     code: "tr",
@@ -400,6 +402,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "AR",
     exchange: "BUE",
     symbolPattern: "^[A-Z0-9]+\\.BA$",
+    listSlug: "argentina-stocks",
   },
   {
     code: "cl",
@@ -476,6 +479,7 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     country: "AE",
     exchange: "DFM",
     symbolPattern: "^[A-Z0-9]+\\.AE$",
+    listSlug: "dubai-stocks",
   },
   {
     code: "qa",

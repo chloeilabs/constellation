@@ -169,6 +169,11 @@ const nextConfig: NextConfig = {
       { source: "/list/qatar-stock-exchange", destination: "/list/qatar-stocks", permanent: false },
       { source: "/list/santiago-stock-exchange", destination: "/list/chile-stocks", permanent: false },
       { source: "/list/euronext-lisbon", destination: "/list/portugal-stocks", permanent: false },
+      { source: "/list/euronext-dublin", destination: "/list/dublin-stocks", permanent: false },
+      { source: "/list/ireland-stocks", destination: "/list/dublin-stocks", permanent: false },
+      { source: "/list/dubai-financial-market", destination: "/list/dubai-stocks", permanent: false },
+      { source: "/list/buenos-aires-stock-exchange", destination: "/list/argentina-stocks", permanent: false },
+      { source: "/list/nasdaq-iceland", destination: "/list/iceland-stocks", permanent: false },
     ];
   },
   images: {

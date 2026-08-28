@@ -1576,6 +1576,50 @@ export const STOCK_LISTS = {
     listing: "raw",
     symbolPattern: "^[A-Z0-9]+\\.LS$",
   },
+  "dublin-stocks": {
+    title: "Euronext Dublin",
+    description: "The largest companies listed on Euronext Dublin, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "DUB", country: "IE" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.IR$",
+  },
+  "dubai-stocks": {
+    title: "Dubai Financial Market",
+    description: "The largest companies listed on the Dubai Financial Market, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "DFM", country: "AE" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.AE$",
+  },
+  "argentina-stocks": {
+    title: "Buenos Aires Stock Exchange",
+    description: "The largest companies listed on the Buenos Aires Stock Exchange (BYMA), ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "BUE", country: "AR" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.BA$",
+  },
+  "iceland-stocks": {
+    title: "Nasdaq Iceland",
+    description: "The largest companies listed on Nasdaq Iceland, ranked by market cap.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "ICE", country: "IS" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.IC$",
+  },
 } as const satisfies Record<string, StockList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
@@ -1818,17 +1862,20 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   "qatar-stock-exchange": "qatar-stocks",
   "santiago-stock-exchange": "chile-stocks",
   "euronext-lisbon": "portugal-stocks",
+  "euronext-dublin": "dublin-stocks",
+  "ireland-stocks": "dublin-stocks",
+  "dubai-financial-market": "dubai-stocks",
+  dfm: "dubai-stocks",
+  "buenos-aires-stock-exchange": "argentina-stocks",
+  byma: "argentina-stocks",
+  "nasdaq-iceland": "iceland-stocks",
 };
 
 /** Stock Analysis list URLs that resolve to a country page, funds hub, or exchanges directory. */
 export const LIST_PATH_ALIASES: Record<string, string> = {
   exchanges: "/list/exchanges",
   "mutual-funds": "/funds",
-  "euronext-dublin": "/stocks/country/ie",
   "prague-stock-exchange": "/stocks/country/cz",
-  "nasdaq-iceland": "/stocks/country/is",
-  "buenos-aires-stock-exchange": "/stocks/country/ar",
-  "dubai-financial-market": "/stocks/country/ae",
 };
 
 export function resolveStockListSlug(value: string): StockListSlug | null {
