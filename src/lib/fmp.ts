@@ -18,6 +18,7 @@ import type {
   FmpEtfCountryWeight,
   FmpEtfExposure,
   FmpExecutive,
+  FmpAdjustedCandle,
   FmpFullCandle,
   FmpGrade,
   FmpGradesConsensus,
@@ -1203,6 +1204,14 @@ export function getIncomeGrowth(symbol: string, period: StatementPeriod = "annua
 export function getFullDailyChart(symbol: string, from?: string, to?: string) {
   return fmpList<FmpFullCandle>(
     "/historical-price-eod/full",
+    { symbol: decodeTicker(symbol), from, to },
+    { revalidate: 300 },
+  );
+}
+
+export function getDividendAdjustedChart(symbol: string, from?: string, to?: string) {
+  return fmpList<FmpAdjustedCandle>(
+    "/historical-price-eod/dividend-adjusted",
     { symbol: decodeTicker(symbol), from, to },
     { revalidate: 300 },
   );

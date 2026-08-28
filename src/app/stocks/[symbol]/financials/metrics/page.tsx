@@ -8,7 +8,10 @@ import { reportingCurrency } from "@/lib/format";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import {
   KEY_METRIC_ROWS,
+  orderedGeoNames,
+  orderedProductNames,
   priorTtmSegmentMap,
+  productMetricRows,
   segmentStatementColumns,
   segmentStatementRows,
   spanFrom,
@@ -50,8 +53,8 @@ export default async function MetricsPage({
   const productPriorTtm = priorTtmSegmentMap(productQuarters);
   const geoTtm = ttmSegmentMap(geoQuarters);
   const geoPriorTtm = priorTtmSegmentMap(geoQuarters);
-  const productNames = topSegmentNames(products, productTtm);
-  const geoNames = topSegmentNames(geos, geoTtm);
+  const productNames = orderedProductNames(topSegmentNames(products, productTtm));
+  const geoNames = orderedGeoNames(topSegmentNames(geos, geoTtm));
   const productColumns = segmentStatementColumns(
     period === "quarter" ? productQuarters : products,
     productNames,
@@ -60,6 +63,7 @@ export default async function MetricsPage({
     period === "quarter" ? quarterCount : yearCount,
     period === "annual" ? productPriorTtm : null,
     productQuarters[0]?.date,
+    { productRollup: true },
   );
   const geoColumns = segmentStatementColumns(
     period === "quarter" ? geoQuarters : geos,
@@ -75,7 +79,7 @@ export default async function MetricsPage({
     <Container>
       <PageHeader
         title={`${ticker} Business Metrics`}
-        description="Product and geographic revenue from company filings, plus FMP valuation and efficiency metrics."
+        description="Product and geographic revenue from company filings. Products is the hardware total; Services is reported separately."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <PeriodToggle
@@ -97,13 +101,13 @@ export default async function MetricsPage({
       {productNames.length > 0 ? (
         <section className="mt-2">
           <div className="mb-3 flex items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold text-header">Revenue by Product</h2>
+            <h2 className="text-lg font-semibold text-header">Revenue</h2>
             <Link href={stockPath(ticker, "/revenue")} className="text-sm text-link hover:underline">
               Revenue page
             </Link>
           </div>
           <StatementTable
-            rows={segmentStatementRows(productNames)}
+            rows={productMetricRows(productNames)}
             columns={productColumns}
             scale="millions"
             currency={currency}
@@ -125,7 +129,7 @@ export default async function MetricsPage({
             </Link>
           </div>
           <StatementTable
-            rows={segmentStatementRows(geoNames)}
+            rows={segmentStatementRows(geoNames, "Revenue (Total)", "Revenue")}
             columns={geoColumns}
             scale="millions"
             currency={currency}
@@ -137,7 +141,7 @@ export default async function MetricsPage({
       ) : null}
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-header">Key Metrics</h2>
+        <h2 className="mb-3 text-lg font-semibold text-header">Valuation & Efficiency</h2>
         <StatementTable
           rows={KEY_METRIC_ROWS}
           columns={withTtmColumn(stripTtmSuffix(ttm as Record<string, unknown> | null), toStatementColumns(rows, period))}

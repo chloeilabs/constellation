@@ -734,14 +734,82 @@ export function topSegmentNames(
     .map(([name]) => name);
 }
 
-export function segmentStatementRows(names: string[], totalLabel = "Revenue (Total)"): StatementRow[] {
+const PRODUCT_SEGMENT_ORDER = ["iPhone", "Mac", "iPad", "Wearables, Home and Accessories"];
+const GEO_SEGMENT_ORDER = ["Americas", "Europe", "Greater China", "Japan", "Rest of Asia Pacific"];
+
+function orderedKnownNames(names: string[], preferred: string[]) {
+  const remaining = new Set(names);
+  const ordered: string[] = [];
+  for (const want of preferred) {
+    const match = names.find((name) => name.toLowerCase() === want.toLowerCase());
+    if (!match || !remaining.has(match)) continue;
+    ordered.push(match);
+    remaining.delete(match);
+  }
+  for (const name of names) {
+    if (remaining.has(name)) ordered.push(name);
+  }
+  return ordered;
+}
+
+/** SA metrics order: named products, then Services last. */
+export function orderedProductNames(names: string[]) {
+  const services = names.filter((name) => name === "Services");
+  const rest = names.filter((name) => name !== "Services");
+  return [...orderedKnownNames(rest, PRODUCT_SEGMENT_ORDER), ...services];
+}
+
+export function orderedGeoNames(names: string[]) {
+  return orderedKnownNames(names, GEO_SEGMENT_ORDER);
+}
+
+export function hardwareProductTotal(levels: Record<string, number | null>, names: string[]) {
+  const hardware = names.filter((name) => name !== "Services");
+  let sum = 0;
+  let any = false;
+  for (const name of hardware) {
+    const value = levels[name];
+    if (value == null) continue;
+    any = true;
+    sum += value;
+  }
+  return any ? sum : null;
+}
+
+export function segmentStatementRows(
+  names: string[],
+  totalLabel = "Revenue (Total)",
+  itemSuffix = "",
+): StatementRow[] {
+  const labelFor = (name: string) => (itemSuffix ? `${name} ${itemSuffix}` : name);
   return [
     ...names.flatMap((name) => [
-      { key: name, label: name, format: "money" as const },
-      { key: `${name}Growth`, label: `${name} Growth`, format: "growth" as const },
+      { key: name, label: labelFor(name), format: "money" as const },
+      { key: `${name}Growth`, label: `${labelFor(name)} Growth`, format: "growth" as const },
     ]),
     { key: "total", label: totalLabel, emphasize: true, format: "money" as const },
     { key: "totalGrowth", label: `${totalLabel} Growth`, format: "growth" as const },
+  ];
+}
+
+export function productMetricRows(names: string[]): StatementRow[] {
+  const hardware = names.filter((name) => name !== "Services");
+  const hasServices = names.includes("Services");
+  return [
+    ...hardware.flatMap((name) => [
+      { key: name, label: `${name} Revenue`, format: "money" as const },
+      { key: `${name}Growth`, label: `${name} Growth`, format: "growth" as const },
+    ]),
+    { key: "Products", label: "Products Revenue", emphasize: true, format: "money" as const },
+    { key: "ProductsGrowth", label: "Products Growth", format: "growth" as const },
+    ...(hasServices
+      ? [
+          { key: "Services", label: "Services Revenue", format: "money" as const },
+          { key: "ServicesGrowth", label: "Services Growth", format: "growth" as const },
+        ]
+      : []),
+    { key: "total", label: "Revenue (Total)", emphasize: true, format: "money" as const },
+    { key: "totalGrowth", label: "Revenue (Total) Growth", format: "growth" as const },
   ];
 }
 
@@ -753,6 +821,7 @@ export function segmentStatementColumns(
   limit = 5,
   priorTtm?: Record<string, number> | null,
   ttmDate?: string | null,
+  options?: { productRollup?: boolean },
 ) {
   const byKey = new Map<string, { label: string; date: string; data: Record<string, number> }>();
   for (const row of rows) {
@@ -771,15 +840,18 @@ export function segmentStatementColumns(
   const ordered = [...byKey.entries()]
     .sort((a, b) => (b[1].date || "").localeCompare(a[1].date || ""))
     .slice(0, limit + 1);
+  const enrich = (levels: Record<string, number | null>) =>
+    options?.productRollup ? { ...levels, Products: hardwareProductTotal(levels, names) } : levels;
+  const growthKeys = options?.productRollup ? [...names, "Products"] : names;
   const levelColumns = ordered.map(([key, row]) => ({
     key,
     label: row.label,
     date: row.date,
-    levels: segmentLevelValues(row.data, names),
+    levels: enrich(segmentLevelValues(row.data, names)),
   }));
   const displayed = levelColumns.slice(0, limit);
-  const ttmLevels = ttm ? segmentLevelValues(ttm, names) : null;
-  const priorTtmLevels = priorTtm ? segmentLevelValues(priorTtm, names) : (displayed[0]?.levels ?? null);
+  const ttmLevels = ttm ? enrich(segmentLevelValues(ttm, names)) : null;
+  const priorTtmLevels = priorTtm ? enrich(segmentLevelValues(priorTtm, names)) : (displayed[0]?.levels ?? null);
 
   return [
     ...(ttmLevels
@@ -789,7 +861,7 @@ export function segmentStatementColumns(
             label: "TTM",
             values: {
               ...(ttmDate ? { date: ttmDate } : {}),
-              ...withSegmentGrowth(ttmLevels, priorTtmLevels, names),
+              ...withSegmentGrowth(ttmLevels, priorTtmLevels, growthKeys),
             },
           },
         ]
@@ -801,7 +873,7 @@ export function segmentStatementColumns(
         date: column.date,
         fiscalYear: column.key,
         period: period === "annual" ? "FY" : column.key,
-        ...withSegmentGrowth(column.levels, levelColumns[index + 1]?.levels ?? null, names),
+        ...withSegmentGrowth(column.levels, levelColumns[index + 1]?.levels ?? null, growthKeys),
       },
     })),
   ];

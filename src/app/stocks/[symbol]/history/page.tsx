@@ -4,10 +4,11 @@ import { DownloadCsvButton } from "@/components/download-csv";
 import { PageHeader, RangeToggle } from "@/components/page-header";
 import { ChangePercent } from "@/components/change";
 import { compactMoneyFn, formatDate, formatInteger, formatMoney, formatPrice } from "@/lib/format";
-import { getFullDailyChart, getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
+import { getDividendAdjustedChart, getFullDailyChart, getHistoricalMarketCap, getProfile, getSplits } from "@/lib/fmp";
 import { indexDisplayName, isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, stockPath } from "@/lib/listings";
 import { addDays, isoDate, nyDateString } from "@/lib/utils";
+import type { FmpFullCandle } from "@/lib/types";
 
 function historyRange(value?: string): "1" | "5" | "10" | "max" {
   if (value === "5" || value === "10" || value === "max") return value;
@@ -21,6 +22,27 @@ function historyFrom(range: "1" | "5" | "10" | "max", today: string) {
 
 function historyCapLimit(range: "1" | "5" | "10" | "max") {
   return range === "1" ? 400 : range === "5" ? 1500 : range === "10" ? 2800 : 5000;
+}
+
+function finite(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** Session change versus the previous close, matching Stock Analysis history. */
+function withSessionChange(rows: FmpFullCandle[], adjCloseByDate?: Map<string, number>) {
+  const chronological = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+  return chronological
+    .map((row, index) => {
+      const prev = chronological[index - 1];
+      const closeChangePercent =
+        prev && prev.close ? ((row.close - prev.close) / prev.close) * 100 : finite(row.changePercent);
+      return {
+        ...row,
+        adjClose: adjCloseByDate?.get(row.date) ?? null,
+        closeChangePercent,
+      };
+    })
+    .reverse();
 }
 
 export default async function StockHistoryPage({
@@ -38,18 +60,25 @@ export default async function StockHistoryPage({
   const today = nyDateString();
   const from = historyFrom(range, today);
   const base = stockPath(ticker, "/history");
-  const [prices, marketCaps, splits, profile] = await Promise.all([
+  const [prices, adjusted, marketCaps, splits, profile] = await Promise.all([
     getFullDailyChart(ticker, from, today),
+    index ? Promise.resolve([]) : getDividendAdjustedChart(ticker, from, today),
     index ? Promise.resolve([]) : getHistoricalMarketCap(ticker, historyCapLimit(range), from, today),
     index ? Promise.resolve([]) : getSplits(ticker, 20),
     index ? Promise.resolve(null) : getProfile(ticker),
   ]);
   const money = compactMoneyFn(profile?.currency);
   const px = (value: number | null | undefined) => (index ? formatPrice(value) : formatMoney(value, profile?.currency));
-  const daily = [...prices].sort((a, b) => b.date.localeCompare(a.date));
+  const adjCloseByDate = new Map(
+    adjusted
+      .map((row) => [row.date, finite(row.adjClose)] as const)
+      .filter((entry): entry is readonly [string, number] => entry[1] != null),
+  );
+  const daily = withSessionChange(prices, index ? undefined : adjCloseByDate);
   const caps = [...marketCaps].sort((a, b) => b.date.localeCompare(a.date));
   const shown = daily.slice(0, 250);
   const shownCaps = caps.slice(0, 250);
+  const showAdjClose = !index;
 
   return (
     <Container>
@@ -58,7 +87,7 @@ export default async function StockHistoryPage({
         description={
           index
             ? "Daily index levels from Financial Modeling Prep."
-            : "Daily prices, market capitalization, and stock split history."
+            : "Daily prices, dividend-adjusted close, market capitalization, and stock split history."
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -85,8 +114,16 @@ export default async function StockHistoryPage({
           {daily.length ? (
             <DownloadCsvButton
               filename={`${ticker}-history-${range === "max" ? "max" : `${range}y`}`}
-              headers={["Date", "Open", "High", "Low", "Close", "Change %", "Volume"]}
-              rows={daily.map((row) => [row.date, row.open, row.high, row.low, row.close, row.changePercent, row.volume])}
+              headers={
+                showAdjClose
+                  ? ["Date", "Open", "High", "Low", "Close", "Adj. Close", "Change %", "Volume"]
+                  : ["Date", "Open", "High", "Low", "Close", "Change %", "Volume"]
+              }
+              rows={daily.map((row) =>
+                showAdjClose
+                  ? [row.date, row.open, row.high, row.low, row.close, row.adjClose, row.closeChangePercent, row.volume]
+                  : [row.date, row.open, row.high, row.low, row.close, row.closeChangePercent, row.volume],
+              )}
             />
           ) : null}
         </div>
@@ -94,6 +131,9 @@ export default async function StockHistoryPage({
           {shown.length < daily.length
             ? `Showing the latest ${shown.length.toLocaleString("en-US")} of ${daily.length.toLocaleString("en-US")} sessions. Download CSV for the full window.`
             : `${daily.length.toLocaleString("en-US")} sessions in this window.`}
+          {showAdjClose
+            ? " Adj. Close is FMP dividend-adjusted. Change is versus the previous session close."
+            : " Change is versus the previous session close."}
         </p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="sa-table">
@@ -104,6 +144,7 @@ export default async function StockHistoryPage({
                 <th className="num">High</th>
                 <th className="num">Low</th>
                 <th className="num">Close</th>
+                {showAdjClose ? <th className="num">Adj. Close</th> : null}
                 <th className="num">Change</th>
                 <th className="num">Volume</th>
               </tr>
@@ -111,7 +152,7 @@ export default async function StockHistoryPage({
             <tbody>
               {shown.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-muted">
+                  <td colSpan={showAdjClose ? 8 : 7} className="text-muted">
                     No price history available.
                   </td>
                 </tr>
@@ -123,8 +164,9 @@ export default async function StockHistoryPage({
                     <td className="num">{px(row.high)}</td>
                     <td className="num">{px(row.low)}</td>
                     <td className="num">{px(row.close)}</td>
+                    {showAdjClose ? <td className="num">{px(row.adjClose)}</td> : null}
                     <td className="num">
-                      <ChangePercent value={row.changePercent} />
+                      <ChangePercent value={row.closeChangePercent} />
                     </td>
                     <td className="num">{formatInteger(row.volume)}</td>
                   </tr>

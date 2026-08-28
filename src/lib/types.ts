@@ -686,6 +686,16 @@ export type FmpFullCandle = {
   vwap?: number;
 };
 
+export type FmpAdjustedCandle = {
+  symbol?: string;
+  date: string;
+  adjOpen: number;
+  adjHigh: number;
+  adjLow: number;
+  adjClose: number;
+  volume: number;
+};
+
 export type FmpSecFiling = {
   symbol: string;
   cik: string;
