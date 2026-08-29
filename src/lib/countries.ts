@@ -493,6 +493,17 @@ export const COUNTRY_MARKETS: CountryMarket[] = [
     symbolPattern: "^[A-Z0-9]+\\.QA$",
     listSlug: "qatar-stocks",
   },
+  {
+    code: "ru",
+    name: "Russia",
+    region: "europe",
+    exchangeName: "Moscow Exchange",
+    currency: "RUB",
+    country: "RU",
+    exchange: "MCX",
+    symbolPattern: "^[A-Z0-9]+\\.ME$",
+    listSlug: "moscow-stocks",
+  },
 ];
 
 export function countryHref(code: string) {
@@ -557,6 +568,7 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   TSX: "/list/toronto-stocks",
   ASX: "/list/asx-stocks",
   BUE: "/list/bcba-stocks",
+  MCX: "/list/moscow-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {

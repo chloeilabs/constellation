@@ -1988,6 +1988,18 @@ export const STOCK_LISTS = {
     listing: "raw",
     symbolPattern: "^[A-Z0-9]+\\.IC$",
   },
+  "moscow-stocks": {
+    title: "Moscow Stock Exchange",
+    description:
+      "The largest listings FMP quotes on the Moscow Exchange, ranked by market cap. Dual listings of foreign issuers are included.",
+    category: "international",
+    source: "screener",
+    filters: { exchange: "MCX" },
+    limit: 100,
+    sort: "marketCap",
+    listing: "raw",
+    symbolPattern: "^[A-Z0-9]+\\.ME$",
+  },
 } as const satisfies Record<string, StockList>;
 
 export type StockListSlug = keyof typeof STOCK_LISTS;
@@ -2271,6 +2283,11 @@ export const LIST_SLUG_ALIASES: Record<string, StockListSlug> = {
   "buenos-aires-stock-exchange": "bcba-stocks",
   byma: "bcba-stocks",
   "nasdaq-iceland": "iceland-stocks",
+  "moscow-stock-exchange": "moscow-stocks",
+  moex: "moscow-stocks",
+  mcx: "moscow-stocks",
+  "closed-end-funds": "cef-funds",
+  cefs: "cef-funds",
   etn: "exchange-traded-notes",
   etns: "exchange-traded-notes",
   "exchange-traded-note": "exchange-traded-notes",
