@@ -543,6 +543,10 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   SIX: "/list/six-stocks",
   AMS: "/list/ams-stocks",
   STO: "/list/stockholm-stocks",
+  ATH: "/list/athens-stocks",
+  BRU: "/list/brussels-stocks",
+  HEL: "/list/helsinki-stocks",
+  CPH: "/list/copenhagen-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {
