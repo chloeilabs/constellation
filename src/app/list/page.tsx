@@ -21,7 +21,7 @@ export default function ListsIndexPage() {
                   <Link
                     key={slug}
                     href={`/list/${slug}`}
-                    className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                    className="sa-card p-5"
                   >
                     <h3 className="font-semibold text-header">{list.title}</h3>
                     <p className="mt-2 text-sm text-muted">{list.description}</p>
@@ -31,7 +31,7 @@ export default function ListsIndexPage() {
                   <>
                     <Link
                       href="/stocks/sector"
-                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                      className="sa-card p-5"
                     >
                       <h3 className="font-semibold text-header">Sectors</h3>
                       <p className="mt-2 text-sm text-muted">
@@ -40,7 +40,7 @@ export default function ListsIndexPage() {
                     </Link>
                     <Link
                       href="/stocks/industry"
-                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                      className="sa-card p-5"
                     >
                       <h3 className="font-semibold text-header">Sectors & Industries</h3>
                       <p className="mt-2 text-sm text-muted">
@@ -49,7 +49,7 @@ export default function ListsIndexPage() {
                     </Link>
                     <Link
                       href="/etf"
-                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                      className="sa-card p-5"
                     >
                       <h3 className="font-semibold text-header">Largest ETFs</h3>
                       <p className="mt-2 text-sm text-muted">
@@ -58,7 +58,7 @@ export default function ListsIndexPage() {
                     </Link>
                     <Link
                       href="/funds"
-                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                      className="sa-card p-5"
                     >
                       <h3 className="font-semibold text-header">Mutual Funds</h3>
                       <p className="mt-2 text-sm text-muted">
@@ -71,7 +71,7 @@ export default function ListsIndexPage() {
                   <>
                     <Link
                       href="/list/exchanges"
-                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                      className="sa-card p-5"
                     >
                       <h3 className="font-semibold text-header">Stock Exchanges</h3>
                       <p className="mt-2 text-sm text-muted">
@@ -80,7 +80,7 @@ export default function ListsIndexPage() {
                     </Link>
                     <Link
                       href="/stocks/country"
-                      className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                      className="sa-card p-5"
                     >
                       <h3 className="font-semibold text-header">All Country Stocks</h3>
                       <p className="mt-2 text-sm text-muted">

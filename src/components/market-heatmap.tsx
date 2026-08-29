@@ -33,7 +33,7 @@ export function MarketHeatmap({ rows }: { rows: HeatmapStock[] }) {
   }
 
   return (
-    <div className="flex min-h-[640px] flex-wrap gap-1">
+    <div className="flex min-h-[420px] flex-wrap gap-1 md:min-h-[640px]">
       {groups.map((group) => (
         <div
           key={group.sector}

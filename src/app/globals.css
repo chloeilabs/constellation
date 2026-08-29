@@ -306,6 +306,12 @@ a {
   font-weight: 700;
 }
 
+.sa-table td[colspan] {
+  text-align: center;
+  white-space: normal;
+  padding-block: 2rem;
+}
+
 .sa-statement td:first-child,
 .sa-statement th:first-child {
   position: sticky;

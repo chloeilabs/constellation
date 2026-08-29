@@ -5,6 +5,15 @@ import { stockPath } from "@/lib/listings";
 import { INDEX_LABELS } from "@/lib/statements";
 import type { FmpMarketHours, FmpQuote } from "@/lib/types";
 
+const SHORT_INDEX_LABELS: Record<string, string> = {
+  "^GSPC": "S&P",
+  "^DJI": "DJI",
+  "^IXIC": "Nasdaq",
+  "^NDX": "NDX",
+  "^RUT": "RUT",
+  "^VIX": "VIX",
+};
+
 function sessionHours(hours: { openingHour: string; closingHour: string }) {
   const open = formatClock(hours.openingHour);
   const close = formatClock(hours.closingHour);
@@ -40,7 +49,10 @@ export function IndexTicker({
                 href={stockPath(quote.symbol)}
                 className="flex shrink-0 items-baseline gap-2 rounded-sm hover:text-brand"
               >
-                <span className="font-medium text-header">{INDEX_LABELS[quote.symbol] ?? quote.name}</span>
+                <span className="font-medium text-header">
+                  <span className="md:hidden">{SHORT_INDEX_LABELS[quote.symbol] ?? INDEX_LABELS[quote.symbol] ?? quote.name}</span>
+                  <span className="hidden md:inline">{INDEX_LABELS[quote.symbol] ?? quote.name}</span>
+                </span>
                 <span className="tabular">{formatPrice(quote.price)}</span>
                 <ChangePercent value={quote.changePercentage} />
               </Link>

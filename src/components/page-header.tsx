@@ -186,7 +186,7 @@ export function StatementToolbar({
   commonHref?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="sa-scroll sa-scroll-hide flex items-center gap-2 pb-1">
       <PeriodToggle period={period} annualHref={annualHref} quarterHref={quarterHref} trailingHref={trailingHref} />
       <SourceToggle source={source} standardizedHref={standardizedHref} reportedHref={reportedHref} />
       <YearToggle span={span} fiveHref={fiveHref} tenHref={tenHref} maxHref={maxHref} />

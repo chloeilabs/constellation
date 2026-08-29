@@ -34,6 +34,11 @@ export default async function SearchPage({
           <EmptyState
             title={`No matches for “${query}”`}
             message="Try a ticker, company name, CIK, CUSIP, or ISIN. Indexes, ETFs, and funds are included."
+            action={
+              <Link href="/screener" className="sa-btn sa-btn-primary">
+                Browse the screener
+              </Link>
+            }
           />
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
@@ -67,6 +72,11 @@ export default async function SearchPage({
         <EmptyState
           title="Search live listings"
           message="Type a ticker, company name, CIK, CUSIP, or ISIN to search stocks, ETFs, funds, and indexes."
+          action={
+            <Link href="/screener" className="sa-btn sa-btn-secondary">
+              Open the screener
+            </Link>
+          }
         />
       )}
     </Container>

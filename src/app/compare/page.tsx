@@ -114,7 +114,7 @@ export default async function ComparePage({
         />
       </div>
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="sa-table">
+        <table className="sa-table sa-statement">
           <thead>
             <tr>
               <th>Metric</th>
