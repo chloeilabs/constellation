@@ -8,7 +8,7 @@ import { INDEX_LABELS } from "@/lib/statements";
 
 export const metadata = {
   title: "World Markets",
-  description: "Live quotes for major stock indexes across Asia, Europe, and the Americas.",
+  description: "Live quotes for major stock indexes across Asia, Europe, the Americas, the Middle East, and Africa.",
 };
 
 export default async function GlobalMarketsPage() {
@@ -29,7 +29,7 @@ export default async function GlobalMarketsPage() {
     <Container>
       <PageHeader
         title="World Markets"
-        description="Major global stock indexes with live FMP quotes, including Nikkei, FTSE, DAX, Hang Seng, and Bovespa."
+        description="Major global stock indexes with live FMP quotes, including Nikkei, FTSE, DAX, Hang Seng, Bovespa, IBEX, FTSE MIB, SSE Composite, and MOEX."
       />
       <SectionNav items={MARKET_NAV} />
       <p className="mb-3 text-sm text-muted">{rows.length} indexes</p>

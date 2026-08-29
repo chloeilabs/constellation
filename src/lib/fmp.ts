@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { INDEX_SYMBOLS, WORLD_INDEX_SYMBOLS, isIndexTicker } from "@/lib/indexes";
 import { decodeTicker, listedUsRows, looksLikeFund, uniqueBySymbol, usEtfHolders, WELL_KNOWN_MARKET_ASSETS } from "@/lib/listings";
 import { mergeNews } from "@/lib/news";
 import { addDays, chunk, first, isoDate, nyDateString, recentFiscalQuarters } from "@/lib/utils";
@@ -229,7 +230,7 @@ export function getQuote(symbol: string) {
 
 export async function getQuoteSafe(symbol: string) {
   const ticker = decodeTicker(symbol);
-  if (ticker.startsWith("^")) {
+  if (isIndexTicker(ticker)) {
     const rows = await getQuotes([ticker]);
     return rows[0] ?? null;
   }
@@ -1217,9 +1218,9 @@ export function getInsiderTrades(symbol: string, limit = 50, page = 0) {
 }
 
 const FMP_INSIDER_PAGE_SIZE = 100;
-const FMP_INSIDER_MAX_PAGES = 15;
+const FMP_INSIDER_MAX_PAGES = 18;
 
-/** Newest-first Form 4 search; fifteen FMP pages take AAPL through mid-2016. */
+/** Newest-first Form 4 search; eighteen FMP pages take AAPL through early 2015. */
 export async function getInsiderTradesArchive(symbol: string) {
   const pages = await Promise.all(
     Array.from({ length: FMP_INSIDER_MAX_PAGES }, (_, page) =>
@@ -1285,10 +1286,10 @@ const FMP_HUB_PAGE_SIZE = 100;
 /** Senate net worth; other hubs have their own page caps. */
 const FMP_HUB_MAX_PAGES = 4;
 const FMP_PRICE_TARGET_NEWS_PAGES = 6;
-const FMP_INSIDER_HUB_PAGES = 15;
-const FMP_TRANSCRIPT_HUB_PAGES = 21;
-const FMP_GRADES_NEWS_PAGES = 19;
-const FMP_INSTITUTIONAL_HUB_PAGES = 19;
+const FMP_INSIDER_HUB_PAGES = 17;
+const FMP_TRANSCRIPT_HUB_PAGES = 23;
+const FMP_GRADES_NEWS_PAGES = 21;
+const FMP_INSTITUTIONAL_HUB_PAGES = 21;
 const FMP_SEC_HUB_PAGES = 7;
 
 export async function getLatestInsiderTradesArchive() {
@@ -1399,9 +1400,9 @@ export function getLatestFinancialStatements(page = 0, limit = 100) {
 }
 
 const FMP_STATEMENT_PAGE_SIZE = 100;
-const FMP_STATEMENT_MAX_PAGES = 31;
+const FMP_STATEMENT_MAX_PAGES = 33;
 
-/** Newest-first ingest feed; thirty-one pages cover about two calendar days of additions. */
+/** Newest-first ingest feed; thirty-three pages cover about two calendar days of additions. */
 export async function getLatestFinancialStatementsArchive() {
   const pages = await Promise.all(
     Array.from({ length: FMP_STATEMENT_MAX_PAGES }, (_, page) =>
@@ -2081,36 +2082,11 @@ export const POPULAR_SYMBOLS = [
   "V",
 ] as const;
 
-export const INDEX_SYMBOLS = [
-  { symbol: "^GSPC", label: "S&P 500" },
-  { symbol: "^DJI", label: "Dow Jones" },
-  { symbol: "^IXIC", label: "Nasdaq" },
-  { symbol: "^RUT", label: "Russell 2000" },
-  { symbol: "^VIX", label: "VIX" },
-] as const;
+export { INDEX_SYMBOLS, WORLD_INDEX_SYMBOLS };
 
 export function getIndexQuotes() {
   return getQuotes(INDEX_SYMBOLS.map((item) => item.symbol));
 }
-
-export const WORLD_INDEX_SYMBOLS = [
-  { symbol: "^N225", label: "Nikkei 225", region: "Japan" },
-  { symbol: "^FTSE", label: "FTSE 100", region: "United Kingdom" },
-  { symbol: "^GDAXI", label: "DAX", region: "Germany" },
-  { symbol: "^FCHI", label: "CAC 40", region: "France" },
-  { symbol: "^STOXX50E", label: "Euro Stoxx 50", region: "Eurozone" },
-  { symbol: "^SSMI", label: "SMI", region: "Switzerland" },
-  { symbol: "^HSI", label: "Hang Seng", region: "Hong Kong" },
-  { symbol: "^AXJO", label: "S&P/ASX 200", region: "Australia" },
-  { symbol: "^GSPTSE", label: "S&P/TSX", region: "Canada" },
-  { symbol: "^BVSP", label: "Bovespa", region: "Brazil" },
-  { symbol: "^KS11", label: "KOSPI", region: "South Korea" },
-  { symbol: "^TWII", label: "TAIEX", region: "Taiwan" },
-  { symbol: "^BSESN", label: "BSE Sensex", region: "India" },
-  { symbol: "^MXX", label: "IPC", region: "Mexico" },
-  { symbol: "^STI", label: "STI", region: "Singapore" },
-  { symbol: "^JKSE", label: "Jakarta Composite", region: "Indonesia" },
-] as const;
 
 export function getWorldIndexQuotes() {
   return getQuotes(WORLD_INDEX_SYMBOLS.map((item) => item.symbol));
