@@ -382,12 +382,15 @@ export async function searchAll(query: string, limit = 8) {
   merged.sort((a, b) => {
     const score = (item: FmpSearchResult) => {
       const symbol = item.symbol.toUpperCase();
+      const venue = `${item.exchange} ${item.exchangeFullName}`;
       const pin = pinned.has(symbol) ? 0 : 1;
       const exact = symbol === needle ? 0 : 1;
+      const indexName =
+        /\bINDEX\b/i.test(venue) && (item.name || "").toUpperCase().includes(needle) ? 0 : 1;
       const us = usExchange.test(item.exchange) || usExchange.test(item.exchangeFullName) ? 0 : 1;
       const listed = symbol.includes(".") ? 1 : 0;
       const prefix = symbol.startsWith(needle) ? 0 : 1;
-      return [pin, exact, us, listed, prefix, symbol.length] as const;
+      return [pin, exact, indexName, us, listed, prefix, symbol.length] as const;
     };
     const left = score(a);
     const right = score(b);
