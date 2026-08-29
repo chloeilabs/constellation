@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatClock, formatPrice } from "@/lib/format";
+import { stockPath } from "@/lib/listings";
 import { INDEX_LABELS } from "@/lib/statements";
 import type { FmpMarketHours, FmpQuote } from "@/lib/types";
 
@@ -19,7 +20,7 @@ export function IndexTicker({
           {quotes.map((quote) => (
             <Link
               key={quote.symbol}
-              href={`/stocks/${encodeURIComponent(quote.symbol)}`}
+              href={stockPath(quote.symbol)}
               className="flex shrink-0 items-baseline gap-2"
             >
               <span className="font-medium text-header">{INDEX_LABELS[quote.symbol] ?? quote.name}</span>

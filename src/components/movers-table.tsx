@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatPrice } from "@/lib/format";
+import { quoteHref } from "@/lib/listings";
 import type { FmpMover } from "@/lib/types";
 
 export function MoversTable({
@@ -41,7 +42,7 @@ export function MoversTable({
               rows.map((row) => (
                 <tr key={row.symbol}>
                   <td className="symbol">
-                    <Link href={`/stocks/${row.symbol}`} className="text-link hover:underline">
+                    <Link href={quoteHref(row.symbol, { name: row.name, exchange: row.exchange })} className="text-link hover:underline">
                       {row.symbol}
                     </Link>
                   </td>

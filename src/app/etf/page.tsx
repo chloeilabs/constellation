@@ -1,48 +1,40 @@
 import Link from "next/link";
-import { Container } from "@/components/container";
-import { PageHeader } from "@/components/page-header";
-import { SectionNav } from "@/components/section-nav";
-import { SymbolTable } from "@/components/symbol-table";
-import { getScreener, withQuoteChanges } from "@/lib/fmp";
-import { preferPrimaryListings } from "@/lib/listings";
+import { SymbolDirectory } from "@/components/symbol-directory";
+import { ETF_NAV } from "@/lib/nav";
+import { getListedUsEtfs } from "@/lib/fmp";
 
-export default async function EtfListPage() {
-  const raw = await getScreener({ isEtf: true, isFund: false, country: "US" }, { limit: 100 });
-  const sorted = preferPrimaryListings(raw).slice(0, 50);
-  const rows = await withQuoteChanges(sorted);
+export const metadata = {
+  title: "Exchange Traded Funds",
+  description: "U.S. ETFs listed alphabetically, with live quotes from Financial Modeling Prep.",
+};
 
+export default async function EtfListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page } = await searchParams;
+  const rows = await getListedUsEtfs();
   return (
-    <Container>
-      <PageHeader
-        title="Exchange Traded Funds"
-        description="Largest U.S. ETFs by market value, with live quotes from Financial Modeling Prep."
-        actions={
-          <Link href="/screener" className="text-sm text-link hover:underline">
-            Stock screener
+    <SymbolDirectory
+      title="Exchange Traded Funds"
+      description="U.S. exchange-traded funds from FMP, listed alphabetically with live quotes."
+      nav={ETF_NAV}
+      hrefBase="/etf"
+      rows={rows}
+      page={page}
+      showIndustry={false}
+      empty="No ETF data available."
+      actions={
+        <div className="flex gap-4 text-sm">
+          <Link href="/etf/compare" className="text-link hover:underline">
+            Compare ETFs
           </Link>
-        }
-      />
-      <SectionNav
-        items={[
-          { href: "/list/biggest-companies", label: "Biggest Companies" },
-          { href: "/list/nasdaq-stocks", label: "NASDAQ" },
-          { href: "/list/nyse-stocks", label: "NYSE" },
-          { href: "/etf", label: "ETFs" },
-        ]}
-      />
-      <SymbolTable
-        hrefBase="/etf"
-        showIndustry={false}
-        empty="No ETF data available."
-        rows={rows.map((row) => ({
-          symbol: row.symbol,
-          name: row.companyName,
-          marketCap: row.marketCap,
-          price: row.price,
-          changePercentage: row.changePercentage,
-          volume: row.volume,
-        }))}
-      />
-    </Container>
+          <Link href="/etf/lookup" className="text-link hover:underline">
+            Reverse ETF lookup
+          </Link>
+        </div>
+      }
+    />
   );
 }

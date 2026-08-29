@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
 import { formatPrice } from "@/lib/format";
+import { quoteHref } from "@/lib/listings";
 import { POPULAR_SYMBOLS } from "@/lib/fmp";
 import type { FmpQuote } from "@/lib/types";
 
@@ -13,8 +14,8 @@ export function PopularStocks({ quotes }: { quotes: FmpQuote[] }) {
         return (
           <Link
             key={symbol}
-            href={`/stocks/${symbol}`}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-sm hover:border-border-strong hover:bg-muted-bg"
+            href={quoteHref(symbol, { name: quote?.name, exchange: quote?.exchange })}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm hover:border-border-strong hover:bg-muted-bg"
           >
             <span className="font-semibold text-header">{symbol}</span>
             {quote ? (

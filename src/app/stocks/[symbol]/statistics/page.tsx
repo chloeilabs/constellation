@@ -1,89 +1,652 @@
 import { Container } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
+import { SectionNav } from "@/components/section-nav";
 import { StatGrid } from "@/components/quote-stats";
-import { formatCompactUsd, formatNumber, formatPercentPlain, formatPrice, formatRatio } from "@/lib/format";
-import { getKeyMetricsTtm, getProfile, getQuote, getRatiosTtm, getScores } from "@/lib/fmp";
+import { quoteFundamentalsNav } from "@/lib/nav";
+import {
+  formatCompactMoney,
+  formatDate,
+  formatMoney,
+  formatNumber,
+  formatPercentPlain,
+  formatRatio,
+} from "@/lib/format";
+import { actualToEstimateCagr, buybackYieldFromShareChange, estimateCagr, forwardPe as forwardPeFromEstimates, forwardPs, lynchFairValue, nextEstimate, pegRatio, trailingPe } from "@/lib/valuation";
+import {
+  getBalanceSheets,
+  getCashFlowTtm,
+  getCompanyEarnings,
+  getDcf,
+  getDividends,
+  getEmployeeCount,
+  getEstimates,
+  getEsgRatings,
+  getGradesConsensus,
+  getIncomeGrowth,
+  getIncomeStatements,
+  getIncomeTtm,
+  getLatestEma,
+  getLatestInstitutionalOwnership,
+  getLatestRsi,
+  getLatestSma,
+  getPriceChange,
+  getPriceTarget,
+  getProfile,
+  getQuote,
+  getRatings,
+  getScores,
+  getShareFloat,
+  getSplits,
+  getTreasuryRates,
+  getYearAgoMarketCap,
+} from "@/lib/fmp";
+import { decodeTicker } from "@/lib/listings";
+import { industryHref, sectorHref, sectorIndustryPe } from "@/lib/industries";
+import { padCik } from "@/lib/institutional";
+import { addDays, cashAndInvestments as cashAndInvestmentsOf, indicatedAnnualDividend, isoDate, netCashPosition, nyDateString, relativeChange } from "@/lib/utils";
+import { DISTRIBUTION_TTM_LIMIT, consecutiveDividendGrowthYears, dividendTtmGrowth, dividendsByFiscalYear, payoutRatioFromDps } from "@/lib/dividends";
+import { ANNUAL_FILING_LIMIT, derivedStatementMetrics } from "@/lib/statements";
+import { valuationFromFilings } from "@/lib/period-valuation";
+import { estimatedWacc } from "@/lib/wacc";
+import { earningsSurprise, splitCompanyEarnings } from "@/lib/earnings";
+import { ChangePercent } from "@/components/change";
+import Link from "next/link";
 
 function num(value: unknown) {
-  return typeof value === "number" ? value : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 export default async function StatisticsPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
-  const [quote, profile, ratios, metrics, scores] = await Promise.all([
+  const ticker = decodeTicker(symbol);
+  const [
+    quote,
+    profile,
+    scores,
+    shareFloat,
+    dcf,
+    ratings,
+    ttm,
+    cash,
+    balance,
+    earnings,
+    dividends,
+    splits,
+    employees,
+    estimates,
+    changes,
+    rsi,
+    ema12,
+    ema26,
+    sma50,
+    growthRows,
+    esgRatings,
+    target,
+    grades,
+    quarterlyIncome,
+    yearAgoCap,
+    institutional,
+    treasury,
+    annualIncome,
+  ] = await Promise.all([
     getQuote(ticker),
     getProfile(ticker),
-    getRatiosTtm(ticker),
-    getKeyMetricsTtm(ticker),
     getScores(ticker),
+    getShareFloat(ticker),
+    getDcf(ticker),
+    getRatings(ticker),
+    getIncomeTtm(ticker),
+    getCashFlowTtm(ticker),
+    getBalanceSheets(ticker, "quarter", 5),
+    getCompanyEarnings(ticker, 12),
+    getDividends(ticker, DISTRIBUTION_TTM_LIMIT),
+    getSplits(ticker, 5),
+    getEmployeeCount(ticker, 1),
+    getEstimates(ticker, "annual"),
+    getPriceChange(ticker),
+    getLatestRsi(ticker),
+    getLatestEma(ticker, 12),
+    getLatestEma(ticker, 26),
+    getLatestSma(ticker, 50),
+    getIncomeGrowth(ticker, "annual", 1),
+    getEsgRatings(ticker),
+    getPriceTarget(ticker),
+    getGradesConsensus(ticker),
+    getIncomeStatements(ticker, "quarter", 2),
+    getYearAgoMarketCap(ticker),
+    getLatestInstitutionalOwnership(ticker, 0),
+    getTreasuryRates(isoDate(addDays(new Date(`${nyDateString()}T00:00:00Z`), -30)), nyDateString()),
+    getIncomeStatements(ticker, "annual", ANNUAL_FILING_LIMIT),
   ]);
+  const { sectorPe, industryPe } = await sectorIndustryPe(profile?.sector, profile?.industry);
+
+  const sheet = balance[0] ?? null;
+  const priorSheet = balance[4] ?? balance[1] ?? null;
+  const cashAndInvestments = cashAndInvestmentsOf(sheet);
+  const totalDebt = num(sheet?.totalDebt);
+  const netCash = netCashPosition(sheet);
+  const shares = num(shareFloat?.outstandingShares) ?? num(ttm?.weightedAverageShsOutDil);
+  const headcount = employees[0]?.employeeCount ?? (profile?.fullTimeEmployees ? Number(profile.fullTimeEmployees) : null);
+  const lastSplit = splits[0] ?? null;
+  const dcfPrice = dcf?.dcf;
+  const dcfUpside = dcfPrice != null && quote?.price ? ((dcfPrice - quote.price) / quote.price) * 100 : null;
+  const oneYear = num(changes?.["1Y"]);
+  const lastAnnual = annualIncome[0];
+  const epsCagr =
+    actualToEstimateCagr(lastAnnual?.epsDiluted ?? lastAnnual?.eps, lastAnnual?.date, estimates, "epsAvg", 3) ??
+    estimateCagr(estimates, "epsAvg", 3);
+  const revenueCagr =
+    actualToEstimateCagr(lastAnnual?.revenue, lastAnnual?.date, estimates, "revenueAvg", 3) ??
+    estimateCagr(estimates, "revenueAvg", 3);
+  const sharesYoy =
+    num(growthRows[0]?.growthWeightedAverageShsOutDil) ??
+    num(growthRows[0]?.growthWeightedAverageShsOut);
+  const live = valuationFromFilings({
+    price: quote?.price,
+    marketCap: quote?.marketCap ?? profile?.marketCap,
+    shares,
+    income: ttm
+      ? {
+          ...(ttm as unknown as Record<string, unknown>),
+          depreciationAndAmortization:
+            (ttm as unknown as Record<string, unknown>).depreciationAndAmortization ?? cash?.depreciationAndAmortization,
+          freeCashFlow: cash?.freeCashFlow,
+          operatingCashFlow: cash?.operatingCashFlow ?? cash?.netCashProvidedByOperatingActivities,
+        }
+      : null,
+    cash: cash as unknown as Record<string, unknown> | null,
+    balance: sheet as unknown as Record<string, unknown> | null,
+    priorBalance: priorSheet as unknown as Record<string, unknown> | null,
+    daysInPeriod: 365,
+    nextEps: nextEstimate(estimates)?.epsAvg,
+    epsCagr,
+    sharesYoy,
+  });
+  const peValue = live.priceToEarningsRatio ?? trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps) ?? quote?.pe ?? null;
+  const sectorPeVs = peValue != null && sectorPe ? peValue / sectorPe - 1 : null;
+  const industryPeVs = peValue != null && industryPe ? peValue / industryPe - 1 : null;
+  const epsGrowth = num(growthRows[0]?.growthEPSDiluted) ?? num(growthRows[0]?.growthEPS);
+  const peg =
+    live.priceToEarningsGrowthRatio ??
+    pegRatio(peValue, epsCagr) ??
+    (peValue != null && epsGrowth != null && epsGrowth > 0 ? peValue / (epsGrowth * 100) : null);
+  const currency = profile?.currency || "USD";
+  const money = (value: number | null | undefined) => formatCompactMoney(value, currency);
+  const esgRating = [...esgRatings].sort((a, b) => (b.fiscalYear ?? 0) - (a.fiscalYear ?? 0))[0] ?? null;
+  const marketCap = live.marketCap ?? quote?.marketCap ?? profile?.marketCap ?? null;
+  const enterpriseValue = live.enterpriseValue;
+  const marketCapYoy = relativeChange(marketCap, yearAgoCap?.marketCap);
+  const sharesQoq = relativeChange(
+    num(quarterlyIncome[0]?.weightedAverageShsOutDil),
+    num(quarterlyIncome[1]?.weightedAverageShsOutDil),
+  );
+  const institutionPct = num(institutional.summary?.ownershipPercent);
+  const cik = padCik(profile?.cik ?? "");
+  const isin = profile?.isin || "";
+  const cusip = profile?.cusip || "";
+  const repurchase = num(cash?.commonStockRepurchased);
+  const cashBuybackYield =
+    marketCap && marketCap > 0 && repurchase != null && repurchase !== 0 ? Math.abs(repurchase) / marketCap : null;
+  const buybackYield = live.buybackYield ?? buybackYieldFromShareChange(sharesYoy) ?? cashBuybackYield;
+  const indicatedDividend = indicatedAnnualDividend(dividends[0], profile?.lastDividend);
+  const dividendYield =
+    indicatedDividend != null && quote?.price && quote.price > 0 ? indicatedDividend / quote.price : null;
+  const derivedTtm = ttm
+    ? derivedStatementMetrics({
+        ...(ttm as unknown as Record<string, unknown>),
+        depreciationAndAmortization:
+          (ttm as unknown as Record<string, unknown>).depreciationAndAmortization ?? cash?.depreciationAndAmortization,
+        freeCashFlow: cash?.freeCashFlow,
+      })
+    : null;
+  const ttmEps = num(ttm?.epsDiluted) ?? num(ttm?.eps);
+  const lynchValue = lynchFairValue(ttmEps, epsCagr);
+  const lynchUpside = lynchValue != null && quote?.price ? (lynchValue - quote.price) / quote.price : null;
+  const dpsGrowth = dividendTtmGrowth(dividends);
+  const dividendsByYear = dividendsByFiscalYear(dividends, annualIncome);
+  const lastCompleteFy = annualIncome[0]?.fiscalYear != null ? String(annualIncome[0].fiscalYear) : null;
+  const completeDividendYears = [...dividendsByYear.keys()]
+    .filter((year) => !lastCompleteFy || year <= lastCompleteFy)
+    .sort();
+  const dividendGrowthYears = consecutiveDividendGrowthYears(dividendsByYear, completeDividendYears);
+  const debtFcf = live.debtToFcf ?? (totalDebt != null && num(cash?.freeCashFlow) != null && cash!.freeCashFlow !== 0
+    ? totalDebt / cash!.freeCashFlow
+    : null);
+  const shareholderYield =
+    buybackYield != null || dividendYield != null ? (buybackYield ?? 0) + (dividendYield ?? 0) : null;
+  const fcfMargin =
+    num(ttm?.revenue) && num(cash?.freeCashFlow) != null && ttm!.revenue !== 0
+      ? cash!.freeCashFlow / ttm!.revenue
+      : null;
+  const targetUpside =
+    target?.targetConsensus != null && quote?.price
+      ? ((target.targetConsensus - quote.price) / quote.price) * 100
+      : null;
+  const analystCount = grades
+    ? grades.strongBuy + grades.buy + grades.hold + grades.sell + grades.strongSell
+    : null;
+  const interestCoverage = live.interestCoverageRatio;
+  const priceToTangible = live.priceToTangibleBookRatio;
+  const workingCapital = live.workingCapital;
+  const bookValuePerShare = live.bookValuePerShare;
+  const latestTreasury = [...treasury].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+  const wacc = estimatedWacc({
+    marketCap: quote?.marketCap ?? profile?.marketCap,
+    beta: profile?.beta,
+    riskFreeYield: latestTreasury?.year10,
+    totalDebt: sheet?.totalDebt,
+    interestExpense: ttm?.interestExpense,
+    taxRate: derivedTtm?.effectiveTaxRate,
+  });
+  const { lastReported, next } = splitCompanyEarnings(earnings);
+  const earningsDate = lastReported?.date ?? next?.date ?? null;
+  const nextEarningsDate = next && next.date !== earningsDate ? next.date : null;
+  const lastSurprise = earningsSurprise(lastReported);
+  const pretaxMargin = derivedTtm?.pretaxProfitMargin;
+  const ebitMargin = derivedTtm?.ebitMargin;
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Statistics`}
-        description="Trailing twelve-month valuation, profitability, and financial health metrics."
+        description="Valuation, share count, profitability, financial position, and cash flow from live FMP filings."
       />
+      <SectionNav items={quoteFundamentalsNav(ticker)} />
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 font-semibold text-header">Valuation</h2>
+          <h2 className="mb-3 font-semibold text-header">Total Valuation</h2>
           <StatGrid
             items={[
-              { label: "Market Cap", value: formatCompactUsd(quote?.marketCap ?? profile?.marketCap) },
-              { label: "Enterprise Value", value: formatCompactUsd(num(metrics?.enterpriseValueTTM)) },
-              { label: "PE Ratio (ttm)", value: formatRatio(num(ratios?.priceToEarningsRatioTTM)) },
-              { label: "PB Ratio", value: formatRatio(num(ratios?.priceToBookRatioTTM)) },
-              { label: "PS Ratio", value: formatRatio(num(ratios?.priceToSalesRatioTTM)) },
-              { label: "P/FCF", value: formatRatio(num(ratios?.priceToFreeCashFlowRatioTTM)) },
-              { label: "EV / Sales", value: formatRatio(num(metrics?.evToSalesTTM)) },
-              { label: "EV / EBITDA", value: formatRatio(num(metrics?.evToEBITDATTM)) },
+              { label: "Market Cap", href: `/stocks/${ticker}/market-cap`, value: (
+                <span className="inline-flex items-center gap-2">
+                  {money(marketCap)}
+                  {marketCapYoy != null ? <ChangePercent value={marketCapYoy} alreadyPercent={false} className="text-xs" /> : null}
+                </span>
+              ) },
+              { label: "Enterprise Value", href: `/stocks/${ticker}/enterprise-value`, value: money(enterpriseValue) },
             ]}
           />
         </section>
         <section>
-          <h2 className="mb-3 font-semibold text-header">Profitability</h2>
+          <h2 className="mb-3 font-semibold text-header">Important Dates</h2>
           <StatGrid
             items={[
-              { label: "Gross Margin", value: formatPercentPlain(num(ratios?.grossProfitMarginTTM)) },
-              { label: "Operating Margin", value: formatPercentPlain(num(ratios?.operatingProfitMarginTTM)) },
-              { label: "Profit Margin", value: formatPercentPlain(num(ratios?.netProfitMarginTTM)) },
-              { label: "EBITDA Margin", value: formatPercentPlain(num(ratios?.ebitdaMarginTTM)) },
-              { label: "ROA", value: formatPercentPlain(num(metrics?.returnOnAssetsTTM)) },
-              { label: "ROE", value: formatPercentPlain(num(metrics?.returnOnEquityTTM)) },
-              { label: "ROIC", value: formatPercentPlain(num(metrics?.returnOnInvestedCapitalTTM)) },
-              { label: "Earnings Yield", value: formatPercentPlain(num(metrics?.earningsYieldTTM)) },
+              {
+                label: "Earnings Date",
+                href: `/stocks/${ticker}/earnings`,
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {formatDate(earningsDate)}
+                    {lastSurprise != null ? <ChangePercent value={lastSurprise} alreadyPercent={false} className="text-xs" /> : null}
+                  </span>
+                ),
+              },
+              ...(nextEarningsDate
+                ? [{ label: "Next Earnings", href: `/stocks/${ticker}/earnings`, value: formatDate(nextEarningsDate) }]
+                : []),
+              { label: "Ex-Dividend Date", href: `/stocks/${ticker}/dividend`, value: formatDate(dividends[0]?.date) },
             ]}
           />
         </section>
         <section>
-          <h2 className="mb-3 font-semibold text-header">Liquidity & Leverage</h2>
+          <h2 className="mb-3 font-semibold text-header">Share Statistics</h2>
           <StatGrid
             items={[
-              { label: "Current Ratio", value: formatRatio(num(ratios?.currentRatioTTM ?? metrics?.currentRatioTTM)) },
-              { label: "Quick Ratio", value: formatRatio(num(ratios?.quickRatioTTM)) },
-              { label: "Debt / Equity", value: formatRatio(num(ratios?.debtToEquityRatioTTM)) },
+              { label: "Shares Outstanding", href: `/stocks/${ticker}/shares`, value: formatNumber(shares, 0) },
+              { label: "Shares Change (YoY)", href: `/stocks/${ticker}/shares`, value: sharesYoy == null ? "—" : <ChangePercent value={sharesYoy} alreadyPercent={false} /> },
+              { label: "Shares Change (QoQ)", href: `/stocks/${ticker}/shares`, value: sharesQoq == null ? "—" : <ChangePercent value={sharesQoq} alreadyPercent={false} /> },
+              { label: "Float", href: `/stocks/${ticker}/shares`, value: formatNumber(shareFloat?.floatShares, 0) },
+              { label: "Free Float", href: `/stocks/${ticker}/shares`, value: formatPercentPlain(shareFloat?.freeFloat, { alreadyPercent: true }) },
+              {
+                label: "Institutional Ownership",
+                href: `/stocks/${ticker}/ownership`,
+                value: formatPercentPlain(institutionPct, { alreadyPercent: true }),
+              },
+            ]}
+          />
+          {institutionPct != null && institutionPct > 100 ? (
+            <p className="mt-2 text-xs text-muted">
+              13F ownership can exceed 100% when short interest, options, and overlapping filings are included.
+            </p>
+          ) : null}
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Valuation Ratios</h2>
+          <StatGrid
+            items={[
+              { label: "PE Ratio", href: `/stocks/${ticker}/pe-ratio`, value: formatRatio(peValue) },
+              { label: "Forward PE", href: `/stocks/${ticker}/forward-pe`, value: formatRatio(forwardPeFromEstimates(quote?.price, estimates)) },
+              {
+                label: "Sector PE",
+                href: profile?.sector ? sectorHref(profile.sector) : undefined,
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {formatRatio(sectorPe)}
+                    {sectorPeVs != null ? (
+                      <span className="text-xs text-muted">
+                        {formatPercentPlain(Math.abs(sectorPeVs))} {sectorPeVs >= 0 ? "premium" : "discount"}
+                      </span>
+                    ) : null}
+                  </span>
+                ),
+              },
+              {
+                label: "Industry PE",
+                href: profile?.industry ? industryHref(profile.industry) : undefined,
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {formatRatio(industryPe)}
+                    {industryPeVs != null ? (
+                      <span className="text-xs text-muted">
+                        {formatPercentPlain(Math.abs(industryPeVs))} {industryPeVs >= 0 ? "premium" : "discount"}
+                      </span>
+                    ) : null}
+                  </span>
+                ),
+              },
+              { label: "PS Ratio", href: `/stocks/${ticker}/ps-ratio`, value: formatRatio(live.priceToSalesRatio) },
+              { label: "Forward PS", href: `/stocks/${ticker}/forward-ps`, value: formatRatio(forwardPs(marketCap, estimates)) },
+              { label: "PB Ratio", href: `/stocks/${ticker}/pb-ratio`, value: formatRatio(live.priceToBookRatio) },
+              { label: "P/TBV", href: `/stocks/${ticker}/tangible-book-value`, value: formatRatio(priceToTangible) },
+              { label: "P/FCF", href: `/stocks/${ticker}/pfcf-ratio`, value: formatRatio(live.priceToFreeCashFlowRatio) },
+              { label: "P/OCF", href: `/stocks/${ticker}/pocf-ratio`, value: formatRatio(live.priceToOperatingCashFlowRatio) },
+              { label: "PEG Ratio", href: `/stocks/${ticker}/peg-ratio`, value: formatRatio(peg) },
+              { label: "Graham Number", href: `/stocks/${ticker}/fair-value`, value: formatMoney(live.grahamNumber, currency) },
+              { label: "Graham Net-Net", href: `/stocks/${ticker}/fair-value`, value: formatMoney(live.grahamNetNet, currency) },
+              { label: "Net Debt / EBITDA", href: `/stocks/${ticker}/net-debt-ebitda`, value: formatRatio(live.netDebtToEBITDA) },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Enterprise Valuation</h2>
+          <StatGrid
+            items={[
+              { label: "EV / Earnings", href: `/stocks/${ticker}/ev-earnings`, value: formatRatio(live.evToEarnings) },
+              { label: "EV / Sales", href: `/stocks/${ticker}/ev-sales`, value: formatRatio(live.evToSales) },
+              { label: "EV / EBITDA", href: `/stocks/${ticker}/ev-ebitda`, value: formatRatio(live.evToEBITDA) },
+              { label: "EV / EBIT", href: `/stocks/${ticker}/ev-ebit`, value: formatRatio(live.evToEBIT) },
+              { label: "EV / FCF", href: `/stocks/${ticker}/ev-fcf`, value: formatRatio(live.evToFreeCashFlow) },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Balance Sheet</h2>
+          <StatGrid
+            items={[
+              { label: "Current Ratio", href: `/stocks/${ticker}/current-ratio`, value: formatRatio(live.currentRatio) },
+              { label: "Quick Ratio", href: `/stocks/${ticker}/quick-ratio`, value: formatRatio(live.quickRatio) },
+              { label: "Debt / Equity", href: `/stocks/${ticker}/debt-equity-ratio`, value: formatRatio(live.debtToEquityRatio) },
+              {
+                label: "Debt / EBITDA",
+                href: `/stocks/${ticker}/debt-ebitda`,
+                value: formatRatio(
+                  totalDebt != null && num(derivedTtm?.ebitda ?? ttm?.ebitda) != null && (derivedTtm?.ebitda ?? ttm?.ebitda) !== 0
+                    ? totalDebt / (derivedTtm?.ebitda ?? ttm!.ebitda)
+                    : null,
+                ),
+              },
+              {
+                label: "Debt / FCF",
+                href: `/stocks/${ticker}/debt-fcf`,
+                value: formatRatio(debtFcf),
+              },
+              { label: "Interest Coverage", href: `/stocks/${ticker}/interest-coverage`, value: formatRatio(interestCoverage != null && interestCoverage > 0 ? interestCoverage : null) },
+              { label: "Cash & Marketable Securities", href: `/stocks/${ticker}/cash`, value: money(cashAndInvestments) },
+              { label: "Total Debt", href: `/stocks/${ticker}/debt`, value: money(totalDebt) },
+              { label: "Net Cash", href: `/stocks/${ticker}/net-cash`, value: money(netCash) },
+              {
+                label: "Net Cash / Share",
+                href: `/stocks/${ticker}/net-cash-per-share`,
+                value: netCash != null && shares ? formatMoney(netCash / shares, currency) : "—",
+              },
+              { label: "Book Value", href: `/stocks/${ticker}/equity`, value: money(num(sheet?.totalStockholdersEquity)) },
+              { label: "Book Value / Share", href: `/stocks/${ticker}/book-value`, value: formatMoney(bookValuePerShare, currency) },
+              { label: "Working Capital", href: `/stocks/${ticker}/working-capital`, value: money(workingCapital) },
+              { label: "WACC", href: `/stocks/${ticker}/wacc`, value: formatPercentPlain(wacc?.wacc) },
+            ]}
+          />
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials/balance-sheet`} className="text-link hover:underline">
+              Full Balance Sheet
+            </Link>
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Financial Efficiency</h2>
+          <StatGrid
+            items={[
+              { label: "Return on Equity", href: `/stocks/${ticker}/roe`, value: formatPercentPlain(live.returnOnEquity) },
+              { label: "Return on Assets", href: `/stocks/${ticker}/roa`, value: formatPercentPlain(live.returnOnAssets) },
+              { label: "Return on Capital", href: `/stocks/${ticker}/roic`, value: formatPercentPlain(live.returnOnInvestedCapital) },
+              { label: "ROCE", href: `/stocks/${ticker}/roce`, value: formatPercentPlain(live.returnOnCapitalEmployed) },
+              { label: "Asset Turnover", href: `/stocks/${ticker}/asset-turnover`, value: formatRatio(live.assetTurnover) },
+              { label: "Inventory Turnover", href: `/stocks/${ticker}/inventory-turnover`, value: formatRatio(live.inventoryTurnover) },
+              { label: "Cash Conversion Cycle", href: `/stocks/${ticker}/cash-conversion-cycle`, value: live.cashConversionCycle == null ? "—" : `${formatNumber(live.cashConversionCycle, 1)} days` },
+              { label: "Days Sales Outstanding", href: `/stocks/${ticker}/days-sales-outstanding`, value: live.daysOfSalesOutstanding == null ? "—" : `${formatNumber(live.daysOfSalesOutstanding, 1)} days` },
+              { label: "Days Inventory Outstanding", href: `/stocks/${ticker}/days-inventory-outstanding`, value: live.daysOfInventoryOutstanding == null ? "—" : `${formatNumber(live.daysOfInventoryOutstanding, 1)} days` },
+              { label: "Days Payables Outstanding", href: `/stocks/${ticker}/days-payables-outstanding`, value: live.daysOfPayablesOutstanding == null ? "—" : `${formatNumber(live.daysOfPayablesOutstanding, 1)} days` },
+              { label: "Employees", href: `/stocks/${ticker}/employees`, value: formatNumber(headcount, 0) },
+              {
+                label: "Revenue / Employee",
+                value: ttm?.revenue && headcount ? money(ttm.revenue / headcount) : "—",
+              },
+              {
+                label: "Profits / Employee",
+                value: ttm?.netIncome && headcount ? money(ttm.netIncome / headcount) : "—",
+              },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Taxes</h2>
+          <StatGrid
+            items={[
+              { label: "Income Tax", href: `/stocks/${ticker}/income-tax`, value: money(ttm?.incomeTaxExpense) },
+              { label: "Effective Tax Rate", href: `/stocks/${ticker}/effective-tax-rate`, value: formatPercentPlain(derivedTtm?.effectiveTaxRate) },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Income Statement (ttm)</h2>
+          <StatGrid
+            items={[
+              { label: "Revenue", href: `/stocks/${ticker}/revenue`, value: money(ttm?.revenue) },
+              { label: "Cost of Revenue", href: `/stocks/${ticker}/cost-of-revenue`, value: money(ttm?.costOfRevenue) },
+              { label: "Gross Profit", href: `/stocks/${ticker}/gross-profit`, value: money(ttm?.grossProfit) },
+              { label: "Research & Development", href: `/stocks/${ticker}/research-and-development`, value: money(ttm?.researchAndDevelopmentExpenses) },
+              { label: "SG&A", href: `/stocks/${ticker}/sga`, value: money(ttm?.sellingGeneralAndAdministrativeExpenses) },
+              { label: "Operating Expenses", href: `/stocks/${ticker}/operating-expenses`, value: money(ttm?.operatingExpenses) },
+              { label: "Operating Income", href: `/stocks/${ticker}/operating-income`, value: money(ttm?.operatingIncome) },
+              { label: "EBIT", href: `/stocks/${ticker}/ebit`, value: money(derivedTtm?.ebit ?? ttm?.operatingIncome ?? ttm?.ebit) },
+              { label: "Pretax Income", href: `/stocks/${ticker}/pretax-income`, value: money(ttm?.incomeBeforeTax) },
+              { label: "Net Income", href: `/stocks/${ticker}/net-income`, value: money(ttm?.netIncome) },
+              { label: "EBITDA", href: `/stocks/${ticker}/ebitda`, value: money(derivedTtm?.ebitda ?? ttm?.ebitda) },
+              { label: "EPS", href: `/stocks/${ticker}/earnings`, value: formatMoney(ttm?.epsDiluted ?? ttm?.eps, currency) },
+            ]}
+          />
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials/income-statement`} className="text-link hover:underline">
+              Full Income Statement
+            </Link>
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Cash Flow (ttm)</h2>
+          <StatGrid
+            items={[
+              { label: "Operating Cash Flow", href: `/stocks/${ticker}/operating-cash-flow`, value: money(cash?.operatingCashFlow) },
+              { label: "Capital Expenditures", href: `/stocks/${ticker}/capex`, value: money(cash?.capitalExpenditure) },
+              { label: "Depreciation & Amortization", href: `/stocks/${ticker}/depreciation-amortization`, value: money(cash?.depreciationAndAmortization) },
+              { label: "Net Borrowing", href: `/stocks/${ticker}/net-borrowing`, value: money(cash?.netDebtIssuance) },
+              { label: "Free Cash Flow", href: `/stocks/${ticker}/free-cash-flow`, value: money(cash?.freeCashFlow) },
+              { label: "FCF / Share", href: `/stocks/${ticker}/free-cash-flow`, value: shares && cash?.freeCashFlow ? formatMoney(cash.freeCashFlow / shares, currency) : "—" },
+              { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(live.freeCashFlowYield) },
+            ]}
+          />
+          <p className="mt-2 text-sm">
+            <Link href={`/stocks/${ticker}/financials/cash-flow-statement`} className="text-link hover:underline">
+              Full Cash Flow Statement
+            </Link>
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Margins</h2>
+          <StatGrid
+            items={[
+              { label: "Gross Margin", href: `/stocks/${ticker}/gross-margin`, value: formatPercentPlain(derivedTtm?.grossProfitMargin) },
+              { label: "Operating Margin", href: `/stocks/${ticker}/operating-margin`, value: formatPercentPlain(derivedTtm?.operatingProfitMargin) },
+              { label: "Pretax Margin", href: `/stocks/${ticker}/pretax-margin`, value: formatPercentPlain(pretaxMargin) },
+              { label: "Profit Margin", href: `/stocks/${ticker}/profit-margin`, value: formatPercentPlain(derivedTtm?.netProfitMargin) },
+              { label: "EBITDA Margin", href: `/stocks/${ticker}/ebitda-margin`, value: formatPercentPlain(derivedTtm?.ebitdaMargin) },
+              { label: "EBIT Margin", href: `/stocks/${ticker}/ebit-margin`, value: formatPercentPlain(ebitMargin) },
+              { label: "FCF Margin", href: `/stocks/${ticker}/fcf-margin`, value: formatPercentPlain(derivedTtm?.fcfMargin ?? fcfMargin) },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Dividends & Yields</h2>
+          <StatGrid
+            items={[
+              { label: "Dividend", href: `/stocks/${ticker}/dividend`, value: formatMoney(indicatedAnnualDividend(dividends[0], profile?.lastDividend), currency) },
+              { label: "Dividend Yield", href: `/stocks/${ticker}/dividend-yield`, value: formatPercentPlain(dividendYield) },
+              { label: "Dividend Growth (1Y)", href: `/stocks/${ticker}/dividend`, value: formatPercentPlain(dpsGrowth) },
+              { label: "Years of Dividend Growth", href: `/stocks/${ticker}/dividend`, value: dividendGrowthYears > 0 ? formatNumber(dividendGrowthYears, 0) : "—" },
+              { label: "Payout Ratio", href: `/stocks/${ticker}/payout-ratio`, value: formatPercentPlain(payoutRatioFromDps(indicatedDividend, ttmEps)) },
+              { label: "Buyback Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(buybackYield) },
+              { label: "Shareholder Yield", href: `/stocks/${ticker}/buybacks`, value: formatPercentPlain(shareholderYield) },
+              { label: "Earnings Yield", href: `/stocks/${ticker}/earnings-yield`, value: formatPercentPlain(live.earningsYield) },
+              { label: "FCF Yield", href: `/stocks/${ticker}/fcf-yield`, value: formatPercentPlain(live.freeCashFlowYield) },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Stock Price Statistics</h2>
+          <StatGrid
+            items={[
               { label: "Beta", value: formatRatio(profile?.beta) },
-              { label: "52-Week High", value: formatPrice(quote?.yearHigh) },
-              { label: "52-Week Low", value: formatPrice(quote?.yearLow) },
-              { label: "50-Day Average", value: formatPrice(quote?.priceAvg50) },
-              { label: "200-Day Average", value: formatPrice(quote?.priceAvg200) },
+              { label: "52-Week Change", value: oneYear == null ? "—" : formatPercentPlain(oneYear, { alreadyPercent: true }) },
+              { label: "52-Week High", value: formatMoney(quote?.yearHigh, currency) },
+              { label: "52-Week Low", value: formatMoney(quote?.yearLow, currency) },
+              { label: "50-Day Average", value: formatMoney(quote?.priceAvg50, currency) },
+              { label: "200-Day Average", value: formatMoney(quote?.priceAvg200, currency) },
+              { label: "EMA (12)", value: formatMoney(ema12?.ema, currency) },
+              { label: "EMA (26)", value: formatMoney(ema26?.ema, currency) },
+              { label: "SMA (50)", value: formatMoney(sma50?.sma, currency) },
+              { label: "RSI (14)", value: formatNumber(rsi?.rsi) },
+              { label: "Average Volume", value: formatNumber(quote?.avgVolume ?? profile?.averageVolume, 0) },
             ]}
           />
         </section>
         <section>
-          <h2 className="mb-3 font-semibold text-header">Financial Health</h2>
+          <h2 className="mb-3 font-semibold text-header">Analyst Forecast</h2>
           <StatGrid
             items={[
-              { label: "Altman Z-Score", value: formatNumber(scores?.altmanZScore) },
-              { label: "Piotroski Score", value: scores?.piotroskiScore ?? "—" },
-              { label: "FCF Yield", value: formatPercentPlain(num(metrics?.freeCashFlowYieldTTM)) },
-              { label: "Dividend Yield", value: formatPercentPlain(num(ratios?.dividendYieldTTM)) },
-              { label: "Payout Ratio", value: formatPercentPlain(num(ratios?.dividendPayoutRatioTTM)) },
-              { label: "Average Volume", value: formatNumber(profile?.averageVolume, 0) },
+              { label: "Price Target", href: `/stocks/${ticker}/forecast`, value: target ? formatMoney(target.targetConsensus, currency) : "—" },
+              {
+                label: "Target Upside",
+                href: `/stocks/${ticker}/forecast`,
+                value: targetUpside == null ? "—" : `${targetUpside > 0 ? "+" : ""}${targetUpside.toFixed(2)}%`,
+              },
+              { label: "Consensus", href: `/stocks/${ticker}/ratings`, value: grades?.consensus ?? "—" },
+              { label: "Analyst Count", href: `/stocks/${ticker}/ratings`, value: analystCount ? formatNumber(analystCount, 0) : "—" },
+              { label: "Revenue Growth Forecast (3Y)", value: formatPercentPlain(revenueCagr) },
+              { label: "EPS Growth Forecast (3Y)", value: formatPercentPlain(epsCagr) },
             ]}
           />
         </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Fair Value</h2>
+          <StatGrid
+            items={[
+              { label: "DCF Fair Value", href: `/stocks/${ticker}/fair-value`, value: dcfPrice != null ? formatMoney(dcfPrice, currency) : "—" },
+              {
+                label: "DCF Upside",
+                href: `/stocks/${ticker}/fair-value`,
+                value: dcfUpside == null ? "—" : `${dcfUpside > 0 ? "+" : ""}${dcfUpside.toFixed(1)}%`,
+              },
+              { label: "Lynch Fair Value", href: `/stocks/${ticker}/fair-value`, value: lynchValue != null ? formatMoney(lynchValue, currency) : "—" },
+              {
+                label: "Lynch Upside",
+                href: `/stocks/${ticker}/fair-value`,
+                value: lynchUpside == null ? "—" : `${lynchUpside > 0 ? "+" : ""}${(lynchUpside * 100).toFixed(1)}%`,
+              },
+              { label: "Graham Number", href: `/stocks/${ticker}/fair-value`, value: formatMoney(live.grahamNumber, currency) },
+              {
+                label: "Graham Upside",
+                href: `/stocks/${ticker}/fair-value`,
+                value:
+                  live.grahamNumber != null && quote?.price
+                    ? `${(((live.grahamNumber - quote.price) / quote.price) * 100).toFixed(1)}%`
+                    : "—",
+              },
+              { label: "FMP Rating", href: `/stocks/${ticker}/forecast`, value: ratings?.rating ?? "—" },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Stock Splits</h2>
+          <StatGrid
+            items={[
+              { label: "Last Split Date", href: `/stocks/${ticker}/splits`, value: formatDate(lastSplit?.date) },
+              {
+                label: "Split Ratio",
+                href: `/stocks/${ticker}/splits`,
+                value: lastSplit ? `${lastSplit.numerator}:${lastSplit.denominator}` : "—",
+              },
+              { label: "Split Type", value: lastSplit?.splitType || "—" },
+            ]}
+          />
+        </section>
+        <section>
+          <h2 className="mb-3 font-semibold text-header">Scores</h2>
+          <StatGrid
+            items={[
+              { label: "Altman Z-Score", href: `/stocks/${ticker}/altman-z-score`, value: formatNumber(live.altmanZScore ?? scores?.altmanZScore) },
+              { label: "Piotroski Score", href: `/stocks/${ticker}/piotroski-score`, value: scores?.piotroskiScore ?? "—" },
+              { label: "ESG Rating", href: `/stocks/${ticker}/esg`, value: esgRating?.ESGRiskRating ?? "—" },
+              { label: "ESG Industry Rank", href: `/stocks/${ticker}/esg`, value: esgRating?.industryRank ?? "—" },
+            ]}
+          />
+        </section>
+        {cik || isin || cusip ? (
+          <section>
+            <h2 className="mb-3 font-semibold text-header">Identifiers</h2>
+            <StatGrid
+              items={[
+                {
+                  label: "CIK",
+                  value: cik ? (
+                    <Link href={`/search?q=${encodeURIComponent(cik)}`} className="text-link hover:underline">
+                      {cik}
+                    </Link>
+                  ) : (
+                    "—"
+                  ),
+                },
+                {
+                  label: "ISIN",
+                  value: isin ? (
+                    <Link href={`/search?q=${encodeURIComponent(isin)}`} className="text-link hover:underline">
+                      {isin}
+                    </Link>
+                  ) : (
+                    "—"
+                  ),
+                },
+                {
+                  label: "CUSIP",
+                  value: cusip ? (
+                    <Link href={`/search?q=${encodeURIComponent(cusip)}`} className="text-link hover:underline">
+                      {cusip}
+                    </Link>
+                  ) : (
+                    "—"
+                  ),
+                },
+              ]}
+            />
+          </section>
+        ) : null}
       </div>
     </Container>
   );

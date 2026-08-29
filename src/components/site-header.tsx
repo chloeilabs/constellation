@@ -1,20 +1,24 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { SearchBox } from "@/components/search-box";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { WatchlistLink } from "@/components/watchlist-button";
 
 const NAV = [
   { href: "/markets", label: "Markets" },
   { href: "/stocks", label: "Stocks" },
+  { href: "/list", label: "Lists" },
   { href: "/etf", label: "ETFs" },
+  { href: "/funds", label: "Funds" },
   { href: "/screener", label: "Screener" },
   { href: "/news", label: "News" },
   { href: "/calendar/earnings", label: "Calendar" },
+  { href: "/tools", label: "Tools" },
 ];
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
         <Logo />
         <nav className="hidden items-center gap-5 text-sm font-medium text-header md:flex">
@@ -29,6 +33,7 @@ export function SiteHeader() {
             <SearchBox />
           </div>
           <WatchlistLink />
+          <ThemeToggle />
         </div>
       </div>
       <nav className="flex gap-4 overflow-x-auto border-t border-border px-4 py-2 text-sm md:hidden">

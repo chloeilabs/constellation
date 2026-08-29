@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ChangePercent } from "@/components/change";
-import { formatCompactUsd, formatInteger, formatPrice } from "@/lib/format";
+import { currencyForListing, formatCompactMoney, formatCompactUsd, formatInteger, formatPercentPlain, formatPrice } from "@/lib/format";
+import { industrySlug } from "@/lib/industries";
+import { quoteHref } from "@/lib/listings";
 
 export type SymbolTableRow = {
   symbol: string;
@@ -12,6 +14,17 @@ export type SymbolTableRow = {
   volume?: number | null;
   exchange?: string | null;
   beta?: number | null;
+  dividendYield?: number | null;
+  founded?: number | null;
+  country?: string | null;
+  isEtf?: boolean | null;
+  isFund?: boolean | null;
+  revenue?: number | null;
+  employees?: number | null;
+  incomeTax?: number | null;
+  netIncome?: number | null;
+  rating?: string | null;
+  ratingScore?: number | null;
 };
 
 export function SymbolTable({
@@ -19,13 +32,41 @@ export function SymbolTable({
   hrefBase = "/stocks",
   empty = "No results found.",
   showIndustry = true,
+  showYield = false,
+  showFounded = false,
+  showCountry = false,
+  localCurrency = false,
+  showRevenue = false,
+  showEmployees = false,
+  showTax = false,
+  showProfit = false,
+  showRating = false,
 }: {
   rows: SymbolTableRow[];
   hrefBase?: string;
   empty?: string;
   showIndustry?: boolean;
+  showYield?: boolean;
+  showFounded?: boolean;
+  showCountry?: boolean;
+  localCurrency?: boolean;
+  showRevenue?: boolean;
+  showEmployees?: boolean;
+  showTax?: boolean;
+  showProfit?: boolean;
+  showRating?: boolean;
 }) {
-  const colSpan = showIndustry ? 7 : 6;
+  const colSpan =
+    6 +
+    (showIndustry ? 1 : 0) +
+    (showYield ? 1 : 0) +
+    (showFounded ? 1 : 0) +
+    (showCountry ? 1 : 0) +
+    (showRevenue ? 1 : 0) +
+    (showEmployees ? 1 : 0) +
+    (showTax ? 1 : 0) +
+    (showProfit ? 1 : 0) +
+    (showRating ? 1 : 0);
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="sa-table">
@@ -33,9 +74,17 @@ export function SymbolTable({
           <tr>
             <th>Symbol</th>
             <th>Company Name</th>
+            {showFounded ? <th className="num">Founded</th> : null}
             <th className="num">Market Cap</th>
+            {showRevenue ? <th className="num">Revenue (ttm)</th> : null}
+            {showProfit ? <th className="num">Net Income (ttm)</th> : null}
+            {showEmployees ? <th className="num">Employees</th> : null}
+            {showTax ? <th className="num">Income Tax (ttm)</th> : null}
+            {showRating ? <th className="num">Rating</th> : null}
             <th className="num">Stock Price</th>
             <th className="num">% Change</th>
+            {showYield ? <th className="num">Yield</th> : null}
+            {showCountry ? <th>Country</th> : null}
             {showIndustry ? <th>Industry</th> : null}
             <th className="num">Volume</th>
           </tr>
@@ -51,17 +100,51 @@ export function SymbolTable({
             rows.map((row) => (
               <tr key={row.symbol}>
                 <td className="symbol">
-                  <Link href={`${hrefBase}/${row.symbol}`} className="text-link hover:underline">
+                  <Link
+                    href={quoteHref(row.symbol, {
+                      name: row.name,
+                      isEtf: row.isEtf ?? hrefBase === "/etf",
+                      isFund: row.isFund ?? hrefBase === "/funds",
+                    })}
+                    className="text-link hover:underline"
+                  >
                     {row.symbol}
                   </Link>
                 </td>
                 <td className="max-w-[280px] truncate">{row.name}</td>
-                <td className="num">{formatCompactUsd(row.marketCap)}</td>
+                {showFounded ? <td className="num">{row.founded ?? "—"}</td> : null}
+                <td className="num">
+                  {localCurrency
+                    ? formatCompactMoney(row.marketCap, currencyForListing(row.symbol, row.country))
+                    : formatCompactUsd(row.marketCap)}
+                </td>
+                {showRevenue ? <td className="num">{formatCompactUsd(row.revenue)}</td> : null}
+                {showProfit ? <td className="num">{formatCompactUsd(row.netIncome)}</td> : null}
+                {showEmployees ? <td className="num">{formatInteger(row.employees)}</td> : null}
+                {showTax ? <td className="num">{formatCompactUsd(row.incomeTax)}</td> : null}
+                {showRating ? (
+                  <td className="num">
+                    {row.rating || "—"}
+                    {row.ratingScore != null ? ` (${row.ratingScore})` : ""}
+                  </td>
+                ) : null}
                 <td className="num">{formatPrice(row.price)}</td>
                 <td className="num">
                   <ChangePercent value={row.changePercentage} />
                 </td>
-                {showIndustry ? <td className="text-muted">{row.industry || row.exchange || "—"}</td> : null}
+                {showYield ? <td className="num">{formatPercentPlain(row.dividendYield)}</td> : null}
+                {showCountry ? <td className="text-muted">{row.country || "—"}</td> : null}
+                {showIndustry ? (
+                  <td className="text-muted">
+                    {row.industry ? (
+                      <Link href={`/stocks/industry/${industrySlug(row.industry)}`} className="hover:text-link hover:underline">
+                        {row.industry}
+                      </Link>
+                    ) : (
+                      row.exchange || "—"
+                    )}
+                  </td>
+                ) : null}
                 <td className="num">{formatInteger(row.volume)}</td>
               </tr>
             ))

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { ChangeValue } from "@/components/change";
 import { useWatchlist } from "@/components/watchlist-button";
 import { formatCompactUsd, formatPrice } from "@/lib/format";
+import { quoteHref } from "@/lib/listings";
 import type { FmpQuote } from "@/lib/types";
 
 export default function WatchlistPage() {
@@ -56,7 +57,7 @@ export default function WatchlistPage() {
               {quotes.map((quote) => (
                 <tr key={quote.symbol}>
                   <td className="symbol">
-                    <Link href={`/stocks/${quote.symbol}`} className="text-link hover:underline">
+                    <Link href={quoteHref(quote.symbol, { name: quote.name, exchange: quote.exchange })} className="text-link hover:underline">
                       {quote.symbol}
                     </Link>
                   </td>

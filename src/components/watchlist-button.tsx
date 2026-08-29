@@ -50,8 +50,8 @@ export function WatchlistButton({ symbol }: { symbol: string }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium",
         saved
-          ? "border-brand bg-green-50 text-brand"
-          : "border-border-strong bg-white text-header hover:bg-muted-bg",
+          ? "border-brand bg-brand/10 text-brand"
+          : "border-border-strong bg-background text-header hover:bg-muted-bg",
       )}
     >
       <Star className={cn("h-4 w-4", saved ? "fill-brand" : "")} />

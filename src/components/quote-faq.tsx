@@ -1,0 +1,95 @@
+import { formatAnalystConsensus, formatCompactMoney, formatDate, formatInteger, formatMoney, formatPercentPlain, formatRatio } from "@/lib/format";
+import { trailingPe } from "@/lib/valuation";
+import type { FmpGradesConsensus, FmpIncomeStatement, FmpPriceTarget, FmpProfile, FmpQuote } from "@/lib/types";
+
+export function QuoteFaq({
+  symbol,
+  quote,
+  profile,
+  ttm,
+  pe,
+  dividendYield,
+  target,
+  grades,
+}: {
+  symbol: string;
+  quote: FmpQuote | null;
+  profile: FmpProfile | null;
+  ttm: FmpIncomeStatement | null;
+  pe?: number | null;
+  dividendYield?: number | null;
+  target?: FmpPriceTarget | null;
+  grades?: FmpGradesConsensus | null;
+}) {
+  const name = profile?.companyName ?? quote?.name ?? symbol;
+  const price = quote?.price ?? profile?.price;
+  const currency = profile?.currency || "USD";
+  const trailing = pe ?? trailingPe(quote?.price, ttm?.epsDiluted ?? ttm?.eps) ?? quote?.pe;
+  const yieldValue = dividendYield ?? null;
+  const items = [
+    {
+      q: `What is ${symbol}'s market cap?`,
+      a: `${name} has a market capitalization of ${formatCompactMoney(quote?.marketCap ?? profile?.marketCap, currency)}.`,
+    },
+    {
+      q: `What is the PE ratio for ${symbol}?`,
+      a: trailing != null ? `${name} trades at a trailing PE ratio of ${formatRatio(trailing)}.` : `A trailing PE ratio is not available for ${symbol}.`,
+    },
+    {
+      q: `How much revenue does ${name} make?`,
+      a: ttm?.revenue
+        ? `${name} reported trailing-twelve-month revenue of ${formatCompactMoney(ttm.revenue, currency)}.`
+        : `Trailing revenue is not available for ${symbol}.`,
+    },
+    {
+      q: `Does ${symbol} pay a dividend?`,
+      a: yieldValue
+        ? `Yes. The indicated dividend yield is ${formatPercentPlain(yieldValue)}.`
+        : `${name} does not currently show an indicated dividend yield in FMP data.`,
+    },
+    {
+      q: `How many employees does ${name} have?`,
+      a: profile?.fullTimeEmployees
+        ? `${name} reports ${formatInteger(Number(profile.fullTimeEmployees))} full-time employees.`
+        : `Headcount is not available for ${symbol}.`,
+    },
+    {
+      q: `What do analysts think of ${symbol}?`,
+      a:
+        grades || target
+          ? [
+              grades?.consensus ? `Consensus is ${formatAnalystConsensus(grades)}.` : null,
+              target?.targetConsensus && price
+                ? `The average price target is ${formatMoney(target.targetConsensus, currency)}.`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ")
+          : `No analyst consensus is available for ${symbol}.`,
+    },
+    {
+      q: `What sector is ${symbol} in?`,
+      a: profile?.sector
+        ? `${name} is classified in ${profile.sector}${profile.industry ? ` (${profile.industry})` : ""}.`
+        : `Sector data is not available for ${symbol}.`,
+    },
+    {
+      q: `When did ${symbol} go public?`,
+      a: profile?.ipoDate ? `${name} listed on ${formatDate(profile.ipoDate)}.` : `IPO date is not available for ${symbol}.`,
+    },
+  ];
+
+  return (
+    <section className="mt-10">
+      <h2 className="mb-3 text-xl font-semibold text-header">FAQ</h2>
+      <dl className="divide-y divide-border rounded-lg border border-border">
+        {items.map((item) => (
+          <div key={item.q} className="px-4 py-3">
+            <dt className="text-sm font-semibold text-header">{item.q}</dt>
+            <dd className="mt-1 text-sm leading-6 text-header/90">{item.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}

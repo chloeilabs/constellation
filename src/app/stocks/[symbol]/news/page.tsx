@@ -1,26 +1,64 @@
 import { Container } from "@/components/container";
 import { NewsList } from "@/components/news-list";
 import { PageHeader } from "@/components/page-header";
-import { getPressReleases, getSymbolNews } from "@/lib/fmp";
+import { SectionNav } from "@/components/section-nav";
+import { TablePager } from "@/components/table-pager";
+import { NewsWindowPager } from "@/components/news-window-pager";
+import { getPressReleasesArchive, getStockNews, getSymbolNewsArchive } from "@/lib/fmp";
+import { isIndexTicker } from "@/lib/indexes";
+import { decodeTicker, stockPath } from "@/lib/listings";
+import { quoteNewsNav } from "@/lib/nav";
+import { mergeNews } from "@/lib/news";
+import { NEWS_PAGE_SIZE, pageNumber, paginate, pagerLinks } from "@/lib/paging";
 
-export default async function StockNewsPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function StockNewsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { symbol } = await params;
-  const ticker = symbol.toUpperCase();
-  const [news, press] = await Promise.all([getSymbolNews(ticker, 30), getPressReleases(ticker, 10)]);
+  const { page: pageParam } = await searchParams;
+  const ticker = decodeTicker(symbol);
+  const page = pageNumber(pageParam);
+  if (isIndexTicker(ticker)) {
+    const items = await getStockNews(NEWS_PAGE_SIZE, page - 1);
+    return (
+      <Container>
+        <PageHeader
+          title={`${ticker} News`}
+          description="FMP does not publish headlines tagged to index tickers. This is the latest U.S. stock market news."
+        />
+        <NewsWindowPager items={items} page={page} pageSize={NEWS_PAGE_SIZE} path={stockPath(ticker, "/news")} />
+      </Container>
+    );
+  }
+
+  const [news, press] = await Promise.all([
+    getSymbolNewsArchive(ticker),
+    getPressReleasesArchive(ticker),
+  ]);
+  const items = mergeNews(news, press);
+  const feed = paginate(items, page, NEWS_PAGE_SIZE);
+  const path = stockPath(ticker, "/news");
 
   return (
     <Container>
-      <PageHeader title={`${ticker} News`} description="Headlines and press releases for this stock." />
-      <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-header">Headlines</h2>
-          <NewsList items={news} showSymbol={false} />
-        </section>
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-header">Press Releases</h2>
-          <NewsList items={press} showSymbol={false} />
-        </section>
-      </div>
+      <PageHeader
+        title={`${ticker} News`}
+        description="Headlines and press releases for this stock. FMP pages the latest articles newest-first."
+      />
+      <SectionNav items={quoteNewsNav(ticker)} />
+      <NewsList items={feed.rows} showSymbol={false} />
+      <TablePager
+        from={feed.from}
+        to={feed.to}
+        total={feed.total}
+        page={feed.page}
+        pageCount={feed.pageCount}
+        {...pagerLinks(path, feed.page, feed.pageCount)}
+      />
     </Container>
   );
 }

@@ -12,7 +12,25 @@
   --link: #1d4ed8;
   --brand: #16a34a;
   --header: #0f172a;
+  --on-header: #ffffff;
   --chip: #f1f5f9;
+}
+
+html.dark {
+  color-scheme: dark;
+  --background: #0f172a;
+  --foreground: #e5e7eb;
+  --muted: #94a3b8;
+  --muted-bg: #1e293b;
+  --border: #334155;
+  --border-strong: #475569;
+  --gain: #4ade80;
+  --loss: #f87171;
+  --link: #93c5fd;
+  --brand: #22c55e;
+  --header: #f8fafc;
+  --on-header: #0f172a;
+  --chip: #1e293b;
 }
 
 @theme inline {
@@ -27,6 +45,7 @@
   --color-link: var(--link);
   --color-brand: var(--brand);
   --color-header: var(--header);
+  --color-on-header: var(--on-header);
   --color-chip: var(--chip);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
@@ -78,7 +97,7 @@ a {
 }
 
 .sa-table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--muted-bg);
 }
 
 .sa-table td.num,
@@ -94,7 +113,7 @@ a {
 .sa-statement th:first-child {
   position: sticky;
   left: 0;
-  background: #fff;
+  background: var(--background);
   z-index: 1;
   min-width: 220px;
 }

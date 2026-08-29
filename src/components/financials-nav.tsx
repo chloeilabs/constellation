@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { pathPrefix, samePath, stockPath } from "@/lib/listings";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/financials", label: "Income" },
+  { href: "/financials", label: "Overview", match: "exact" as const },
+  { href: "/financials/income-statement", label: "Income" },
   { href: "/financials/balance-sheet", label: "Balance Sheet" },
   { href: "/financials/cash-flow-statement", label: "Cash Flow" },
   { href: "/financials/ratios", label: "Ratios" },
+  { href: "/financials/metrics", label: "Metrics" },
+  { href: "/financials/growth", label: "Growth" },
+  { href: "/financials/reports", label: "Reports" },
 ];
 
 export function FinancialsNav({ symbol }: { symbol: string }) {
@@ -16,18 +21,15 @@ export function FinancialsNav({ symbol }: { symbol: string }) {
   return (
     <div className="mb-4 flex flex-wrap gap-2">
       {LINKS.map((link) => {
-        const href = `/stocks/${symbol}${link.href}`;
-        const active =
-          link.href === "/financials"
-            ? pathname === href
-            : pathname.startsWith(href);
+        const href = stockPath(symbol, link.href);
+        const active = link.match === "exact" ? samePath(pathname, href) : pathPrefix(pathname, href);
         return (
           <Link
             key={href}
             href={href}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
-              active ? "bg-header text-white" : "bg-chip text-header hover:bg-border",
+              active ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
             )}
           >
             {link.label}

@@ -1,39 +1,368 @@
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
-import { PageHeader, PeriodToggle } from "@/components/page-header";
+import { PageHeader, PeriodToggle, YearToggle } from "@/components/page-header";
 import { StatementTable } from "@/components/statement-table";
-import { getRatios } from "@/lib/fmp";
-import { RATIO_ROWS, toStatementColumns } from "@/lib/statements";
-import type { StatementPeriod } from "@/lib/types";
+import {
+  getBalanceSheets,
+  getCashFlows,
+  getCashFlowTtm,
+  getDailyChart,
+  getDividends,
+  getEnterpriseValues,
+  getEstimates,
+  getIncomeStatements,
+  getIncomeTtm,
+  getQuote,
+  getYearAgoMarketCap,
+} from "@/lib/fmp";
+import { closeOnOrBefore, toCloseSeries } from "@/lib/fundamental-chart";
+import { yearOverYear } from "@/lib/format";
+import { decodeTicker, stockPath } from "@/lib/listings";
+import { DISTRIBUTION_HISTORY_LIMIT, dividendYieldFromPrice, dividendsByFiscalYear, payoutRatioFromDps, trailingDividendThrough } from "@/lib/dividends";
+import {
+  RATIO_SECTIONS,
+  derivedBalanceMetrics,
+  derivedEfficiencyMetrics,
+  derivedStatementMetrics,
+  spanFrom,
+  statementHref,
+  statementLimit,
+  toStatementColumns,
+  trailingSum,
+  withAdjacentGrowth,
+  withStatementHrefs,
+} from "@/lib/statements";
+import type { FmpBalanceSheet, FmpCashFlow, FmpEnterpriseValue, FmpIncomeStatement, StatementPeriod } from "@/lib/types";
+import { indicatedAnnualDividend, nyDateString, relativeChange } from "@/lib/utils";
+import {
+  actualToEstimateCagr,
+  assignFinite,
+  derivedValuationMetrics,
+  estimateCagr,
+  marketCapFromPrice,
+  nextEstimate,
+} from "@/lib/valuation";
+import { priceFromForFilings } from "@/lib/period-valuation";
+
+type StatementColumn = { key: string; label: string; values: Record<string, unknown> };
+
+function num(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function matchRow<T extends { date?: string; fiscalYear?: string }>(
+  rows: T[],
+  column: StatementColumn,
+  period: StatementPeriod,
+) {
+  const date = typeof column.values.date === "string" ? column.values.date : "";
+  const year = column.values.fiscalYear;
+  if (period === "annual" && year != null) {
+    return (
+      rows.find((row) => row.date === date) ??
+      rows.find((row) => String(row.fiscalYear) === String(year)) ??
+      null
+    );
+  }
+  return rows.find((row) => row.date === date) ?? null;
+}
+
+function matchEnterprise(rows: FmpEnterpriseValue[], column: StatementColumn) {
+  const date = typeof column.values.date === "string" ? column.values.date : "";
+  return rows.find((row) => row.date === date) ?? null;
+}
+
+function overlayRatioColumn(
+  column: StatementColumn,
+  input: {
+    income?: FmpIncomeStatement | Record<string, unknown> | null;
+    balance?: FmpBalanceSheet | Record<string, unknown> | null;
+    cash?: FmpCashFlow | Record<string, unknown> | null;
+    enterprise?: FmpEnterpriseValue | null;
+    price?: number | null;
+    marketCap?: number | null;
+    nextEps?: number | null;
+    epsCagr?: number | null;
+    sharesYoy?: number | null;
+    dividendYield?: number | null;
+    date?: string | null;
+    priorBalance?: FmpBalanceSheet | Record<string, unknown> | null;
+    daysInPeriod?: number;
+  },
+): StatementColumn {
+  const income: Record<string, unknown> = {
+    ...column.values,
+    ...((input.income as Record<string, unknown> | null | undefined) ?? {}),
+  };
+  const cash: Record<string, unknown> = (input.cash as Record<string, unknown> | undefined) ?? {};
+  const mergedIncome: Record<string, unknown> = {
+    ...income,
+    depreciationAndAmortization:
+      num(income.depreciationAndAmortization) ?? num(cash.depreciationAndAmortization),
+    freeCashFlow: num(income.freeCashFlow) ?? num(cash.freeCashFlow),
+    operatingCashFlow:
+      num(income.operatingCashFlow) ??
+      num(cash.operatingCashFlow) ??
+      num(cash.netCashProvidedByOperatingActivities),
+  };
+  const derivedIncome = derivedStatementMetrics(mergedIncome);
+  const balance: Record<string, unknown> = {
+    ...mergedIncome,
+    ...((input.balance as Record<string, unknown> | null | undefined) ?? {}),
+  };
+  const derivedBalance = derivedBalanceMetrics({
+    ...balance,
+    weightedAverageShsOutDil:
+      num(balance.weightedAverageShsOutDil) ?? num(mergedIncome.weightedAverageShsOutDil),
+  });
+  const overlay = derivedValuationMetrics({
+    price: input.price ?? num(input.enterprise?.stockPrice),
+    marketCap:
+      input.marketCap ?? num(input.enterprise?.marketCapitalization) ?? num(mergedIncome.marketCap),
+    equity: num(balance.totalStockholdersEquity),
+    tangibleEquity: derivedBalance.tangibleBookValue,
+    bookPerShare: derivedBalance.bookValuePerShare,
+    tangibleBookPerShare: derivedBalance.tangibleBookValuePerShare,
+    totalDebt: num(balance.totalDebt),
+    netCash: derivedBalance.netCashPosition,
+    revenue: num(mergedIncome.revenue),
+    eps: num(mergedIncome.epsDiluted) ?? num(mergedIncome.eps),
+    ebit: derivedIncome.ebit,
+    ebitda: derivedIncome.ebitda,
+    fcf: num(mergedIncome.freeCashFlow),
+    ocf: num(mergedIncome.operatingCashFlow),
+    netIncome: num(mergedIncome.netIncome),
+    sharesYoy: input.sharesYoy,
+    dividendYield:
+      input.dividendYield !== undefined
+        ? input.dividendYield
+        : num(column.values.dividendYield) ?? num(mergedIncome.dividendYield),
+    nextEps: input.nextEps,
+    epsCagr: input.epsCagr,
+  });
+  const efficiency = derivedEfficiencyMetrics({
+    income: { ...mergedIncome, ebit: derivedIncome.ebit, ebitda: derivedIncome.ebitda },
+    balance,
+    priorBalance: (input.priorBalance as Record<string, unknown> | null | undefined) ?? null,
+    daysInPeriod: input.daysInPeriod,
+  });
+  const overlayWithEfficiency = { ...overlay, ...efficiency };
+  const values = assignFinite(
+    {
+      ...column.values,
+      ...mergedIncome,
+      weightedAverageShsOutDil: num(mergedIncome.weightedAverageShsOutDil),
+      ...(input.date ? { date: input.date } : {}),
+    },
+    overlayWithEfficiency,
+  ) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(overlayWithEfficiency)) {
+    values[key] = typeof value === "number" && Number.isFinite(value) ? value : null;
+  }
+  return { ...column, values };
+}
 
 export default async function RatiosPage({
   params,
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; years?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const { period: periodParam, years: yearsParam } = await searchParams;
+  const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
-  const rows = await getRatios(ticker, period, 8);
+  const span = spanFrom(yearsParam);
+  const displayCount = statementLimit(period, span);
+  const priceFrom = priceFromForFilings(period, displayCount);
+  const [
+    incomeTtm,
+    incomeRows,
+    annualIncome,
+    balanceRows,
+    quarterSheets,
+    cashRows,
+    cashTtm,
+    estimates,
+    quote,
+    enterpriseRows,
+    yearAgoCap,
+    dailyCloses,
+    dividends,
+  ] = await Promise.all([
+    getIncomeTtm(ticker),
+    getIncomeStatements(ticker, period, displayCount + (period === "quarter" ? 4 : 1)),
+    period === "annual" ? Promise.resolve([] as FmpIncomeStatement[]) : getIncomeStatements(ticker, "annual", 2),
+    getBalanceSheets(ticker, period, displayCount + (period === "quarter" ? 4 : 1)),
+    getBalanceSheets(ticker, "quarter", 5),
+    getCashFlows(ticker, period, displayCount + 1),
+    getCashFlowTtm(ticker),
+    getEstimates(ticker, "annual"),
+    getQuote(ticker),
+    getEnterpriseValues(ticker, period, displayCount + 1),
+    getYearAgoMarketCap(ticker),
+    getDailyChart(ticker, priceFrom),
+    getDividends(ticker, DISTRIBUTION_HISTORY_LIMIT),
+  ]);
+  const periodCloses = toCloseSeries(dailyCloses);
+  const indicatedDividend = indicatedAnnualDividend(dividends[0], null);
+  const dividendByYear = dividendsByFiscalYear(dividends, period === "annual" ? incomeRows : annualIncome);
+  const latestAnnual = (annualIncome[0] ?? (period === "annual" ? incomeRows[0] : null)) ?? null;
+  const priorAnnual = (annualIncome[1] ?? (period === "annual" ? incomeRows[1] : null)) ?? null;
+  const annualShareYoy = relativeChange(
+    latestAnnual?.weightedAverageShsOutDil,
+    priorAnnual?.weightedAverageShsOutDil,
+  );
+  const epsCagr =
+    actualToEstimateCagr(
+      latestAnnual?.epsDiluted ?? latestAnnual?.eps,
+      latestAnnual?.date,
+      estimates,
+      "epsAvg",
+      3,
+    ) ?? estimateCagr(estimates, "epsAvg", 3);
+  const latestSheet = (period === "annual" ? quarterSheets[0] : balanceRows[0]) ?? null;
+  const currentIncome = incomeTtm
+    ? {
+        ...(incomeTtm as unknown as Record<string, unknown>),
+        depreciationAndAmortization:
+          (incomeTtm as unknown as Record<string, unknown>).depreciationAndAmortization ??
+          cashTtm?.depreciationAndAmortization,
+        freeCashFlow: cashTtm?.freeCashFlow,
+        operatingCashFlow: cashTtm?.operatingCashFlow ?? cashTtm?.netCashProvidedByOperatingActivities,
+      }
+    : null;
+
+  let columns: StatementColumn[] = [
+    {
+      key: "ttm",
+      label: "Current",
+      values: { date: nyDateString() },
+    },
+    ...toStatementColumns(incomeRows.slice(0, displayCount), period),
+  ];
+  columns = columns.map((column) => {
+    const isCurrent = column.key === "ttm";
+    const income = isCurrent ? null : matchRow(incomeRows, column, period);
+    const incomeIndex = income ? incomeRows.findIndex((row) => row.date === income.date) : -1;
+    const priorIncome = incomeIndex >= 0 ? incomeRows[incomeIndex + 1] ?? null : null;
+    const priorPegIncome = incomeIndex >= 0 ? incomeRows[incomeIndex + (period === "quarter" ? 4 : 1)] ?? null : null;
+    const enterprise = isCurrent ? null : matchEnterprise(enterpriseRows, column);
+    const periodDate = isCurrent
+      ? null
+      : typeof column.values.date === "string"
+        ? column.values.date
+        : income?.date;
+    const periodPrice = isCurrent
+      ? quote?.price
+      : (closeOnOrBefore(periodCloses, periodDate) ?? num(enterprise?.stockPrice));
+    const shares = isCurrent
+      ? null
+      : num(income?.weightedAverageShsOutDil) ?? num(enterprise?.numberOfShares);
+    const periodDps = isCurrent
+      ? indicatedDividend
+      : period === "annual"
+        ? (dividendByYear.get(String(income?.fiscalYear ?? column.values.fiscalYear)) ?? null)
+        : periodDate
+          ? trailingDividendThrough(dividends, periodDate, 4)
+          : null;
+    const periodEps = isCurrent
+      ? num(incomeTtm?.epsDiluted) ?? num(incomeTtm?.eps)
+      : period === "annual"
+        ? num(income?.epsDiluted) ?? num(income?.eps)
+        : incomeIndex >= 0
+          ? trailingSum(incomeRows as unknown as Array<Record<string, unknown>>, "epsDiluted", incomeIndex, 4) ??
+            trailingSum(incomeRows as unknown as Array<Record<string, unknown>>, "eps", incomeIndex, 4)
+          : null;
+    const overlaid = overlayRatioColumn(column, {
+      income: isCurrent ? currentIncome : income,
+      balance: isCurrent ? latestSheet : matchRow(balanceRows, column, period),
+      cash: isCurrent ? cashTtm : matchRow(cashRows, column, period),
+      enterprise,
+      price: periodPrice,
+      marketCap: isCurrent
+        ? quote?.marketCap
+        : (marketCapFromPrice(periodPrice, shares) ?? num(enterprise?.marketCapitalization)),
+      nextEps: isCurrent ? nextEstimate(estimates)?.epsAvg : null,
+      epsCagr: isCurrent
+        ? epsCagr
+        : yearOverYear(income?.epsDiluted ?? income?.eps, priorPegIncome?.epsDiluted ?? priorPegIncome?.eps),
+      sharesYoy: isCurrent
+        ? annualShareYoy
+        : yearOverYear(income?.weightedAverageShsOutDil, priorIncome?.weightedAverageShsOutDil),
+      dividendYield: dividendYieldFromPrice(periodDps, periodPrice),
+      date: isCurrent ? nyDateString() : undefined,
+      priorBalance: isCurrent
+        ? (quarterSheets[4] ?? quarterSheets[1] ?? null)
+        : (() => {
+            const matched = matchRow(balanceRows, column, period);
+            if (!matched) return null;
+            const idx = balanceRows.findIndex((row) => row.date === matched.date);
+            return idx >= 0 ? (balanceRows[idx + 1] ?? null) : null;
+          })(),
+      daysInPeriod: isCurrent ? 365 : period === "quarter" ? 365 / 4 : 365,
+    });
+    return {
+      ...overlaid,
+      values: {
+        ...overlaid.values,
+        dividendPayoutRatio: payoutRatioFromDps(periodDps, periodEps),
+      },
+    };
+  });
+  columns = columns.map((column) => {
+    if (column.key === "ttm") return column;
+    const values = { ...column.values };
+    delete values.forwardPe;
+    return { ...column, values };
+  });
+  columns = withAdjacentGrowth(
+    columns,
+    "marketCap",
+    "marketCapGrowth",
+    1,
+    relativeChange(quote?.marketCap, yearAgoCap?.marketCap),
+  );
+  const base = stockPath(ticker, "/financials/ratios");
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Financial Ratios`}
-        description="Profitability, liquidity, leverage, and valuation ratios."
+        description="Market cap in millions. The Current column uses live price, trailing income and cash flow, and the latest balance sheet. Fiscal columns use the last FMP close on or before each period end, times diluted shares. Forward PE is Current only. Historical PEG is period-end PE divided by year-over-year EPS growth. Dividend yield is indicated or fiscal dividends divided by the same close. Payout is those dividends divided by diluted EPS. Liquidity, turnover, and return ratios are computed from filings: current/quick from the period-end sheet, turnover and ROE from income over average assets and equity versus the year-ago (Current) or prior period (fiscal) sheet."
         actions={
-          <PeriodToggle
-            period={period}
-            annualHref={`/stocks/${ticker}/financials/ratios`}
-            quarterHref={`/stocks/${ticker}/financials/ratios?period=quarter`}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <PeriodToggle
+              period={period}
+              annualHref={statementHref(base, "annual", "standardized", span)}
+              quarterHref={statementHref(base, "quarter", "standardized", span)}
+            />
+            <YearToggle
+              span={span}
+              fiveHref={statementHref(base, period, "standardized", "5")}
+              tenHref={statementHref(base, period, "standardized", "10")}
+              maxHref={statementHref(base, period, "standardized", "max")}
+            />
+          </div>
         }
       />
       <FinancialsNav symbol={ticker} />
-      <StatementTable rows={RATIO_ROWS} columns={toStatementColumns(rows, period)} />
+      <div className="flex flex-col gap-10">
+        {RATIO_SECTIONS.map((section) => (
+          <section key={section.id}>
+            <h2 className="mb-3 font-semibold text-header">{section.title}</h2>
+            <StatementTable
+              rows={withStatementHrefs(section.rows, ticker)}
+              columns={columns}
+              scale={section.scale}
+              inlineYoy={section.inlineYoy ?? false}
+              downloadName={`${ticker}-ratios-${section.id}-${period}-${span}`}
+              cornerLabel="Fiscal Year"
+            />
+          </section>
+        ))}
+      </div>
     </Container>
   );
 }

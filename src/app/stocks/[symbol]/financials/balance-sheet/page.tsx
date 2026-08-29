@@ -1,9 +1,30 @@
 import { Container } from "@/components/container";
 import { FinancialsNav } from "@/components/financials-nav";
-import { PageHeader, PeriodToggle } from "@/components/page-header";
+import { PageHeader, StatementToolbar } from "@/components/page-header";
+import { StatementCharts } from "@/components/statement-charts";
 import { StatementTable } from "@/components/statement-table";
-import { getBalanceSheets } from "@/lib/fmp";
-import { BALANCE_ROWS, toStatementColumns } from "@/lib/statements";
+import { getBalanceAsReported, getBalanceSheets, getBalanceSheetTtm, getIncomeStatements, getIncomeTtm } from "@/lib/fmp";
+import { formatMillions, reportingCurrency, yearOverYear } from "@/lib/format";
+import { decodeTicker, stockPath } from "@/lib/listings";
+import {
+  ADDITIONAL_BALANCE_ROWS,
+  BALANCE_ROWS,
+  asReportedColumns,
+  asReportedStatementRows,
+  derivedBalanceMetrics,
+  mergeStatementValues,
+  sourceFrom,
+  spanFrom,
+  statementChartItems,
+  statementLimit,
+  statementToolbarHrefs,
+  toStatementColumns,
+  viewFrom,
+  withAdjacentGrowth,
+  withDerivedBalanceMetrics,
+  withStatementHrefs,
+  withTtmColumn,
+} from "@/lib/statements";
 import type { StatementPeriod } from "@/lib/types";
 
 export default async function BalanceSheetPage({
@@ -11,34 +32,138 @@ export default async function BalanceSheetPage({
   searchParams,
 }: {
   params: Promise<{ symbol: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; source?: string; years?: string; view?: string }>;
 }) {
   const { symbol } = await params;
-  const { period: periodParam } = await searchParams;
-  const ticker = symbol.toUpperCase();
+  const { period: periodParam, source: sourceParam, years: yearsParam, view: viewParam } = await searchParams;
+  const ticker = decodeTicker(symbol);
   const period: StatementPeriod = periodParam === "quarter" ? "quarter" : "annual";
-  const rows = await getBalanceSheets(ticker, period, 8);
+  const source = sourceFrom(sourceParam);
+  const span = spanFrom(yearsParam);
+  const view = source === "reported" ? "dollars" : viewFrom(viewParam);
+  const limit = statementLimit(period, span);
+  const base = stockPath(ticker, "/financials/balance-sheet");
+  const [rows, ttm, reported, income, incomeTtm, quarterly] = await Promise.all([
+    source === "standardized" ? getBalanceSheets(ticker, period, limit) : Promise.resolve([]),
+    source === "standardized" ? getBalanceSheetTtm(ticker) : Promise.resolve(null),
+    source === "reported" ? getBalanceAsReported(ticker, period, limit) : Promise.resolve([]),
+    source === "standardized" ? getIncomeStatements(ticker, period, limit) : Promise.resolve([]),
+    source === "standardized" ? getIncomeTtm(ticker) : Promise.resolve(null),
+    source === "standardized" && period === "annual"
+      ? getBalanceSheets(ticker, "quarter", 5)
+      : Promise.resolve([]),
+  ]);
+  const currency = reportingCurrency(
+    rows[0]?.reportedCurrency,
+    ttm?.reportedCurrency,
+    reported[0]?.reportedCurrency,
+  );
+  let columns =
+    source === "reported"
+      ? asReportedColumns(reported, period)
+      : withTtmColumn(ttm as Record<string, unknown> | null, toStatementColumns(rows, period));
+  if (source === "standardized") {
+    if (incomeTtm && columns[0]?.key === "ttm") {
+      columns = [
+        {
+          ...columns[0],
+          values: {
+            ...columns[0].values,
+            weightedAverageShsOutDil: incomeTtm.weightedAverageShsOutDil,
+            weightedAverageShsOut: incomeTtm.weightedAverageShsOut,
+          },
+        },
+        ...columns.slice(1),
+      ];
+    }
+    columns = mergeStatementValues(columns, income, ["weightedAverageShsOutDil", "weightedAverageShsOut"]);
+    columns = withDerivedBalanceMetrics(columns);
+    const ttmNetCash = ttm ? derivedBalanceMetrics(ttm as Record<string, unknown>).netCashPosition : null;
+    const yearAgoSheet = (period === "annual" ? quarterly[4] : rows[4]) as Record<string, unknown> | undefined;
+    const ttmNetCashGrowth = yearOverYear(
+      ttmNetCash,
+      yearAgoSheet ? derivedBalanceMetrics(yearAgoSheet).netCashPosition : null,
+    );
+    columns = withAdjacentGrowth(
+      columns,
+      "netCashPosition",
+      "netCashGrowth",
+      period === "quarter" ? 4 : 1,
+      ttmNetCashGrowth,
+    );
+  }
 
   return (
     <Container>
       <PageHeader
         title={`${ticker} Balance Sheet`}
-        description="Assets, liabilities, and shareholders' equity. Figures in millions of USD."
+        description={
+          source === "reported"
+            ? `As-reported XBRL line items from company filings. Figures in millions of ${currency}.`
+            : view === "common-size"
+              ? "Each balance-sheet line is a percentage of total assets. Charts remain in dollars."
+              : `Assets, liabilities, and shareholders' equity. Figures in millions of ${currency}.`
+        }
         actions={
-          <PeriodToggle
+          <StatementToolbar
             period={period}
-            annualHref={`/stocks/${ticker}/financials/balance-sheet`}
-            quarterHref={`/stocks/${ticker}/financials/balance-sheet?period=quarter`}
+            source={source}
+            span={span}
+            view={view}
+            {...statementToolbarHrefs(base, period, source, span, view, { trailing: false })}
           />
         }
       />
       <FinancialsNav symbol={ticker} />
-      <StatementTable
-        rows={BALANCE_ROWS}
-        columns={toStatementColumns(rows, period)}
-        scale="millions"
-        caption="Values in millions. Green/red percentages are year-over-year change."
-      />
+      {source === "standardized" ? (
+        <StatementCharts
+          formatValue={formatMillions}
+          series={[
+            { title: "Total Assets", items: statementChartItems(columns, "totalAssets") },
+            { title: "Total Debt", items: statementChartItems(columns, "totalDebt") },
+            { title: "Shareholders' Equity", items: statementChartItems(columns, "totalStockholdersEquity") },
+          ]}
+        />
+      ) : null}
+      {source === "reported" ? (
+        <StatementTable
+          rows={asReportedStatementRows(reported)}
+          columns={columns}
+          scale="millions"
+          currency={currency}
+          caption={`Values in millions of ${currency}. Line labels follow the company's as-reported US-GAAP tags.`}
+          downloadName={`${ticker}-balance-as-reported-${period}-${span}`}
+        />
+      ) : (
+        <>
+          <StatementTable
+            rows={withStatementHrefs(BALANCE_ROWS, ticker)}
+            columns={columns}
+            scale="millions"
+            currency={currency}
+            commonSizeBase={view === "common-size" ? "totalAssets" : undefined}
+            caption={
+              view === "common-size"
+                ? "Percent of total assets. Green/red year-over-year change is hidden in this view."
+                : `Values in millions of ${currency}. The TTM column is the latest trailing snapshot; green/red percentages are year-over-year change.`
+            }
+            downloadName={`${ticker}-balance-${period}-${span}${view === "common-size" ? "-common-size" : ""}`}
+          />
+          {view === "dollars" ? (
+            <section className="mt-10">
+              <h2 className="mb-3 text-lg font-semibold text-header">Additional Metrics</h2>
+              <StatementTable
+                rows={withStatementHrefs(ADDITIONAL_BALANCE_ROWS, ticker)}
+                columns={columns}
+                scale="millions"
+                currency={currency}
+                caption="Net cash is cash & investments minus total debt. Tangible book value subtracts goodwill and other intangibles."
+                downloadName={`${ticker}-balance-additional-${period}-${span}`}
+              />
+            </section>
+          ) : null}
+        </>
+      )}
     </Container>
   );
 }
