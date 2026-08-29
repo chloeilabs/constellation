@@ -34,8 +34,8 @@ export function MoversTable({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-muted">
-                  No data available.
+                <td colSpan={4} className="py-8 text-center text-muted whitespace-normal">
+                  No movers in this session.
                 </td>
               </tr>
             ) : (

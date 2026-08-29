@@ -46,9 +46,9 @@ export default async function EtfComparePage({
               name="symbols"
               defaultValue={symbols.join(",")}
               placeholder="QQQ,SPY,VOO"
-              className="h-9 w-56 rounded-md border border-border px-2 text-sm"
+              className="sa-input w-56"
             />
-            <button className="h-9 rounded-md bg-header px-3 text-sm font-medium text-on-header" type="submit">
+            <button className="sa-btn sa-btn-primary" type="submit">
               Compare
             </button>
           </form>

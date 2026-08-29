@@ -57,22 +57,22 @@ export default async function DividendCalculatorPage({
       <form className="mb-8 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-5">
         <label className="text-sm">
           <span className="mb-1 block text-muted">Symbol</span>
-          <input name="symbol" defaultValue={ticker} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="symbol" defaultValue={ticker} className="sa-input" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Shares</span>
-          <input name="shares" type="number" min={1} defaultValue={shares} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="shares" type="number" min={1} defaultValue={shares} className="sa-input" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Years</span>
-          <input name="years" type="number" min={1} max={40} defaultValue={years} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="years" type="number" min={1} max={40} defaultValue={years} className="sa-input" />
         </label>
         <label className="flex items-end gap-2 text-sm">
           <input name="drip" type="checkbox" value="1" defaultChecked={drip} className="h-4 w-4" />
           <span>Reinvest (DRIP)</span>
         </label>
         <div className="flex items-end">
-          <button className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header" type="submit">
+          <button className="sa-btn sa-btn-primary" type="submit">
             Calculate
           </button>
         </div>

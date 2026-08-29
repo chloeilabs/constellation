@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Logo } from "@/components/logo";
+import { FooterColumn } from "@/components/footer-column";
 
 const columns = [
   {
@@ -166,21 +167,24 @@ const columns = [
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-border bg-muted-bg">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
-        {columns.map((column) => (
-          <div key={column.title}>
-            <h3 className="mb-3 text-sm font-semibold text-header">{column.title}</h3>
-            <ul className="flex flex-col gap-2 text-sm text-muted">
-              {column.links.map(([href, label]) => (
-                <li key={href}>
-                  <Link href={href} className="hover:text-link">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+      <div className="mx-auto max-w-7xl px-4 py-10">
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Logo />
+            <p className="mt-3 max-w-md text-sm text-muted text-pretty">
+              Free stock research with live quotes, financials, news, and screeners. Data from Financial Modeling Prep.
+              Not investment advice.
+            </p>
           </div>
-        ))}
+          <a href="#main-content" className="text-sm font-medium text-link hover:underline">
+            Back to top
+          </a>
+        </div>
+        <div className="grid gap-2 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8 lg:pt-8">
+          {columns.map((column) => (
+            <FooterColumn key={column.title} title={column.title} links={column.links} />
+          ))}
+        </div>
       </div>
       <div className="border-t border-border px-4 py-4 text-center text-xs text-muted">
         Stock Analysis clone for research and education. Market data from{" "}

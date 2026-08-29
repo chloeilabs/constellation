@@ -103,13 +103,13 @@ export default async function EarningsCalendarPage({
         {view !== "all" ? <input type="hidden" name="view" value={view} /> : null}
         <label className="text-sm">
           <span className="mb-1 block text-muted">From</span>
-          <input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-border px-2" />
+          <input type="date" name="from" defaultValue={from} className="sa-input w-auto" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">To</span>
-          <input type="date" name="to" defaultValue={to} className="h-9 rounded-md border border-border px-2" />
+          <input type="date" name="to" defaultValue={to} className="sa-input w-auto" />
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
+        <button type="submit" className="sa-btn sa-btn-primary">
           Update
         </button>
       </form>

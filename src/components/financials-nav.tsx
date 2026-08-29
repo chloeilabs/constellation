@@ -31,6 +31,7 @@ export function FinancialsNav({ symbol }: { symbol: string }) {
               "rounded-full px-3 py-1 text-sm font-medium",
               active ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
             )}
+            aria-current={active ? "page" : undefined}
           >
             {link.label}
           </Link>

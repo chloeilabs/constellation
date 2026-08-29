@@ -47,12 +47,12 @@ export default async function MarketIndexesPage({
             name="q"
             defaultValue={q}
             placeholder="Nikkei, FTSE, S&P…"
-            className="h-9 w-56 rounded-md border border-border px-2"
+            className="sa-input w-56"
           />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Exchange</span>
-          <select name="exchange" defaultValue={exchangeFilter} className="h-9 rounded-md border border-border px-2">
+          <select name="exchange" defaultValue={exchangeFilter} className="sa-input w-auto">
             <option value="">All</option>
             {exchanges.map((item) => (
               <option key={item} value={item}>
@@ -61,7 +61,7 @@ export default async function MarketIndexesPage({
             ))}
           </select>
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
+        <button type="submit" className="sa-btn sa-btn-primary">
           Filter
         </button>
       </form>

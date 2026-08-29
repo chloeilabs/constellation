@@ -15,7 +15,7 @@ export function PopularStocks({ quotes }: { quotes: FmpQuote[] }) {
           <Link
             key={symbol}
             href={quoteHref(symbol, { name: quote?.name, exchange: quote?.exchange })}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm hover:border-border-strong hover:bg-muted-bg"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:border-border-strong hover:bg-muted-bg"
           >
             <span className="font-semibold text-header">{symbol}</span>
             {quote ? (

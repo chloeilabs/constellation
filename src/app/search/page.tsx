@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Container } from "@/components/container";
+import { Container, EmptyState } from "@/components/container";
 import { PageHeader } from "@/components/page-header";
 import { SearchBox } from "@/components/search-box";
 import { searchAll } from "@/lib/fmp";
@@ -31,7 +31,10 @@ export default async function SearchPage({
       </div>
       {query ? (
         results.length === 0 ? (
-          <p className="text-sm text-muted">No matches for “{query}”.</p>
+          <EmptyState
+            title={`No matches for “${query}”`}
+            message="Try a ticker, company name, CIK, CUSIP, or ISIN. Indexes, ETFs, and funds are included."
+          />
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="sa-table">
@@ -61,7 +64,10 @@ export default async function SearchPage({
           </div>
         )
       ) : (
-        <p className="text-sm text-muted">Type a ticker, company name, CIK, CUSIP, or ISIN to search live FMP listings.</p>
+        <EmptyState
+          title="Search live listings"
+          message="Type a ticker, company name, CIK, CUSIP, or ISIN to search stocks, ETFs, funds, and indexes."
+        />
       )}
     </Container>
   );

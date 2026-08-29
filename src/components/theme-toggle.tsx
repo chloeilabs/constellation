@@ -1,38 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
 const STORAGE_KEY = "sa-theme";
 
-function isDark() {
-  return typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+function subscribe(onStoreChange: () => void) {
+  const observer = new MutationObserver(onStoreChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getSnapshot() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function getServerSnapshot() {
+  return false;
 }
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    setDark(isDark());
-  }, []);
+  const dark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   function toggle() {
-    const next = !isDark();
+    const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
     try {
       localStorage.setItem(STORAGE_KEY, next ? "dark" : "light");
     } catch {
       /* ignore quota / private mode */
     }
-    setDark(next);
   }
 
   return (
     <button
       type="button"
       onClick={toggle}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border-strong text-header hover:bg-muted-bg"
+      className="sa-btn sa-btn-secondary h-9 w-9 shrink-0 px-0"
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={dark}
       title={dark ? "Light mode" : "Dark mode"}
     >
       {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

@@ -2,6 +2,22 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+function ToggleLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "rounded px-3 py-1.5 font-medium",
+        active ? "bg-header text-on-header" : "text-muted hover:text-header",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function PeriodToggle({
   period,
   annualHref,
@@ -15,37 +31,16 @@ export function PeriodToggle({
 }) {
   return (
     <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Statement period">
-      <Link
-        href={annualHref}
-        scroll={false}
-        className={cn(
-          "rounded px-3 py-1.5 font-medium",
-          period === "annual" ? "bg-header text-on-header" : "text-muted hover:text-header",
-        )}
-      >
+      <ToggleLink href={annualHref} active={period === "annual"}>
         Annual
-      </Link>
-      <Link
-        href={quarterHref}
-        scroll={false}
-        className={cn(
-          "rounded px-3 py-1.5 font-medium",
-          period === "quarter" ? "bg-header text-on-header" : "text-muted hover:text-header",
-        )}
-      >
+      </ToggleLink>
+      <ToggleLink href={quarterHref} active={period === "quarter"}>
         Quarterly
-      </Link>
+      </ToggleLink>
       {trailingHref ? (
-        <Link
-          href={trailingHref}
-          scroll={false}
-          className={cn(
-            "rounded px-3 py-1.5 font-medium",
-            period === "trailing" ? "bg-header text-on-header" : "text-muted hover:text-header",
-          )}
-        >
+        <ToggleLink href={trailingHref} active={period === "trailing"}>
           Trailing
-        </Link>
+        </ToggleLink>
       ) : null}
     </div>
   );
@@ -62,26 +57,12 @@ export function SourceToggle({
 }) {
   return (
     <div className="inline-flex rounded-md border border-border p-0.5 text-sm" role="group" aria-label="Statement source">
-      <Link
-        href={standardizedHref}
-        scroll={false}
-        className={cn(
-          "rounded px-3 py-1.5 font-medium",
-          source === "standardized" ? "bg-header text-on-header" : "text-muted hover:text-header",
-        )}
-      >
+      <ToggleLink href={standardizedHref} active={source === "standardized"}>
         Standardized
-      </Link>
-      <Link
-        href={reportedHref}
-        scroll={false}
-        className={cn(
-          "rounded px-3 py-1.5 font-medium",
-          source === "reported" ? "bg-header text-on-header" : "text-muted hover:text-header",
-        )}
-      >
+      </ToggleLink>
+      <ToggleLink href={reportedHref} active={source === "reported"}>
         As Reported
-      </Link>
+      </ToggleLink>
     </div>
   );
 }
@@ -106,17 +87,9 @@ export function YearToggle({
           ["max", "Max", maxHref],
         ] as const
       ).map(([id, label, href]) => (
-        <Link
-          key={id}
-          href={href}
-          scroll={false}
-          className={cn(
-            "rounded px-3 py-1.5 font-medium",
-            span === id ? "bg-header text-on-header" : "text-muted hover:text-header",
-          )}
-        >
+        <ToggleLink key={id} href={href} active={span === id}>
           {label}
-        </Link>
+        </ToggleLink>
       ))}
     </div>
   );
@@ -148,17 +121,9 @@ export function RangeToggle({
           ["max", "Max", maxHref],
         ] as const
       ).map(([id, label, href]) => (
-        <Link
-          key={id}
-          href={href}
-          scroll={false}
-          className={cn(
-            "rounded px-3 py-1.5 font-medium",
-            range === id ? "bg-header text-on-header" : "text-muted hover:text-header",
-          )}
-        >
+        <ToggleLink key={id} href={href} active={range === id}>
           {label}
-        </Link>
+        </ToggleLink>
       ))}
     </div>
   );
@@ -181,17 +146,9 @@ export function ViewToggle({
           ["common-size", "Common Size", commonHref],
         ] as const
       ).map(([id, label, href]) => (
-        <Link
-          key={id}
-          href={href}
-          scroll={false}
-          className={cn(
-            "rounded px-3 py-1.5 font-medium",
-            view === id ? "bg-header text-on-header" : "text-muted hover:text-header",
-          )}
-        >
+        <ToggleLink key={id} href={href} active={view === id}>
           {label}
-        </Link>
+        </ToggleLink>
       ))}
     </div>
   );
@@ -252,8 +209,8 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-header md:text-3xl">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+        <h1 className="text-2xl font-bold tracking-tight text-header text-balance md:text-3xl">{title}</h1>
+        {description ? <p className="mt-1 max-w-3xl text-sm text-muted text-pretty">{description}</p> : null}
       </div>
       {actions}
     </div>

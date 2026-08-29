@@ -170,9 +170,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="border-b border-border bg-gradient-to-b from-muted-bg to-white">
+      <section className="border-b border-border bg-gradient-to-b from-muted-bg to-background">
         <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-header md:text-5xl">
+          <h1 className="text-3xl font-bold tracking-tight text-header text-balance md:text-5xl">
             Search for a stock to start your analysis
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted">
@@ -210,7 +210,7 @@ export default async function HomePage() {
             <Link
               key={href}
               href={href}
-              className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-header hover:border-border-strong hover:bg-muted-bg"
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-header transition-colors hover:border-border-strong hover:bg-muted-bg"
             >
               {label}
             </Link>

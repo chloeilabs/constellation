@@ -43,7 +43,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         <GlobalIndexTicker />
         {!configured ? <ApiBanner /> : null}
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1">
+          {children}
+        </main>
         <SiteFooter />
       </body>
     </html>

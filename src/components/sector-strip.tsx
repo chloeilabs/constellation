@@ -31,7 +31,7 @@ export function SectorStrip({ rows }: { rows: FmpSectorPerformance[] }) {
           <Link
             key={row.sector}
             href={`/stocks/industry#${industrySlug(row.sector)}`}
-            className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 hover:border-border-strong hover:bg-muted-bg"
+            className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 transition-colors hover:border-border-strong hover:bg-muted-bg"
           >
             <span className="truncate text-sm font-medium text-header">{row.sector}</span>
             <ChangePercent value={row.averageChange} className="shrink-0 text-sm" />

@@ -28,7 +28,7 @@ export function DownloadCsvButton({
     <button
       type="button"
       onClick={onClick}
-      className="shrink-0 rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+      className="sa-btn sa-btn-secondary shrink-0"
     >
       Download CSV
     </button>

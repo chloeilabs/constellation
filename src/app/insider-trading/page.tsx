@@ -79,9 +79,9 @@ export default async function InsiderTradingPage({
           name="name"
           defaultValue={queryName}
           placeholder="Insider last name (e.g. Zuckerberg)"
-          className="h-9 min-w-[16rem] flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none ring-brand/30 placeholder:text-muted focus:ring-2"
+          className="sa-input min-w-[16rem] flex-1"
         />
-        <button type="submit" className="h-9 rounded-md bg-header px-3 text-sm font-semibold text-on-header">
+        <button type="submit" className="sa-btn sa-btn-primary">
           Search
         </button>
         {searching ? (

@@ -60,6 +60,7 @@ export function ComparePerformanceChart({
               key={range}
               href={compareChartHref(pathname, symbols, range)}
               scroll={false}
+              aria-current={span === range ? "page" : undefined}
               className={cn(
                 "rounded px-2 py-1.5 font-medium",
                 span === range ? "bg-header text-on-header" : "text-muted hover:text-header",
@@ -71,7 +72,7 @@ export function ComparePerformanceChart({
         </div>
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[280px] w-full">
-        <line x1={pad} x2={width - pad} y1={yOf(100)} y2={yOf(100)} stroke="#94a3b8" strokeDasharray="4 4" strokeWidth="1" />
+        <line x1={pad} x2={width - pad} y1={yOf(100)} y2={yOf(100)} stroke="var(--border-strong)" strokeDasharray="4 4" strokeWidth="1" />
         {lines.map((row) => {
           const d = row.points
             .map((point, index) => `${index === 0 ? "M" : "L"}${xOf(point.time).toFixed(2)},${yOf(point.value).toFixed(2)}`)

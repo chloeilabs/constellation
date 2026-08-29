@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export function TablePager({
   from,
@@ -30,37 +31,33 @@ export function TablePager({
         {total != null ? ` of ${total.toLocaleString("en-US")}` : ""}
       </p>
       {showNav ? (
-        <div className="flex items-center gap-2">
-          {firstHref && page > 1 ? (
-            <Link href={firstHref} scroll={false} className="text-link hover:underline">
-              First
-            </Link>
-          ) : null}
+        <div className="flex items-center gap-1">
+          {firstHref && page > 1 ? <PagerLink href={firstHref}>First</PagerLink> : null}
           {prevHref ? (
-            <Link href={prevHref} scroll={false} className="text-link hover:underline">
-              Previous
-            </Link>
+            <PagerLink href={prevHref}>Previous</PagerLink>
           ) : (
-            <span className="text-muted">Previous</span>
+            <span className="px-2 py-1 text-muted">Previous</span>
           )}
-          <span className="tabular text-muted">
+          <span className="tabular px-2 text-muted" aria-current="page">
             Page {page.toLocaleString("en-US")}
             {pageCount != null ? ` of ${pageCount.toLocaleString("en-US")}` : ""}
           </span>
-          {nextHref ? (
-            <Link href={nextHref} scroll={false} className="text-link hover:underline">
-              Next
-            </Link>
-          ) : (
-            <span className="text-muted">Next</span>
-          )}
-          {lastHref && pageCount != null && page < pageCount ? (
-            <Link href={lastHref} scroll={false} className="text-link hover:underline">
-              Last
-            </Link>
-          ) : null}
+          {nextHref ? <PagerLink href={nextHref}>Next</PagerLink> : <span className="px-2 py-1 text-muted">Next</span>}
+          {lastHref && pageCount != null && page < pageCount ? <PagerLink href={lastHref}>Last</PagerLink> : null}
         </div>
       ) : null}
     </nav>
+  );
+}
+
+function PagerLink({ href, children }: { href: string; children: string }) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      className={cn("sa-btn sa-btn-secondary h-8 px-2.5 text-xs font-medium")}
+    >
+      {children}
+    </Link>
   );
 }

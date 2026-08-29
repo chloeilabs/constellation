@@ -75,22 +75,22 @@ export default async function ReturnCalculatorPage({
       <form method="get" className="mb-8 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-sm">
           <span className="mb-1 block text-muted">Symbol</span>
-          <input name="symbol" defaultValue={ticker} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="symbol" defaultValue={ticker} className="sa-input" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Start</span>
-          <input name="start" type="date" defaultValue={start} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="start" type="date" defaultValue={start} className="sa-input" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">End</span>
-          <input name="end" type="date" defaultValue={end} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="end" type="date" defaultValue={end} className="sa-input" />
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Amount invested</span>
-          <input name="amount" type="number" min={1} step="1" defaultValue={amount} className="h-9 w-full rounded-md border border-border bg-background px-2" />
+          <input name="amount" type="number" min={1} step="1" defaultValue={amount} className="sa-input" />
         </label>
         <div className="flex items-end">
-          <button className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header" type="submit">
+          <button className="sa-btn sa-btn-primary" type="submit">
             Calculate
           </button>
         </div>

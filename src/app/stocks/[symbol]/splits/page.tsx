@@ -24,7 +24,7 @@ export default async function SplitsPage({ params }: { params: Promise<{ symbol:
         actions={
           <Link
             href={stockPath(ticker, "/history")}
-            className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+            className="sa-btn sa-btn-secondary"
           >
             Price History
           </Link>

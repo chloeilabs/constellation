@@ -136,10 +136,7 @@ export function StockHeader({
           <div className="flex gap-2">
             <WatchlistButton symbol={symbol} />
             {isIndex ? null : (
-              <Link
-                href={`/compare?symbols=${encodeURIComponent(symbol)}`}
-                className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
-              >
+              <Link href={`/compare?symbols=${encodeURIComponent(symbol)}`} className="sa-btn sa-btn-secondary">
                 Compare
               </Link>
             )}

@@ -42,7 +42,7 @@ export function StockSubnav({ symbol }: { symbol: string }) {
     : STOCK_TABS;
 
   return (
-    <nav className="-mb-px mt-5 flex gap-1 overflow-x-auto border-b border-border">
+    <nav className="sa-scroll -mb-px mt-5 flex gap-1 overflow-x-auto border-b border-border">
       {tabs.map((tab) => {
         const href = `${base}${tab.href}`;
         const isOverview = tab.href === "";
@@ -55,6 +55,7 @@ export function StockSubnav({ symbol }: { symbol: string }) {
               "shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium",
               active ? "border-brand text-header" : "border-transparent text-muted hover:text-header",
             )}
+            aria-current={active ? "page" : undefined}
           >
             {tab.label}
           </Link>
