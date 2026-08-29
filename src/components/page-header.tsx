@@ -10,7 +10,7 @@ function ToggleLink({ href, active, children }: { href: string; active: boolean;
       aria-current={active ? "page" : undefined}
       className={cn(
         "rounded px-3 py-1.5 font-medium",
-        active ? "bg-header text-on-header" : "text-muted hover:text-header",
+        active ? "bg-brand text-white" : "text-muted hover:text-header",
       )}
     >
       {children}

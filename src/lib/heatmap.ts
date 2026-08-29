@@ -1,9 +1,9 @@
 export function heatStyle(percent: number | null | undefined) {
   if (percent == null || Number.isNaN(percent)) {
-    return { background: "#e5e7eb", color: "#111827" };
+    return { background: "var(--muted-bg)", color: "var(--foreground)" };
   }
   if (Math.abs(percent) < 0.04) {
-    return { background: "#f1f5f9", color: "#0f172a" };
+    return { background: "var(--chip)", color: "var(--header)" };
   }
   const t = Math.max(-1, Math.min(1, percent / 3.5));
   if (t >= 0) {

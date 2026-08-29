@@ -48,7 +48,7 @@ export function StockHeader({
               />
             ) : null}
             <div>
-              <h1 className="text-2xl font-bold text-header md:text-3xl">
+              <h1 className="text-2xl font-bold text-header text-pretty md:text-3xl">
                 {name} <span className="text-muted">({symbol})</span>
                 {profile?.isEtf ? (
                   <Link

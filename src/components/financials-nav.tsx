@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { pathPrefix, samePath, stockPath } from "@/lib/listings";
-import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/financials", label: "Overview", match: "exact" as const },
@@ -19,24 +18,16 @@ const LINKS = [
 export function FinancialsNav({ symbol }: { symbol: string }) {
   const pathname = usePathname();
   return (
-    <div className="mb-4 flex flex-wrap gap-2">
+    <nav className="mb-4 flex flex-wrap gap-2" aria-label="Financial statements">
       {LINKS.map((link) => {
         const href = stockPath(symbol, link.href);
         const active = link.match === "exact" ? samePath(pathname, href) : pathPrefix(pathname, href);
         return (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "rounded-full px-3 py-1 text-sm font-medium",
-              active ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
-            )}
-            aria-current={active ? "page" : undefined}
-          >
+          <Link key={href} href={href} className="sa-chip" aria-current={active ? "page" : undefined}>
             {link.label}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

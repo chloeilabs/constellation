@@ -63,7 +63,13 @@ html.dark {
 }
 
 html {
-  scroll-padding-top: 5.5rem;
+  scroll-padding-top: 8.75rem;
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-top: 4.5rem;
+  }
 }
 
 html,
@@ -166,12 +172,37 @@ a {
 }
 
 .sa-btn-primary {
-  background: var(--header);
-  color: var(--on-header);
+  background: var(--brand);
+  color: #fff;
 }
 
 .sa-btn-primary:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
+}
+
+.sa-chip {
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--chip);
+  color: var(--header);
+}
+
+.sa-chip:hover {
+  background: var(--border);
+}
+
+.sa-chip[aria-current="page"],
+.sa-chip[aria-selected="true"] {
+  background: var(--brand);
+  color: #fff;
+}
+
+.sa-chip[aria-current="page"]:hover,
+.sa-chip[aria-selected="true"]:hover {
+  background: var(--brand);
+  filter: brightness(1.06);
 }
 
 .sa-btn-secondary {
@@ -200,6 +231,20 @@ a {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
+}
+
+.sa-tabs {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 30;
+  background: color-mix(in oklab, var(--background) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 767px) {
+  .sa-tabs {
+    position: static;
+  }
 }
 
 .sa-table {

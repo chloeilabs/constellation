@@ -54,7 +54,8 @@ export function WatchlistButton({ symbol }: { symbol: string }) {
       )}
     >
       <Star className={cn("h-4 w-4", saved ? "fill-brand" : "")} aria-hidden="true" />
-      {saved ? "Watchlist" : "Add to Watchlist"}
+      <span className="sm:hidden">{saved ? "Saved" : "Watch"}</span>
+      <span className="hidden sm:inline">{saved ? "Watchlist" : "Add to Watchlist"}</span>
     </button>
   );
 }

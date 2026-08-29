@@ -7,6 +7,7 @@ import { PopularStocks } from "@/components/popular-stocks";
 import { SectorStrip } from "@/components/sector-strip";
 import { Toolkit } from "@/components/toolkit";
 import { ExtendedHoursTables } from "@/components/extended-hours-tables";
+import { HomeBrowse } from "@/components/home-browse";
 import { formatDate, formatPrice } from "@/lib/format";
 import {
   getEarningsCalendar,
@@ -24,35 +25,6 @@ import { getExtendedHoursRows } from "@/lib/extended-hours";
 import { quoteHref } from "@/lib/listings";
 import { addDays, isoDate, nyDateString, nyExtendedCopy, nySession } from "@/lib/utils";
 import type { FmpEarnings, FmpIpo } from "@/lib/types";
-
-const MARKET_LINKS = [
-  ["/markets/premarket", "Pre-Market"],
-  ["/markets/afterhours", "After Hours"],
-  ["/markets/hours", "Hours"],
-  ["/markets/indexes", "Indexes"],
-  ["/markets/heatmap", "Heatmap"],
-  ["/markets/global", "World Markets"],
-  ["/stocks/country", "Countries"],
-  ["/markets/sectors", "Sectors"],
-  ["/markets/industries", "Industries"],
-  ["/markets/treasury", "Treasury"],
-  ["/list/magnificent-seven", "Mag 7"],
-  ["/list/faang", "FAANG"],
-  ["/list/ai-stocks", "AI"],
-  ["/list/clean-energy", "Clean Energy"],
-  ["/list/spac-stocks", "SPACs"],
-  ["/list/ev-stocks", "EVs"],
-  ["/list/glp1-stocks", "GLP-1"],
-  ["/list/apparel-stocks", "Apparel"],
-  ["/list/bdc-stocks", "BDCs"],
-  ["/list/top-rated", "Top Rated"],
-  ["/list/top-rated-dividend-stocks", "Top-Rated Dividends"],
-  ["/list/bitcoin-etfs", "Bitcoin ETFs"],
-  ["/list/highest-revenue", "Revenue"],
-  ["/list/dividend-aristocrats", "Aristocrats"],
-  ["/list/reit-stocks", "REITs"],
-  ["/list/52-week-high", "52-Week High"],
-] as const;
 
 function IpoTable({ title, rows }: { title: string; rows: FmpIpo[] }) {
   return (
@@ -171,7 +143,7 @@ export default async function HomePage() {
   return (
     <>
       <section className="border-b border-border bg-gradient-to-b from-muted-bg to-background">
-        <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="mx-auto max-w-3xl px-4 py-10 text-center md:py-16">
           <h1 className="text-3xl font-bold tracking-tight text-header text-balance md:text-5xl">
             Search for a stock to start your analysis
           </h1>
@@ -180,7 +152,7 @@ export default async function HomePage() {
             Data from Financial Modeling Prep.
           </p>
           <div className="mt-8">
-            <SearchBox large autoFocus placeholder="Search ticker or company" />
+            <SearchBox large autoFocus id="hero-search" placeholder="Search ticker or company" />
           </div>
           {actives.length > 0 ? (
             <p className="mt-6 text-sm text-muted">
@@ -205,17 +177,7 @@ export default async function HomePage() {
         </div>
       </section>
       <Container>
-        <nav className="mb-8 flex flex-wrap gap-2">
-          {MARKET_LINKS.map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-                  className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-header transition-colors hover:border-border-strong hover:bg-muted-bg"
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+        <HomeBrowse />
         <SectorStrip rows={sectors} />
         {showExtended ? (
           <div className="mt-12">

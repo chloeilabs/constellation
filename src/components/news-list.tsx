@@ -29,7 +29,7 @@ export function NewsList({
               alt=""
               width={96}
               height={64}
-              className="h-16 w-24 shrink-0 rounded object-cover bg-muted-bg"
+              className="hidden h-16 w-24 shrink-0 rounded object-cover bg-muted-bg sm:block"
             />
           ) : null}
           <div className="min-w-0">

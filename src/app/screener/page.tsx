@@ -305,10 +305,15 @@ export default async function ScreenerPage({
             disabled={Boolean(index)}
           />
         </label>
-        <div className="flex items-end sm:col-span-2 lg:col-span-3 xl:col-span-2">
+        <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-3 xl:col-span-2">
           <button type="submit" className="sa-btn sa-btn-primary">
             Apply filters
           </button>
+          {Object.keys(query).some((key) => key !== "page") ? (
+            <Link href="/screener" className="sa-btn sa-btn-secondary">
+              Clear
+            </Link>
+          ) : null}
         </div>
       </form>
       {index ? (
@@ -326,11 +331,11 @@ export default async function ScreenerPage({
         localCurrency={localCurrency}
         rows={rows}
       />
-      <div className="mt-4 flex gap-3 text-sm">
+      <div className="mt-4 flex gap-2">
         {page > 0 ? (
           <Link
             href={`/screener?${new URLSearchParams({ ...query, page: String(page - 1) })}`}
-            className="text-link hover:underline"
+            className="sa-btn sa-btn-secondary"
           >
             Previous
           </Link>
@@ -338,7 +343,7 @@ export default async function ScreenerPage({
         {hasNext ? (
           <Link
             href={`/screener?${new URLSearchParams({ ...query, page: String(page + 1) })}`}
-            className="text-link hover:underline"
+            className="sa-btn sa-btn-secondary"
           >
             Next
           </Link>

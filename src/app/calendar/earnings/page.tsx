@@ -92,7 +92,7 @@ export default async function EarningsCalendarPage({
             scroll={false}
             className={cn(
               "rounded px-3 py-1.5 font-medium",
-              view === item.id ? "bg-header text-on-header" : "text-muted hover:text-header",
+              view === item.id ? "bg-brand text-white" : "text-muted hover:text-header",
             )}
           >
             {item.label}

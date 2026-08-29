@@ -63,7 +63,7 @@ export default async function IndexChangesPage({
             scroll={false}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
-              item.href === activeHref ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
+              item.href === activeHref ? "bg-brand text-white" : "bg-chip text-header hover:bg-border",
             )}
           >
             {item.label}

@@ -176,7 +176,7 @@ export function SiteFooter() {
               Not investment advice.
             </p>
           </div>
-          <a href="#main-content" className="text-sm font-medium text-link hover:underline">
+          <a href="#top" className="text-sm font-medium text-link hover:underline">
             Back to top
           </a>
         </div>

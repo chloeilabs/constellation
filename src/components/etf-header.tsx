@@ -38,7 +38,7 @@ export function EtfHeader({
               </Link>
               <span> / {symbol}</span>
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-header md:text-3xl">
+            <h1 className="mt-1 text-2xl font-bold text-header text-pretty md:text-3xl">
               {name} <span className="text-muted">({symbol})</span>
             </h1>
             <p className="mt-1 text-sm text-muted">

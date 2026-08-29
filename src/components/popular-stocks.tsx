@@ -18,12 +18,14 @@ export function PopularStocks({ quotes }: { quotes: FmpQuote[] }) {
             className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:border-border-strong hover:bg-muted-bg"
           >
             <span className="font-semibold text-header">{symbol}</span>
-            {quote ? (
+            {quote?.price != null ? (
               <>
                 <span className="tabular text-muted">{formatPrice(quote.price)}</span>
                 <ChangePercent value={quote.changePercentage} className="text-xs" />
               </>
-            ) : null}
+            ) : (
+              <span className="text-muted">—</span>
+            )}
           </Link>
         );
       })}

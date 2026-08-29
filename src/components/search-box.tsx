@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 import type { FmpSearchResult } from "@/lib/types";
 import { quoteHref, quoteKind } from "@/lib/listings";
@@ -261,7 +261,7 @@ export function SearchHotkey() {
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
       const desktop = document.getElementById("site-search");
-      const mobile = document.getElementById("site-search-mobile");
+      const mobile = document.getElementById("site-search-mobile") ?? document.getElementById("hero-search");
       const wide = window.matchMedia("(min-width: 768px)").matches;
       (wide ? desktop : mobile)?.focus();
     }
@@ -269,4 +269,14 @@ export function SearchHotkey() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   return null;
+}
+
+export function MobileSearchRow() {
+  const pathname = usePathname();
+  if (pathname === "/") return null;
+  return (
+    <div className="border-t border-border px-4 py-2 md:hidden">
+      <SearchBox id="site-search-mobile" placeholder="Search ticker or company" />
+    </div>
+  );
 }

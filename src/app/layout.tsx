@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
+      <body id="top" className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <SiteHeader />
         <GlobalIndexTicker />
         {!configured ? <ApiBanner /> : null}

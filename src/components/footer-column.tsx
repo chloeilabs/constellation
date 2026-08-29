@@ -26,7 +26,12 @@ export function FooterColumn({
         {title}
         <ChevronDown className={cn("h-4 w-4 text-muted transition-transform", open && "rotate-180")} aria-hidden="true" />
       </button>
-      <ul className={cn("flex-col gap-2 pb-3 text-sm text-muted lg:flex lg:pb-0", open ? "flex" : "hidden")}>
+      <ul
+        className={cn(
+          "max-h-72 flex-col gap-2 overflow-y-auto pb-3 text-sm text-muted lg:max-h-none lg:flex lg:overflow-visible lg:pb-0",
+          open ? "flex" : "hidden",
+        )}
+      >
         {links.map(([href, label]) => (
           <li key={`${href}-${label}`}>
             <Link href={href} className="hover:text-link">

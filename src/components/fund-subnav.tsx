@@ -10,7 +10,7 @@ export function FundSubnav({ symbol }: { symbol: string }) {
   const items = fundQuoteNav(symbol);
 
   return (
-    <nav className="sa-scroll -mb-px mt-5 flex gap-1 overflow-x-auto border-b border-border">
+    <nav className="sa-scroll sa-tabs -mx-4 -mb-px mt-5 flex gap-1 overflow-x-auto border-b border-border px-4">
       {items.map((tab) => {
         const active =
           tab.match === "exact" || tab.href === `/funds/${symbol}`

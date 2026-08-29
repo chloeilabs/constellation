@@ -1,6 +1,6 @@
 import { Logo } from "@/components/logo";
 import { HeaderNav } from "@/components/header-nav";
-import { SearchBox, SearchHotkey } from "@/components/search-box";
+import { MobileSearchRow, SearchBox, SearchHotkey } from "@/components/search-box";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WatchlistLink } from "@/components/watchlist-button";
 
@@ -22,9 +22,7 @@ export function SiteHeader() {
           <ThemeToggle />
         </div>
       </div>
-      <div className="border-t border-border px-4 py-2 md:hidden">
-        <SearchBox id="site-search-mobile" placeholder="Search ticker or company" />
-      </div>
+      <MobileSearchRow />
       <HeaderNav
         className="sa-scroll flex gap-4 border-t border-border px-4 py-2 text-sm md:hidden"
         itemClassName="py-0.5"

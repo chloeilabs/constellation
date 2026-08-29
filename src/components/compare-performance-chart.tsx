@@ -63,7 +63,7 @@ export function ComparePerformanceChart({
               aria-current={span === range ? "page" : undefined}
               className={cn(
                 "rounded px-2 py-1.5 font-medium",
-                span === range ? "bg-header text-on-header" : "text-muted hover:text-header",
+                span === range ? "bg-brand text-white" : "text-muted hover:text-header",
               )}
             >
               {range}

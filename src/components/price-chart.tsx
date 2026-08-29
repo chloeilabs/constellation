@@ -346,7 +346,7 @@ export function PriceChart({
                 scroll={false}
                 className={cn(
                   "rounded px-2 py-1 font-semibold",
-                  !adjusted ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                  !adjusted ? "bg-brand text-white" : "text-muted hover:bg-muted-bg",
                 )}
               >
                 Close
@@ -356,7 +356,7 @@ export function PriceChart({
                 scroll={false}
                 className={cn(
                   "rounded px-2 py-1 font-semibold",
-                  adjusted ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                  adjusted ? "bg-brand text-white" : "text-muted hover:bg-muted-bg",
                 )}
               >
                 Adj. Close
@@ -371,7 +371,7 @@ export function PriceChart({
               aria-current={item === range ? "page" : undefined}
               className={cn(
                 "rounded px-2 py-1 text-xs font-semibold",
-                item === range ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                item === range ? "bg-brand text-white" : "text-muted hover:bg-muted-bg",
               )}
             >
               {item}
