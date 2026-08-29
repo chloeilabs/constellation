@@ -70,9 +70,7 @@ export default function WatchlistPage() {
                   <th className="num">Price</th>
                   <th className="num">Change</th>
                   <th className="num">Market Cap</th>
-                  <th>
-                    <span className="sr-only">Remove</span>
-                  </th>
+                  <th className="num">Remove</th>
                 </tr>
               </thead>
               <tbody>
@@ -94,10 +92,10 @@ export default function WatchlistPage() {
                         {quote ? <ChangeValue change={quote.change} percent={quote.changePercentage} /> : "—"}
                       </td>
                       <td className="num">{quote ? formatCompactUsd(quote.marketCap) : "—"}</td>
-                      <td>
+                      <td className="num">
                         <button
                           type="button"
-                          className="text-sm text-muted hover:text-loss"
+                          className="sa-btn sa-btn-secondary h-8 px-2.5 text-xs"
                           onClick={() => toggleWatchlist(symbol)}
                         >
                           Remove

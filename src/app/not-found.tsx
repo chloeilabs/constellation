@@ -8,7 +8,9 @@ export default function NotFound() {
       message="That URL is not in this site. Search for a ticker or go back to the homepage."
       showSearch
     >
-      <StatusLink href="/">Back to home</StatusLink>
+      <StatusLink href="/" variant="primary">
+        Back to home
+      </StatusLink>
       <StatusLink href="/screener">Open the screener</StatusLink>
     </StatusPage>
   );

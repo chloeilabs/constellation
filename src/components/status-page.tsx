@@ -30,9 +30,17 @@ export function StatusPage({
   );
 }
 
-export function StatusLink({ href, children }: { href: string; children: ReactNode }) {
+export function StatusLink({
+  href,
+  children,
+  variant = "secondary",
+}: {
+  href: string;
+  children: ReactNode;
+  variant?: "primary" | "secondary";
+}) {
   return (
-    <Link href={href} className="sa-btn sa-btn-secondary">
+    <Link href={href} className={variant === "primary" ? "sa-btn sa-btn-primary" : "sa-btn sa-btn-secondary"}>
       {children}
     </Link>
   );

@@ -182,7 +182,7 @@ export function SearchBox({
             aria-hidden="true"
           />
         ) : large ? null : (
-          <kbd className="sa-kbd pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 md:inline-flex">
+          <kbd className="sa-kbd pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 xl:inline-flex">
             /
           </kbd>
         )}

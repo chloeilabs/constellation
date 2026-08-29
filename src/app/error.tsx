@@ -19,7 +19,9 @@ export default function ErrorPage({
       <button type="button" onClick={reset} className="sa-btn sa-btn-primary">
         Try again
       </button>
-      <StatusLink href="/">Back to home</StatusLink>
+      <StatusLink href="/" variant="primary">
+        Back to home
+      </StatusLink>
     </StatusPage>
   );
 }

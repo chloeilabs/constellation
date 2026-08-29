@@ -180,7 +180,7 @@ export default async function HomePage() {
             Data from Financial Modeling Prep.
           </p>
           <div className="mt-8">
-            <SearchBox large autoFocus />
+            <SearchBox large autoFocus placeholder="Search ticker or company" />
           </div>
           {actives.length > 0 ? (
             <p className="mt-6 text-sm text-muted">
