@@ -260,7 +260,10 @@ export function SearchHotkey() {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
-      document.getElementById("site-search")?.focus();
+      const desktop = document.getElementById("site-search");
+      const mobile = document.getElementById("site-search-mobile");
+      const wide = window.matchMedia("(min-width: 768px)").matches;
+      (wide ? desktop : mobile)?.focus();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

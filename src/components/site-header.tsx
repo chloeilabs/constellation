@@ -11,16 +11,19 @@ export function SiteHeader() {
         Skip to content
       </a>
       <SearchHotkey />
-      <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-2 md:h-14 md:grid-cols-[auto_auto_minmax(0,1fr)_auto] md:py-0">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 md:gap-6">
         <Logo />
         <HeaderNav className="hidden items-center gap-5 text-sm md:flex" />
-        <div className="col-span-3 row-start-2 min-w-0 md:col-span-1 md:col-start-3 md:row-start-1 md:max-w-md md:justify-self-end md:w-full">
+        <div className="ml-auto hidden min-w-0 w-full max-w-md md:block">
           <SearchBox id="site-search" placeholder="Search ticker or company" />
         </div>
-        <div className="col-start-3 row-start-1 flex items-center gap-2 md:col-start-4">
+        <div className="ml-auto flex items-center gap-2 md:ml-0">
           <WatchlistLink />
           <ThemeToggle />
         </div>
+      </div>
+      <div className="border-t border-border px-4 py-2 md:hidden">
+        <SearchBox id="site-search-mobile" placeholder="Search ticker or company" />
       </div>
       <HeaderNav
         className="sa-scroll flex gap-4 border-t border-border px-4 py-2 text-sm md:hidden"
