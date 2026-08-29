@@ -1282,8 +1282,9 @@ export function getLatestInsiderTrades(limit = 50, page = 0) {
 }
 
 const FMP_HUB_PAGE_SIZE = 100;
-/** Senate net worth and per-symbol price-target news; other hubs have their own page caps. */
+/** Senate net worth; other hubs have their own page caps. */
 const FMP_HUB_MAX_PAGES = 4;
+const FMP_PRICE_TARGET_NEWS_PAGES = 6;
 const FMP_INSIDER_HUB_PAGES = 7;
 const FMP_TRANSCRIPT_HUB_PAGES = 11;
 const FMP_GRADES_NEWS_PAGES = 9;
@@ -1823,7 +1824,7 @@ export async function getGradesLatestNewsArchive() {
 export async function getPriceTargetNewsArchive(symbol: string) {
   const ticker = decodeTicker(symbol);
   const pages = await Promise.all(
-    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getPriceTargetNews(ticker, 50, page)),
+    Array.from({ length: FMP_PRICE_TARGET_NEWS_PAGES }, (_, page) => getPriceTargetNews(ticker, 50, page)),
   );
   const seen = new Set<string>();
   const out: FmpPriceTargetNews[] = [];

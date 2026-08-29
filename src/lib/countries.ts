@@ -539,6 +539,10 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   VIE: "/list/vienna-stocks",
   WSE: "/list/warsaw-stocks",
   DXE: "/list/cboe-europe",
+  LSE: "/list/lse-stocks",
+  SIX: "/list/six-stocks",
+  AMS: "/list/ams-stocks",
+  STO: "/list/stockholm-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {
