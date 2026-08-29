@@ -547,6 +547,9 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   BRU: "/list/brussels-stocks",
   HEL: "/list/helsinki-stocks",
   CPH: "/list/copenhagen-stocks",
+  PAR: "/list/paris-stocks",
+  BME: "/list/madrid-stocks",
+  LIS: "/list/lisbon-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {
