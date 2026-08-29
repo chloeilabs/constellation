@@ -33,14 +33,14 @@ export function MarketHeatmap({ rows }: { rows: HeatmapStock[] }) {
   }
 
   return (
-    <div className="flex min-h-[640px] flex-wrap gap-1">
+    <div className="flex min-h-[420px] flex-wrap gap-1 md:min-h-[640px]">
       {groups.map((group) => (
         <div
           key={group.sector}
           className="flex min-h-[140px] min-w-[160px] flex-[1_1_220px] flex-col gap-px overflow-hidden rounded-md"
           style={{ flexGrow: Math.max(group.cap / 1e11, 1.2) }}
         >
-          <div className="bg-header px-2 py-1 text-[11px] font-semibold text-on-header">{group.sector}</div>
+          <div className="bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white">{group.sector}</div>
           <div className="flex min-h-0 flex-1 flex-wrap gap-px bg-border">
             {group.stocks.map((stock) => {
               const style = heatStyle(stock.changePercentage);

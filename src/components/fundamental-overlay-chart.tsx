@@ -65,7 +65,7 @@ export function FundamentalOverlayChart({
   return (
     <div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[280px] w-full">
-        <line x1={padL} x2={width - padR} y1={zeroY} y2={zeroY} stroke="#94a3b8" strokeWidth="1" />
+        <line x1={padL} x2={width - padR} y1={zeroY} y2={zeroY} stroke="var(--border-strong)" strokeWidth="1" />
         {metricTicks.map((tick) => (
           <text
             key={`m-${tick}`}

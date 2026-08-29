@@ -317,25 +317,25 @@ export function PriceChart({
             <span className="text-xs text-muted">Vol {formatCompact(active.volume)}</span>
           ) : null}
           {typeof ma50Now === "number" ? (
-            <span className="text-xs font-medium text-amber-600">MA50 {formatPrice(ma50Now)}</span>
+            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">MA50 {formatPrice(ma50Now)}</span>
           ) : null}
           {typeof ma200Now === "number" ? (
-            <span className="text-xs font-medium text-indigo-600">MA200 {formatPrice(ma200Now)}</span>
+            <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">MA200 {formatPrice(ma200Now)}</span>
           ) : null}
           {typeof ema12Now === "number" ? (
-            <span className="text-xs font-medium text-teal-700">EMA12 {formatPrice(ema12Now)}</span>
+            <span className="text-xs font-medium text-teal-700 dark:text-teal-400">EMA12 {formatPrice(ema12Now)}</span>
           ) : null}
           {typeof ema26Now === "number" ? (
-            <span className="text-xs font-medium text-rose-600">EMA26 {formatPrice(ema26Now)}</span>
+            <span className="text-xs font-medium text-rose-600 dark:text-rose-400">EMA26 {formatPrice(ema26Now)}</span>
           ) : null}
           {typeof rsiNow === "number" ? (
-            <span className="text-xs font-medium text-violet-700">RSI {formatNumber(rsiNow)}</span>
+            <span className="text-xs font-medium text-violet-700 dark:text-violet-400">RSI {formatNumber(rsiNow)}</span>
           ) : null}
           {typeof macdNow === "number" ? (
-            <span className="text-xs font-medium text-sky-700">MACD {formatNumber(macdNow, 2)}</span>
+            <span className="text-xs font-medium text-sky-700 dark:text-sky-400">MACD {formatNumber(macdNow, 2)}</span>
           ) : null}
           {typeof macdSignalNow === "number" ? (
-            <span className="text-xs font-medium text-orange-600">Signal {formatNumber(macdSignalNow, 2)}</span>
+            <span className="text-xs font-medium text-orange-600 dark:text-orange-400">Signal {formatNumber(macdSignalNow, 2)}</span>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -346,7 +346,7 @@ export function PriceChart({
                 scroll={false}
                 className={cn(
                   "rounded px-2 py-1 font-semibold",
-                  !adjusted ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                  !adjusted ? "bg-brand text-white" : "text-muted hover:bg-muted-bg",
                 )}
               >
                 Close
@@ -356,7 +356,7 @@ export function PriceChart({
                 scroll={false}
                 className={cn(
                   "rounded px-2 py-1 font-semibold",
-                  adjusted ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                  adjusted ? "bg-brand text-white" : "text-muted hover:bg-muted-bg",
                 )}
               >
                 Adj. Close
@@ -368,9 +368,10 @@ export function PriceChart({
               key={item}
               href={`${pathname}${chartSearch(query, item)}`}
               scroll={false}
+              aria-current={item === range ? "page" : undefined}
               className={cn(
                 "rounded px-2 py-1 text-xs font-semibold",
-                item === range ? "bg-header text-on-header" : "text-muted hover:bg-muted-bg",
+                item === range ? "bg-brand text-white" : "text-muted hover:bg-muted-bg",
               )}
             >
               {item}
@@ -385,7 +386,7 @@ export function PriceChart({
       ) : (
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className={svgHeightClass}
+          className={`${svgHeightClass} cursor-crosshair`}
           onMouseLeave={() => setHover(null)}
           onMouseMove={(event) => {
             const rect = event.currentTarget.getBoundingClientRect();
@@ -427,21 +428,21 @@ export function PriceChart({
             : null}
           {showRsi ? (
             <>
-              <line x1="8" x2={width - 8} y1={rsi70Y} y2={rsi70Y} stroke="#e9d5ff" strokeWidth="1" />
-              <line x1="8" x2={width - 8} y1={rsi50Y} y2={rsi50Y} stroke="#ede9fe" strokeDasharray="3 3" strokeWidth="1" />
-              <line x1="8" x2={width - 8} y1={rsi30Y} y2={rsi30Y} stroke="#e9d5ff" strokeWidth="1" />
+              <line x1="8" x2={width - 8} y1={rsi70Y} y2={rsi70Y} stroke="var(--border)" strokeWidth="1" />
+              <line x1="8" x2={width - 8} y1={rsi50Y} y2={rsi50Y} stroke="var(--border)" strokeDasharray="3 3" strokeWidth="1" />
+              <line x1="8" x2={width - 8} y1={rsi30Y} y2={rsi30Y} stroke="var(--border)" strokeWidth="1" />
               {rsiPath ? <path d={rsiPath} fill="none" stroke="#7c3aed" strokeWidth="1.5" /> : null}
-              <text x="10" y={rsi70Y - 3} fill="#6d28d9" fontSize="9">
+              <text x="10" y={rsi70Y - 3} fill="var(--muted)" fontSize="9">
                 RSI 70
               </text>
-              <text x="10" y={rsi30Y + 10} fill="#6d28d9" fontSize="9">
+              <text x="10" y={rsi30Y + 10} fill="var(--muted)" fontSize="9">
                 30
               </text>
             </>
           ) : null}
           {showMacd ? (
             <>
-              <line x1="8" x2={width - 8} y1={macdZeroY} y2={macdZeroY} stroke="#e2e8f0" strokeWidth="1" />
+              <line x1="8" x2={width - 8} y1={macdZeroY} y2={macdZeroY} stroke="var(--border)" strokeWidth="1" />
               {macdBars.map((bar, index) =>
                 bar.barHeight > 0 ? (
                   <rect
@@ -457,7 +458,7 @@ export function PriceChart({
               )}
               {macdPath ? <path d={macdPath} fill="none" stroke="#0369a1" strokeWidth="1.5" /> : null}
               {macdSignalPath ? <path d={macdSignalPath} fill="none" stroke="#ea580c" strokeWidth="1.25" /> : null}
-              <text x="10" y={macdZeroY - 3} fill="#0369a1" fontSize="9">
+              <text x="10" y={macdZeroY - 3} fill="var(--muted)" fontSize="9">
                 MACD
               </text>
             </>
@@ -468,7 +469,7 @@ export function PriceChart({
               x2={8 + (hover / Math.max(points.length - 1, 1)) * (width - 16)}
               y1="0"
               y2={height}
-              stroke="#94a3b8"
+              stroke="var(--muted)"
               strokeDasharray="3 3"
             />
           ) : null}

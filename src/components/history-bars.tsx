@@ -21,9 +21,14 @@ export function HistoryBars({
   if (!hasNegative) {
     const peak = Math.max(max, 1);
     return (
-      <div className="flex h-48 items-end gap-1 rounded-lg border border-border bg-muted-bg px-3 pb-8 pt-4">
+      <div
+        className={`flex h-48 items-end gap-2 rounded-lg border border-border bg-muted-bg px-3 pb-8 pt-4 ${items.length <= 8 ? "justify-center" : ""}`}
+      >
         {items.map((item, index) => (
-          <div key={`${item.label}-${index}`} className="flex h-full min-w-0 flex-1 flex-col justify-end">
+          <div
+            key={`${item.label}-${index}`}
+            className={`flex h-full flex-col justify-end ${items.length <= 8 ? "w-11 shrink-0 sm:w-14" : "min-w-0 flex-1"}`}
+          >
             <div
               className="w-full rounded-t bg-brand/80"
               style={{ height: `${Math.max(4, (item.value / peak) * 100)}%` }}
@@ -42,12 +47,15 @@ export function HistoryBars({
 
   return (
     <div className="rounded-lg border border-border bg-muted-bg px-3 pb-8 pt-4">
-      <div className="flex h-48 items-stretch gap-1">
+      <div className={`flex h-48 items-stretch gap-2 ${items.length <= 8 ? "justify-center" : ""}`}>
         {items.map((item, index) => {
           const positive = item.value >= 0;
           const title = formatValue ? `${item.label}: ${formatValue(item.value)}` : item.label;
           return (
-            <div key={`${item.label}-${index}`} className="flex min-w-0 flex-1 flex-col">
+            <div
+              key={`${item.label}-${index}`}
+              className={`flex flex-col ${items.length <= 8 ? "w-11 shrink-0 sm:w-14" : "min-w-0 flex-1"}`}
+            >
               <div className="flex justify-end" style={{ flexGrow: Math.max(upRatio, 0.08), flexBasis: 0 }}>
                 {positive ? (
                   <div
@@ -71,9 +79,12 @@ export function HistoryBars({
           );
         })}
       </div>
-      <div className="mt-1 flex gap-1">
+      <div className={`mt-1 flex gap-2 ${items.length <= 8 ? "justify-center" : ""}`}>
         {items.map((item, index) => (
-          <div key={`${item.label}-${index}`} className="min-w-0 flex-1 truncate text-center text-[10px] text-muted">
+          <div
+            key={`${item.label}-${index}`}
+            className={`truncate text-center text-[10px] text-muted ${items.length <= 8 ? "w-11 shrink-0 sm:w-14" : "min-w-0 flex-1"}`}
+          >
             {sparseAxisLabel(items, index)}
           </div>
         ))}

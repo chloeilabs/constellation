@@ -23,6 +23,12 @@ function writeWatchlist(symbols: string[]) {
   window.dispatchEvent(new Event("sa-watchlist"));
 }
 
+export function toggleWatchlist(symbol: string) {
+  const current = readWatchlist();
+  const upper = symbol.toUpperCase();
+  writeWatchlist(current.includes(upper) ? current.filter((item) => item !== upper) : [...current, upper]);
+}
+
 export function WatchlistButton({ symbol }: { symbol: string }) {
   const [saved, setSaved] = useState(false);
 
@@ -37,25 +43,19 @@ export function WatchlistButton({ symbol }: { symbol: string }) {
     };
   }, [symbol]);
 
-  function toggle() {
-    const current = readWatchlist();
-    const upper = symbol.toUpperCase();
-    writeWatchlist(current.includes(upper) ? current.filter((item) => item !== upper) : [...current, upper]);
-  }
-
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={() => toggleWatchlist(symbol)}
+      aria-pressed={saved}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium",
-        saved
-          ? "border-brand bg-brand/10 text-brand"
-          : "border-border-strong bg-background text-header hover:bg-muted-bg",
+        "sa-btn",
+        saved ? "border border-brand bg-brand/10 text-brand" : "sa-btn-secondary",
       )}
     >
-      <Star className={cn("h-4 w-4", saved ? "fill-brand" : "")} />
-      {saved ? "Watchlist" : "Add to Watchlist"}
+      <Star className={cn("h-4 w-4", saved ? "fill-brand" : "")} aria-hidden="true" />
+      <span className="sm:hidden">{saved ? "Saved" : "Watch"}</span>
+      <span className="hidden sm:inline">{saved ? "Watchlist" : "Add to Watchlist"}</span>
     </button>
   );
 }
@@ -64,10 +64,12 @@ export function WatchlistLink() {
   return (
     <Link
       href="/watchlist"
-      className="hidden items-center gap-1 text-sm font-medium text-header hover:text-brand sm:inline-flex"
+      className="sa-icon-btn sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm sm:font-semibold"
+      aria-label="Watchlist"
+      title="Watchlist"
     >
-      <Star className="h-4 w-4" />
-      Watchlist
+      <Star className="h-4 w-4" aria-hidden="true" />
+      <span className="hidden sm:inline">Watchlist</span>
     </Link>
   );
 }

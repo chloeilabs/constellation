@@ -97,7 +97,7 @@ export function Toolkit() {
           <Link
             key={tool.href}
             href={tool.href}
-            className="rounded-lg border border-border p-4 hover:border-border-strong hover:bg-muted-bg"
+            className="sa-card p-4"
           >
             <tool.icon className="mb-3 h-5 w-5 text-brand" />
             <h3 className="font-semibold text-header">{tool.title}</h3>

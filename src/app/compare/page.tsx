@@ -87,15 +87,15 @@ export default async function ComparePage({
         description="Side-by-side quotes, a dividend-adjusted total-return chart, average returns, forward valuation, analyst targets, and trailing financials from live FMP data."
         actions={
           <div className="flex flex-wrap items-center gap-3">
-            <form method="get" className="flex gap-2">
+            <form method="get" className="flex w-full flex-wrap gap-2 sm:w-auto">
             {span !== "1Y" ? <input type="hidden" name="chart" value={span} /> : null}
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
               placeholder="AAPL,MSFT,NVDA"
-              className="h-9 w-56 rounded-md border border-border px-2 text-sm"
+              className="sa-input w-full sm:w-56"
             />
-            <button className="h-9 rounded-md bg-header px-3 text-sm font-medium text-on-header" type="submit">
+            <button className="sa-btn sa-btn-primary" type="submit">
               Compare
             </button>
             </form>
@@ -114,7 +114,7 @@ export default async function ComparePage({
         />
       </div>
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="sa-table">
+        <table className="sa-table sa-statement">
           <thead>
             <tr>
               <th>Metric</th>

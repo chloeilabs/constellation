@@ -74,14 +74,14 @@ export default async function InsiderTradingPage({
         }
       />
       <SectionNav items={CONGRESS_NAV} />
-      <form className="mb-6 flex max-w-xl flex-wrap items-center gap-2" action="/insider-trading">
+      <form className="mb-6 flex max-w-xl flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" action="/insider-trading">
         <input
           name="name"
           defaultValue={queryName}
           placeholder="Insider last name (e.g. Zuckerberg)"
-          className="h-9 min-w-[16rem] flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none ring-brand/30 placeholder:text-muted focus:ring-2"
+          className="sa-input min-w-0 w-full flex-1 sm:min-w-[16rem]"
         />
-        <button type="submit" className="h-9 rounded-md bg-header px-3 text-sm font-semibold text-on-header">
+        <button type="submit" className="sa-btn sa-btn-primary">
           Search
         </button>
         {searching ? (
@@ -105,7 +105,7 @@ export default async function InsiderTradingPage({
                 href={href}
                 className={cn(
                   "rounded-full px-3 py-1 text-sm font-medium",
-                  active ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
+                  active ? "bg-brand text-white" : "bg-chip text-header hover:bg-border",
                 )}
               >
                 {person.reportingName}

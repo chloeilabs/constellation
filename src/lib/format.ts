@@ -255,6 +255,12 @@ export function formatClock(value: string | null | undefined) {
   return value.replace(/\s*[-+][0-9]{2}:[0-9]{2}$/, "").replace(/^0/, "").trim();
 }
 
+export function formatSessionClock(value: string | null | undefined) {
+  const clock = formatClock(value);
+  if (!clock || !/\d/.test(clock) || /closed/i.test(clock)) return "—";
+  return clock;
+}
+
 export function formatPercent(
   value: number | null | undefined,
   { alreadyPercent = false, digits = 2 }: { alreadyPercent?: boolean; digits?: number } = {},
@@ -262,8 +268,8 @@ export function formatPercent(
   if (value == null || Number.isNaN(value)) return "—";
   const pct = alreadyPercent ? value : value * 100;
   const formatted = pct.toLocaleString("en-US", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
+    minimumFractionDigits: Math.abs(pct) >= 1000 ? 0 : digits,
+    maximumFractionDigits: Math.abs(pct) >= 1000 ? 0 : digits,
   });
   return `${pct > 0 ? "+" : ""}${formatted}%`;
 }

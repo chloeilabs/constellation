@@ -50,16 +50,16 @@ export default async function DividendCalendarPage({
         description="Upcoming and recent ex-dividend dates from live FMP filings. Long windows are sliced so the 4,000-row calendar cap does not drop nearby payers."
       />
       <SectionNav items={CALENDAR_NAV} />
-      <form className="mb-6 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
+      <form className="mb-6 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-end">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">From</span>
-          <input type="date" name="from" defaultValue={from} className="h-9 rounded-md border border-border px-2" />
+          <input type="date" name="from" defaultValue={from} className="sa-input w-full min-w-0" />
         </label>
-        <label className="text-sm">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">To</span>
-          <input type="date" name="to" defaultValue={to} className="h-9 rounded-md border border-border px-2" />
+          <input type="date" name="to" defaultValue={to} className="sa-input w-full min-w-0" />
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
+        <button type="submit" className="sa-btn sa-btn-primary">
           Update
         </button>
       </form>

@@ -63,7 +63,7 @@ export default function ToolsPage() {
                 <Link
                   key={href}
                   href={href}
-                  className="rounded-lg border border-border p-5 hover:border-border-strong hover:bg-muted-bg"
+                  className="sa-card p-5"
                 >
                   <h3 className="font-semibold text-header">{title}</h3>
                   <p className="mt-2 text-sm text-muted">{body}</p>

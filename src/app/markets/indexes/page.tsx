@@ -39,20 +39,20 @@ export default async function MarketIndexesPage({
         description="Major U.S. and international indexes with live FMP batch quotes. Click a symbol for the quote, chart, and history."
       />
       <SectionNav items={MARKET_NAV} />
-      <form className="mb-6 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
+      <form className="mb-6 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-end">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">Search</span>
           <input
             type="search"
             name="q"
             defaultValue={q}
             placeholder="Nikkei, FTSE, S&P…"
-            className="h-9 w-56 rounded-md border border-border px-2"
+            className="sa-input w-full min-w-0 sm:w-56"
           />
         </label>
-        <label className="text-sm">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">Exchange</span>
-          <select name="exchange" defaultValue={exchangeFilter} className="h-9 rounded-md border border-border px-2">
+          <select name="exchange" defaultValue={exchangeFilter} className="sa-input w-full sm:w-auto">
             <option value="">All</option>
             {exchanges.map((item) => (
               <option key={item} value={item}>
@@ -61,7 +61,7 @@ export default async function MarketIndexesPage({
             ))}
           </select>
         </label>
-        <button type="submit" className="h-9 rounded-md bg-header px-4 text-sm font-medium text-on-header">
+        <button type="submit" className="sa-btn sa-btn-primary">
           Filter
         </button>
       </form>

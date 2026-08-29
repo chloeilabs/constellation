@@ -161,8 +161,6 @@ export default async function StockOverviewPage({
         </p>
       ) : null}
 
-      <SectionNav items={quoteRelatedNav(ticker)} />
-
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,24rem)]">
         <div>
           <Suspense fallback={<div className="h-[320px] animate-pulse rounded-lg bg-muted-bg" />}>
@@ -200,6 +198,11 @@ export default async function StockOverviewPage({
           pe={peValue}
         />
       </div>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold text-header">Related metrics</h2>
+        <SectionNav items={quoteRelatedNav(ticker)} label="Related metrics" />
+      </section>
 
       {profile?.description ? (
         <section className="mt-10">

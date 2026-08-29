@@ -151,7 +151,7 @@ export default async function EmployeesPage({
                   scroll={false}
                   className={cn(
                     "rounded px-3 py-1.5 font-medium",
-                    chartMode === id ? "bg-header text-on-header" : "text-muted hover:text-header",
+                    chartMode === id ? "bg-brand text-white" : "text-muted hover:text-header",
                   )}
                 >
                   {label}

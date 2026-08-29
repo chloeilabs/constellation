@@ -40,15 +40,15 @@ export default async function EtfComparePage({
         title="Compare ETFs & Funds"
         description="Live quotes, a dividend-adjusted total-return chart, assets, expense ratios, average returns, sector weights, and top-holding overlap from Financial Modeling Prep."
         actions={
-          <form method="get" className="flex gap-2">
+          <form method="get" className="flex w-full flex-wrap gap-2 sm:w-auto">
             {span !== "1Y" ? <input type="hidden" name="chart" value={span} /> : null}
             <input
               name="symbols"
               defaultValue={symbols.join(",")}
               placeholder="QQQ,SPY,VOO"
-              className="h-9 w-56 rounded-md border border-border px-2 text-sm"
+              className="sa-input w-full sm:w-56"
             />
-            <button className="h-9 rounded-md bg-header px-3 text-sm font-medium text-on-header" type="submit">
+            <button className="sa-btn sa-btn-primary" type="submit">
               Compare
             </button>
           </form>
@@ -66,7 +66,7 @@ export default async function EtfComparePage({
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="sa-table">
+        <table className="sa-table sa-statement">
           <thead>
             <tr>
               <th>Metric</th>

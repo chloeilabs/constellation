@@ -7,7 +7,6 @@ import { formatDate } from "@/lib/format";
 import { stockPath } from "@/lib/listings";
 import { mergeNews } from "@/lib/news";
 import { secFormTitle } from "@/lib/filings";
-import { cn } from "@/lib/utils";
 import type { FmpNewsItem, FmpSecFiling, FmpTranscriptDate } from "@/lib/types";
 
 type TabId = "all" | "press" | "transcripts" | "filings";
@@ -68,10 +67,7 @@ export function QuoteNewsTabs({
               role="tab"
               aria-selected={selected}
               onClick={() => setTab(item.id)}
-              className={cn(
-                "rounded-full px-3 py-1 text-sm font-medium",
-                selected ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
-              )}
+              className="sa-chip"
             >
               {item.label}
             </button>

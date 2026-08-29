@@ -64,7 +64,7 @@ export default async function StockTranscriptsPage({
                           className={cn(
                             "rounded-full px-3 py-1 text-sm font-medium",
                             active
-                              ? "bg-header text-on-header"
+                              ? "bg-brand text-white"
                               : "bg-chip text-header hover:bg-border",
                           )}
                         >

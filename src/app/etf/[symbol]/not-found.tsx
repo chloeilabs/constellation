@@ -1,15 +1,15 @@
-import Link from "next/link";
+import { StatusLink, StatusPage } from "@/components/status-page";
 
 export default function EtfNotFound() {
   return (
-    <div className="mx-auto max-w-lg px-4 py-20 text-center">
-      <h1 className="text-2xl font-bold text-header">ETF not found</h1>
-      <p className="mt-2 text-sm text-muted">We could not load this ticker from Financial Modeling Prep.</p>
-      <p className="mt-4">
-        <Link href="/etf" className="text-link hover:underline">
-          Back to ETF list
-        </Link>
-      </p>
-    </div>
+    <StatusPage
+      kicker="Missing fund"
+      title="ETF not found"
+      message="We could not load this ticker from Financial Modeling Prep."
+      showSearch
+    >
+      <StatusLink href="/etf">Back to ETF list</StatusLink>
+      <StatusLink href="/screener?type=etf">ETF screener</StatusLink>
+    </StatusPage>
   );
 }

@@ -163,7 +163,7 @@ export default async function ScreenerPage({
       <form className="mb-6 grid gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <label className="text-sm">
           <span className="mb-1 block text-muted">In index</span>
-          <select name="index" defaultValue={index ?? ""} className="h-9 w-full rounded-md border border-border bg-background px-2">
+          <select name="index" defaultValue={index ?? ""} className="sa-input">
             <option value="">Any</option>
             <option value="sp500">S&P 500</option>
             <option value="nasdaq">Nasdaq 100</option>
@@ -172,7 +172,7 @@ export default async function ScreenerPage({
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Country</span>
-          <select name="country" defaultValue={country} className="h-9 w-full rounded-md border border-border bg-background px-2" disabled={Boolean(index)}>
+          <select name="country" defaultValue={country} className="sa-input" disabled={Boolean(index)}>
             <option value="US">United States</option>
             <option value="CA">Canada</option>
             <option value="GB">United Kingdom</option>
@@ -188,7 +188,7 @@ export default async function ScreenerPage({
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Type</span>
-          <select name="type" defaultValue={type} className="h-9 w-full rounded-md border border-border bg-background px-2" disabled={Boolean(index)}>
+          <select name="type" defaultValue={type} className="sa-input" disabled={Boolean(index)}>
             <option value="stock">Stocks</option>
             <option value="etf">ETFs</option>
             <option value="fund">Funds</option>
@@ -197,7 +197,7 @@ export default async function ScreenerPage({
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Sector</span>
-          <select name="sector" defaultValue={params.sector ?? ""} className="h-9 w-full rounded-md border border-border bg-background px-2">
+          <select name="sector" defaultValue={params.sector ?? ""} className="sa-input">
             <option value="">All sectors</option>
             {sectorOptions.map((sector) => (
               <option key={sector} value={sector}>
@@ -208,7 +208,7 @@ export default async function ScreenerPage({
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Industry</span>
-          <select name="industry" defaultValue={params.industry ?? ""} className="h-9 w-full rounded-md border border-border bg-background px-2">
+          <select name="industry" defaultValue={params.industry ?? ""} className="sa-input">
             <option value="">All industries</option>
             {industryOptions.map((industry) => (
               <option key={industry} value={industry}>
@@ -219,7 +219,7 @@ export default async function ScreenerPage({
         </label>
         <label className="text-sm">
           <span className="mb-1 block text-muted">Exchange</span>
-          <select name="exchange" defaultValue={params.exchange ?? ""} className="h-9 w-full rounded-md border border-border bg-background px-2">
+          <select name="exchange" defaultValue={params.exchange ?? ""} className="sa-input">
             <option value="">All</option>
             <option value="NASDAQ">NASDAQ</option>
             <option value="NYSE">NYSE</option>
@@ -234,7 +234,7 @@ export default async function ScreenerPage({
             min="0"
             step="1"
             defaultValue={params.minCap ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
           />
         </label>
         <label className="text-sm">
@@ -245,7 +245,7 @@ export default async function ScreenerPage({
             min="0"
             step="1"
             defaultValue={params.maxCap ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
           />
         </label>
         <label className="text-sm">
@@ -256,7 +256,7 @@ export default async function ScreenerPage({
             min="0"
             step="0.01"
             defaultValue={params.minPrice ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
           />
         </label>
         <label className="text-sm">
@@ -267,7 +267,7 @@ export default async function ScreenerPage({
             min="0"
             step="0.01"
             defaultValue={params.maxPrice ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
           />
         </label>
         <label className="text-sm">
@@ -278,7 +278,7 @@ export default async function ScreenerPage({
             min="0"
             step="0.1"
             defaultValue={params.minBeta ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
             disabled={Boolean(index)}
           />
         </label>
@@ -290,7 +290,7 @@ export default async function ScreenerPage({
             min="0"
             step="1000"
             defaultValue={params.minVolume ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
           />
         </label>
         <label className="text-sm">
@@ -301,14 +301,19 @@ export default async function ScreenerPage({
             min="0"
             step="0.1"
             defaultValue={params.minYield ?? ""}
-            className="h-9 w-full rounded-md border border-border bg-background px-2"
+            className="sa-input"
             disabled={Boolean(index)}
           />
         </label>
-        <div className="flex items-end sm:col-span-2 lg:col-span-3 xl:col-span-2">
-          <button type="submit" className="rounded-md bg-header px-4 py-2 text-sm font-medium text-on-header">
+        <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-3 xl:col-span-2">
+          <button type="submit" className="sa-btn sa-btn-primary">
             Apply filters
           </button>
+          {Object.keys(query).some((key) => key !== "page") ? (
+            <Link href="/screener" className="sa-btn sa-btn-secondary">
+              Clear
+            </Link>
+          ) : null}
         </div>
       </form>
       {index ? (
@@ -326,11 +331,11 @@ export default async function ScreenerPage({
         localCurrency={localCurrency}
         rows={rows}
       />
-      <div className="mt-4 flex gap-3 text-sm">
+      <div className="mt-4 flex gap-2">
         {page > 0 ? (
           <Link
             href={`/screener?${new URLSearchParams({ ...query, page: String(page - 1) })}`}
-            className="text-link hover:underline"
+            className="sa-btn sa-btn-secondary"
           >
             Previous
           </Link>
@@ -338,7 +343,7 @@ export default async function ScreenerPage({
         {hasNext ? (
           <Link
             href={`/screener?${new URLSearchParams({ ...query, page: String(page + 1) })}`}
-            className="text-link hover:underline"
+            className="sa-btn sa-btn-secondary"
           >
             Next
           </Link>

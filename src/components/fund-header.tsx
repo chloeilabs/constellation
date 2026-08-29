@@ -33,7 +33,7 @@ export function FundHeader({
               </Link>
               <span> / {symbol}</span>
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-header md:text-3xl">
+            <h1 className="mt-1 text-2xl font-bold text-header text-pretty md:text-3xl">
               {name} <span className="text-muted">({symbol})</span>
               <span className="ml-2 align-middle rounded bg-chip px-1.5 py-0.5 text-xs font-semibold text-header">
                 Fund
@@ -69,7 +69,7 @@ export function FundHeader({
             <WatchlistButton symbol={symbol} />
             <Link
               href={`/etf/compare?symbols=${symbol}`}
-              className="inline-flex items-center rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-muted-bg"
+              className="sa-btn sa-btn-secondary"
             >
               Compare
             </Link>

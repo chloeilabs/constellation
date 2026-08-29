@@ -47,7 +47,7 @@ export default async function CompanyExecutivesPage({
               scroll={false}
               className={cn(
                 "rounded-full px-3 py-1 text-sm font-medium",
-                value === year ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
+                value === year ? "bg-brand text-white" : "bg-chip text-header hover:bg-border",
               )}
             >
               {value}

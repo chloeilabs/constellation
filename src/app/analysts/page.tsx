@@ -61,7 +61,7 @@ export default async function AnalystsPage({
             scroll={false}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium",
-              item.id === view ? "bg-header text-on-header" : "bg-chip text-header hover:bg-border",
+              item.id === view ? "bg-brand text-white" : "bg-chip text-header hover:bg-border",
             )}
           >
             {item.label}

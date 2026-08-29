@@ -1,48 +1,33 @@
-import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { SearchBox } from "@/components/search-box";
+import { HeaderNav } from "@/components/header-nav";
+import { DesktopSearchRow, MobileSearchRow, SearchHotkey } from "@/components/search-box";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WatchlistLink } from "@/components/watchlist-button";
-
-const NAV = [
-  { href: "/markets", label: "Markets" },
-  { href: "/stocks", label: "Stocks" },
-  { href: "/list", label: "Lists" },
-  { href: "/etf", label: "ETFs" },
-  { href: "/funds", label: "Funds" },
-  { href: "/screener", label: "Screener" },
-  { href: "/news", label: "News" },
-  { href: "/calendar/earnings", label: "Calendar" },
-  { href: "/tools", label: "Tools" },
-];
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-6 px-4">
+      <a href="#main-content" className="sa-skip">
+        Skip to content
+      </a>
+      <SearchHotkey />
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 md:gap-6">
         <Logo />
-        <nav className="hidden items-center gap-5 text-sm font-medium text-header md:flex">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="hover:text-brand">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-3">
-          <div className="w-full max-w-md">
-            <SearchBox />
-          </div>
+        <HeaderNav className="hidden items-center gap-5 text-sm md:flex" />
+        <div className="ml-auto flex min-w-0 items-center gap-2">
+          <DesktopSearchRow />
           <WatchlistLink />
           <ThemeToggle />
         </div>
       </div>
-      <nav className="flex gap-4 overflow-x-auto border-t border-border px-4 py-2 text-sm md:hidden">
-        {NAV.map((item) => (
-          <Link key={item.href} href={item.href} className="shrink-0 font-medium text-header">
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <MobileSearchRow />
+      <div className="relative border-t border-border md:hidden">
+        <HeaderNav
+          className="sa-scroll sa-scroll-hide flex gap-4 px-4 py-2 pr-8 text-sm"
+          itemClassName="py-0.5"
+        />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background" aria-hidden="true" />
+      </div>
     </header>
   );
 }
