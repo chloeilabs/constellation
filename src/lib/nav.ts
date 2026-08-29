@@ -198,17 +198,10 @@ export function quoteRelatedNav(symbol: string): NavItem[] {
   const ticker = decodeTicker(symbol);
   const base = stockPath(ticker);
   return [
-    { href: `${base}/statistics`, label: "Statistics" },
-    { href: `${base}/financials`, label: "Financials" },
-    { href: `${base}/forecast`, label: "Forecast" },
-    { href: `${base}/dividend`, label: "Dividend" },
-    { href: `${base}/company`, label: "Company" },
     { href: `${base}/pe-ratio`, label: "PE Ratio" },
     { href: `${base}/market-cap`, label: "Market Cap" },
     { href: `${base}/revenue`, label: "Revenue" },
-    { href: `${base}/earnings`, label: "EPS" },
     { href: `${base}/fair-value`, label: "Fair Value" },
-    { href: `${base}/esg`, label: "ESG" },
     { href: `${base}/peers`, label: "Peers" },
   ];
 }

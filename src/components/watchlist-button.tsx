@@ -64,7 +64,7 @@ export function WatchlistLink() {
   return (
     <Link
       href="/watchlist"
-      className="sa-btn sa-btn-secondary h-9 w-9 shrink-0 px-0 sm:w-auto sm:px-3"
+      className="sa-icon-btn sm:w-auto sm:gap-1.5 sm:px-3 sm:text-sm sm:font-semibold"
       aria-label="Watchlist"
       title="Watchlist"
     >

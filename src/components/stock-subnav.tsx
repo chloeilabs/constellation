@@ -42,7 +42,7 @@ export function StockSubnav({ symbol }: { symbol: string }) {
     : STOCK_TABS;
 
   return (
-    <nav className="sa-scroll sa-tabs -mx-4 -mb-px mt-5 flex gap-1 overflow-x-auto border-b border-border px-4">
+    <nav className="sa-scroll sa-scroll-hide sa-tabs -mx-4 -mb-px mt-5 flex gap-1 overflow-x-auto border-b border-border px-4">
       {tabs.map((tab) => {
         const href = `${base}${tab.href}`;
         const isOverview = tab.href === "";

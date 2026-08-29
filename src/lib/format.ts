@@ -262,8 +262,8 @@ export function formatPercent(
   if (value == null || Number.isNaN(value)) return "—";
   const pct = alreadyPercent ? value : value * 100;
   const formatted = pct.toLocaleString("en-US", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
+    minimumFractionDigits: Math.abs(pct) >= 1000 ? 0 : digits,
+    maximumFractionDigits: Math.abs(pct) >= 1000 ? 0 : digits,
   });
   return `${pct > 0 ? "+" : ""}${formatted}%`;
 }

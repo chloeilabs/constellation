@@ -23,10 +23,13 @@ export function SiteHeader() {
         </div>
       </div>
       <MobileSearchRow />
-      <HeaderNav
-        className="sa-scroll flex gap-4 border-t border-border px-4 py-2 text-sm md:hidden"
-        itemClassName="py-0.5"
-      />
+      <div className="relative border-t border-border md:hidden">
+        <HeaderNav
+          className="sa-scroll sa-scroll-hide flex gap-4 px-4 py-2 pr-8 text-sm"
+          itemClassName="py-0.5"
+        />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background" aria-hidden="true" />
+      </div>
     </header>
   );
 }

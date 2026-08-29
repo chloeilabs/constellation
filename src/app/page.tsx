@@ -125,7 +125,7 @@ export default async function HomePage() {
       showExtended ? Promise.resolve([]) : getLosers(),
       getStockNews(20),
       getIpos(from, to),
-      getQuotes([...POPULAR_SYMBOLS]),
+      getQuotes(POPULAR_SYMBOLS.flatMap((symbol) => (symbol.includes(".") ? [symbol, symbol.replaceAll(".", "-")] : [symbol]))),
       getMostActive(),
       getSectorPerformance(todayStr),
       getSectorPerformance(yesterday),

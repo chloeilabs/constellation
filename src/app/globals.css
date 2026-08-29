@@ -233,6 +233,30 @@ a {
   scrollbar-width: thin;
 }
 
+.sa-scroll-hide {
+  scrollbar-width: none;
+}
+
+.sa-scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.sa-icon-btn {
+  display: inline-flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border-strong);
+  background: var(--muted-bg);
+  color: var(--header);
+}
+
+.sa-icon-btn:hover {
+  background: var(--border);
+}
+
 .sa-tabs {
   position: sticky;
   top: 3.5rem;

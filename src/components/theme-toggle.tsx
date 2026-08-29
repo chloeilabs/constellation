@@ -40,7 +40,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="sa-btn sa-btn-secondary h-9 w-9 shrink-0 px-0"
+      className="sa-icon-btn"
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-pressed={dark}
       title={dark ? "Light mode" : "Dark mode"}

@@ -49,7 +49,7 @@ function ChipRow({
           See all
         </Link>
       </div>
-      <div className="sa-scroll flex gap-2 pb-1">
+      <div className="sa-scroll sa-scroll-hide flex gap-2 pb-1">
         {links.map(([itemHref, label]) => (
           <Link
             key={itemHref}

@@ -46,7 +46,7 @@ export function SectionNav({
     <nav aria-label={label} className="relative mb-5">
       <div
         ref={scrollerRef}
-        className={cn(dense ? "sa-scroll flex gap-2 pb-1" : "flex flex-wrap gap-2")}
+        className={cn(dense ? "sa-scroll sa-scroll-hide flex gap-2 pb-1" : "flex flex-wrap gap-2")}
       >
         {items.map((item) => {
           const active =
