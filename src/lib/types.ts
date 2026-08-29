@@ -939,6 +939,9 @@ export type FmpSecProfile = {
   fiscalYearEnd: string;
   taxIdentificationNumber?: string;
   securityType?: string | null;
+  openFigiComposite?: string;
+  secFilingsUrl?: string;
+  isAdr?: boolean;
 };
 
 export type FmpCrypto = {

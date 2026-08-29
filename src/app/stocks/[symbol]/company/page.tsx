@@ -61,10 +61,18 @@ function fiscalYearSpan(value?: string | null) {
 
 function stockType(profile?: FmpProfile | null, secProfile?: FmpSecProfile | null) {
   if (secProfile?.securityType) return secProfile.securityType;
+  if (secProfile?.isAdr) return "ADR";
   if (profile?.isEtf) return "ETF";
   if (profile?.isFund) return "Fund";
   if (profile && !profile.isEtf && !profile.isFund) return "Common Stock";
   return null;
+}
+
+function sicLabel(secProfile?: FmpSecProfile | null) {
+  const code = secProfile?.sicCode?.trim();
+  const description = secProfile?.sicDescription?.trim();
+  if (code && description) return `${code} — ${description}`;
+  return code || description || null;
 }
 
 function employeeLabel(value?: string | null) {
@@ -189,7 +197,18 @@ export default async function CompanyPage({ params }: { params: Promise<{ symbol
     ["CUSIP Number", <IdentifierLink key="cusip" value={profile?.cusip} />],
     ["ISIN Number", <IdentifierLink key="isin" value={profile?.isin || secProfile?.isin} />],
     ["Employer ID", secProfile?.taxIdentificationNumber],
-    ["SIC Code", secProfile?.sicCode],
+    ["SIC Code", sicLabel(secProfile)],
+    ["SIC Group", secProfile?.sicGroup],
+    ["State of Incorporation", secProfile?.stateOfIncorporation],
+    ["FIGI", secProfile?.openFigiComposite],
+    [
+      "SEC Filings",
+      secProfile?.secFilingsUrl ? (
+        <a href={secProfile.secFilingsUrl} className="text-link hover:underline" target="_blank" rel="noreferrer">
+          EDGAR
+        </a>
+      ) : null,
+    ],
   ];
 
   const listings = variants

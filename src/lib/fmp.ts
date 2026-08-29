@@ -1221,9 +1221,9 @@ export function getInsiderTrades(symbol: string, limit = 50, page = 0) {
 }
 
 const FMP_INSIDER_PAGE_SIZE = 100;
-const FMP_INSIDER_MAX_PAGES = 20;
+const FMP_INSIDER_MAX_PAGES = 22;
 
-/** Newest-first Form 4 search; twenty FMP pages take AAPL through early 2014. */
+/** Newest-first Form 4 search; twenty-two FMP pages take AAPL through mid-2013. */
 export async function getInsiderTradesArchive(symbol: string) {
   const pages = await Promise.all(
     Array.from({ length: FMP_INSIDER_MAX_PAGES }, (_, page) =>
@@ -1289,10 +1289,10 @@ const FMP_HUB_PAGE_SIZE = 100;
 /** Senate net worth; other hubs have their own page caps. */
 const FMP_HUB_MAX_PAGES = 4;
 const FMP_PRICE_TARGET_NEWS_PAGES = 6;
-const FMP_INSIDER_HUB_PAGES = 19;
-const FMP_TRANSCRIPT_HUB_PAGES = 25;
-const FMP_GRADES_NEWS_PAGES = 23;
-const FMP_INSTITUTIONAL_HUB_PAGES = 23;
+const FMP_INSIDER_HUB_PAGES = 21;
+const FMP_TRANSCRIPT_HUB_PAGES = 27;
+const FMP_GRADES_NEWS_PAGES = 25;
+const FMP_INSTITUTIONAL_HUB_PAGES = 25;
 const FMP_SEC_HUB_PAGES = 7;
 
 export async function getLatestInsiderTradesArchive() {
@@ -1403,9 +1403,9 @@ export function getLatestFinancialStatements(page = 0, limit = 100) {
 }
 
 const FMP_STATEMENT_PAGE_SIZE = 100;
-const FMP_STATEMENT_MAX_PAGES = 35;
+const FMP_STATEMENT_MAX_PAGES = 37;
 
-/** Newest-first ingest feed; thirty-five pages cover about two calendar days of additions. */
+/** Newest-first ingest feed; thirty-seven pages cover about two calendar days of additions. */
 export async function getLatestFinancialStatementsArchive() {
   const pages = await Promise.all(
     Array.from({ length: FMP_STATEMENT_MAX_PAGES }, (_, page) =>
