@@ -2,7 +2,7 @@ import { Container } from "@/components/container";
 import { MetricCards } from "@/components/metric-cards";
 import { PageHeader } from "@/components/page-header";
 import { SectionNav } from "@/components/section-nav";
-import { formatDate, formatInteger } from "@/lib/format";
+import { formatDate, formatInteger, formatSessionClock } from "@/lib/format";
 import { getAllExchangeHours, getAvailableExchanges, getExchangeHolidays } from "@/lib/fmp";
 import { holidaySchedule, sortExchangeHours } from "@/lib/markets";
 import { MARKET_NAV } from "@/lib/nav";
@@ -77,8 +77,8 @@ export default async function MarketHoursPage() {
                         <div className="text-xs text-muted">{row.exchange}</div>
                       </td>
                       <td className="text-muted">{info?.countryName || "—"}</td>
-                      <td className="whitespace-nowrap">{row.openingHour || "—"}</td>
-                      <td className="whitespace-nowrap">{row.closingHour || "—"}</td>
+                      <td className="whitespace-nowrap">{formatSessionClock(row.openingHour)}</td>
+                      <td className="whitespace-nowrap">{formatSessionClock(row.closingHour)}</td>
                       <td className="text-muted">{row.timezone || info?.countryCode || "—"}</td>
                       <td>
                         <span className={cn("font-semibold", row.isMarketOpen ? "text-gain" : "text-header")}>
