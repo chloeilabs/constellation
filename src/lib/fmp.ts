@@ -1289,7 +1289,8 @@ const FMP_HUB_PAGE_SIZE = 100;
 /** Senate net worth; other hubs have their own page caps. */
 const FMP_HUB_MAX_PAGES = 4;
 const FMP_PRICE_TARGET_NEWS_PAGES = 6;
-const FMP_INSIDER_HUB_PAGES = 99;
+/** FMP `/insider-trading/latest` rejects `page` above 100. */
+const FMP_INSIDER_HUB_PAGES = 101;
 const FMP_TRANSCRIPT_HUB_PAGES = 61;
 /** FMP `/grades-latest-news` rejects `page` above 100. */
 const FMP_GRADES_NEWS_PAGES = 101;
