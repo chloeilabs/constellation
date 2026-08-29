@@ -1285,10 +1285,10 @@ const FMP_HUB_PAGE_SIZE = 100;
 /** Senate net worth; other hubs have their own page caps. */
 const FMP_HUB_MAX_PAGES = 4;
 const FMP_PRICE_TARGET_NEWS_PAGES = 6;
-const FMP_INSIDER_HUB_PAGES = 7;
-const FMP_TRANSCRIPT_HUB_PAGES = 13;
-const FMP_GRADES_NEWS_PAGES = 11;
-const FMP_INSTITUTIONAL_HUB_PAGES = 11;
+const FMP_INSIDER_HUB_PAGES = 9;
+const FMP_TRANSCRIPT_HUB_PAGES = 15;
+const FMP_GRADES_NEWS_PAGES = 13;
+const FMP_INSTITUTIONAL_HUB_PAGES = 13;
 const FMP_SEC_HUB_PAGES = 7;
 
 export async function getLatestInsiderTradesArchive() {

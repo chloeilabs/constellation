@@ -550,6 +550,10 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   PAR: "/list/paris-stocks",
   BME: "/list/madrid-stocks",
   LIS: "/list/lisbon-stocks",
+  SES: "/list/sgx-stocks",
+  MEX: "/list/mex-stocks",
+  JNB: "/list/jse-stocks",
+  NZE: "/list/nzx-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {
