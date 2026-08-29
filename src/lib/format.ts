@@ -51,6 +51,7 @@ const CURRENCY_PREFIX: Record<string, string> = {
   QAR: "QR ",
   CZK: "Kč",
   ISK: "kr",
+  RUB: "₽",
 };
 
 export function formatMoney(value: number | null | undefined, currency?: string | null, digits = 2) {
@@ -131,6 +132,7 @@ const COUNTRY_CURRENCY: Record<string, string> = {
   SA: "SAR",
   AE: "AED",
   QA: "QAR",
+  RU: "RUB",
 };
 
 const SUFFIX_CURRENCY: Record<string, string> = {
@@ -184,6 +186,7 @@ const SUFFIX_CURRENCY: Record<string, string> = {
   CN: "CAD",
   NE: "CAD",
   TWO: "TWD",
+  ME: "RUB",
 };
 
 export function currencyForCountry(country?: string | null) {
