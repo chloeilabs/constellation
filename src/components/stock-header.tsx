@@ -5,6 +5,7 @@ import { QuoteHeaderStats } from "@/components/quote-header-stats";
 import { ChangeValue } from "@/components/change";
 import { formatCompactMoney, formatInteger, formatMoney, formatPrice } from "@/lib/format";
 import { industrySlug, sectorHref } from "@/lib/industries";
+import { isIndexTicker } from "@/lib/indexes";
 import { stockPath } from "@/lib/listings";
 import { nyExtendedCopy, isExtendedSession } from "@/lib/utils";
 import type { FmpAftermarketQuote, FmpProfile, FmpQuote } from "@/lib/types";
@@ -26,7 +27,7 @@ export function StockHeader({
   const afterChange = afterPrice && price ? afterPrice - price : null;
   const afterPct = afterChange != null && price ? (afterChange / price) * 100 : null;
   const extendedLabel = nyExtendedCopy().label;
-  const isIndex = symbol.startsWith("^");
+  const isIndex = isIndexTicker(symbol);
   const px = (value: number | null | undefined) =>
     isIndex ? formatPrice(value) : formatMoney(value, profile?.currency);
 
