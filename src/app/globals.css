@@ -145,6 +145,11 @@ a {
   opacity: 0.55;
 }
 
+input[type="date"].sa-input,
+input[type="datetime-local"].sa-input {
+  min-width: 0;
+}
+
 .sa-input:focus-visible,
 .sa-select:focus-visible {
   border-color: var(--brand);

@@ -260,10 +260,16 @@ export function SearchHotkey() {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
-      const desktop = document.getElementById("site-search");
-      const mobile = document.getElementById("site-search-mobile") ?? document.getElementById("hero-search");
+      const hero = document.getElementById("hero-search");
+      const desktop = document.getElementById("site-search") ?? hero;
+      const mobile = document.getElementById("site-search-mobile") ?? hero;
       const wide = window.matchMedia("(min-width: 768px)").matches;
-      (wide ? desktop : mobile)?.focus();
+      const field = wide ? desktop : mobile;
+      field?.focus();
+      field?.scrollIntoView({
+        block: "center",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      });
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -277,6 +283,16 @@ export function MobileSearchRow() {
   return (
     <div className="border-t border-border px-4 py-2 md:hidden">
       <SearchBox id="site-search-mobile" placeholder="Search ticker or company" />
+    </div>
+  );
+}
+
+export function DesktopSearchRow() {
+  const pathname = usePathname();
+  if (pathname === "/") return null;
+  return (
+    <div className="hidden min-w-0 w-full max-w-md md:block">
+      <SearchBox id="site-search" placeholder="Search ticker or company" />
     </div>
   );
 }

@@ -74,12 +74,12 @@ export default async function InsiderTradingPage({
         }
       />
       <SectionNav items={CONGRESS_NAV} />
-      <form className="mb-6 flex max-w-xl flex-wrap items-center gap-2" action="/insider-trading">
+      <form className="mb-6 flex max-w-xl flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" action="/insider-trading">
         <input
           name="name"
           defaultValue={queryName}
           placeholder="Insider last name (e.g. Zuckerberg)"
-          className="sa-input min-w-[16rem] flex-1"
+          className="sa-input min-w-0 w-full flex-1 sm:min-w-[16rem]"
         />
         <button type="submit" className="sa-btn sa-btn-primary">
           Search

@@ -41,14 +41,14 @@ export default async function EtfLookupPage({
         description="See which U.S. ETFs report a stock as a holding, ranked by the market value of that position from FMP."
       />
       <SectionNav items={ETF_NAV} />
-      <form className="mb-6 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted-bg p-4">
-        <label className="text-sm">
+      <form className="mb-6 grid grid-cols-1 gap-3 rounded-lg border border-border bg-muted-bg p-4 sm:flex sm:flex-wrap sm:items-end">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">Stock symbol</span>
           <input
             name="symbol"
             defaultValue={ticker}
             placeholder="AAPL"
-            className="sa-input w-48 uppercase"
+            className="sa-input w-full uppercase sm:w-48"
             autoCapitalize="characters"
           />
         </label>

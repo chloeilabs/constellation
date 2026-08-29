@@ -98,14 +98,14 @@ export default async function EconomicCalendarPage({
           </div>
         </section>
       ) : null}
-      <form className="mb-6 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
+      <form className="mb-6 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap sm:items-end">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">From</span>
-          <input type="date" name="from" defaultValue={from} className="sa-input w-auto" />
+          <input type="date" name="from" defaultValue={from} className="sa-input w-full min-w-0" />
         </label>
-        <label className="text-sm">
+        <label className="min-w-0 text-sm sm:w-auto">
           <span className="mb-1 block text-muted">To</span>
-          <input type="date" name="to" defaultValue={to} className="sa-input w-auto" />
+          <input type="date" name="to" defaultValue={to} className="sa-input w-full min-w-0" />
         </label>
         <button type="submit" className="sa-btn sa-btn-primary">
           Update
