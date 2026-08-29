@@ -554,6 +554,9 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   MEX: "/list/mex-stocks",
   JNB: "/list/jse-stocks",
   NZE: "/list/nzx-stocks",
+  TSX: "/list/toronto-stocks",
+  ASX: "/list/asx-stocks",
+  BUE: "/list/bcba-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {
