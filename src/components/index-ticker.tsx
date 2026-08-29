@@ -25,6 +25,13 @@ export function IndexTicker({
   return (
     <div className="border-b border-border bg-muted-bg">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-sm">
+        {hours ? (
+          <p
+            className={`shrink-0 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-semibold md:hidden ${hours.isMarketOpen ? "text-gain" : "text-header"}`}
+          >
+            {hours.isMarketOpen ? "Open" : "Closed"}
+          </p>
+        ) : null}
         <div className="relative min-w-0 flex-1">
           <div className="sa-scroll sa-scroll-hide flex gap-6 pr-8" aria-label="Index quotes">
             {quotes.map((quote) => (
@@ -45,19 +52,12 @@ export function IndexTicker({
           />
         </div>
         {hours ? (
-          <>
-            <p
-              className={`shrink-0 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-semibold md:hidden ${hours.isMarketOpen ? "text-gain" : "text-header"}`}
-            >
-              {hours.isMarketOpen ? "Open" : "Closed"}
-            </p>
-            <p className="hidden shrink-0 text-xs text-muted md:block">
-              <span className={hours.isMarketOpen ? "font-semibold text-gain" : "font-semibold text-header"}>
-                {hours.name} {hours.isMarketOpen ? "Open" : "Closed"}
-              </span>
-              {hoursLabel ? <span className="ml-2">{hoursLabel}</span> : null}
-            </p>
-          </>
+          <p className="hidden shrink-0 text-xs text-muted md:block">
+            <span className={hours.isMarketOpen ? "font-semibold text-gain" : "font-semibold text-header"}>
+              {hours.name} {hours.isMarketOpen ? "Open" : "Closed"}
+            </span>
+            {hoursLabel ? <span className="ml-2">{hoursLabel}</span> : null}
+          </p>
         ) : null}
       </div>
     </div>
