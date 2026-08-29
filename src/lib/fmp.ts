@@ -475,9 +475,9 @@ export function getPressReleases(symbol: string, limit = 10, page = 0) {
 }
 
 const FMP_SYMBOL_NEWS_PAGE_SIZE = 200;
-const FMP_SYMBOL_NEWS_MAX_PAGES = 8;
+const FMP_SYMBOL_NEWS_MAX_PAGES = 9;
 const FMP_PRESS_PAGE_SIZE = 50;
-const FMP_PRESS_MAX_PAGES = 4;
+const FMP_PRESS_MAX_PAGES = 6;
 const FMP_MARKET_NEWS_PAGE_SIZE = 50;
 const FMP_CRYPTO_NEWS_MAX_PAGES = 8;
 const FMP_FOREX_NEWS_MAX_PAGES = 6;
@@ -487,7 +487,7 @@ async function newsPages(load: (page: number) => Promise<FmpNewsItem[]>, pages: 
   return mergeNews(...rows);
 }
 
-/** `/news/stock` pages are unique; eight × 200 covers about three months for AAPL. */
+/** `/news/stock` pages are unique; nine × 200 covers FMP's full AAPL dump. */
 export function getSymbolNewsArchive(symbol: string) {
   const ticker = decodeTicker(symbol);
   return newsPages((page) => getSymbolNews(ticker, FMP_SYMBOL_NEWS_PAGE_SIZE, page), FMP_SYMBOL_NEWS_MAX_PAGES);
@@ -1217,7 +1217,7 @@ export function getInsiderTrades(symbol: string, limit = 50, page = 0) {
 }
 
 const FMP_INSIDER_PAGE_SIZE = 100;
-const FMP_INSIDER_MAX_PAGES = 8;
+const FMP_INSIDER_MAX_PAGES = 13;
 
 /** Newest-first Form 4 search, several FMP pages so the quote table covers more than one year. */
 export async function getInsiderTradesArchive(symbol: string) {
@@ -1540,7 +1540,7 @@ export function getSecFilings(symbol: string, from: string, to: string, limit = 
 }
 
 const FMP_SEC_PAGE_SIZE = 100;
-const FMP_SEC_MAX_PAGES = 20;
+const FMP_SEC_MAX_PAGES = 27;
 
 /** Newest-first SEC search is Form-4 heavy; page 8+ needs `from`, which callers always pass. */
 export async function getSecFilingsArchive(symbol: string, from: string, to: string) {

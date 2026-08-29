@@ -532,6 +532,10 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   BSE: "/list/bse-india",
   SHZ: "/list/shenzhen-stocks",
   PRA: "/list/prague-stocks",
+  DUS: "/list/dusseldorf-stocks",
+  HAM: "/list/hamburg-stocks",
+  MUN: "/list/munich-stocks",
+  STU: "/list/stuttgart-stocks",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {

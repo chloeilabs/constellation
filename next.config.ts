@@ -189,6 +189,10 @@ const nextConfig: NextConfig = {
       { source: "/list/tsx-venture-exchange", destination: "/list/tsx-venture-stocks", permanent: false },
       { source: "/list/bombay-stock-exchange", destination: "/list/bse-india", permanent: false },
       { source: "/list/kosdaq-korea", destination: "/list/kosdaq-stocks", permanent: false },
+      { source: "/list/dusseldorf-stock-exchange", destination: "/list/dusseldorf-stocks", permanent: false },
+      { source: "/list/hamburg-stock-exchange", destination: "/list/hamburg-stocks", permanent: false },
+      { source: "/list/munich-stock-exchange", destination: "/list/munich-stocks", permanent: false },
+      { source: "/list/stuttgart-stock-exchange", destination: "/list/stuttgart-stocks", permanent: false },
     ];
   },
   images: {

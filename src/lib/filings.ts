@@ -5,6 +5,7 @@ export const PRIMARY_SEC_FORMS = new Set([
   "10-Q",
   "8-K",
   "10-K/A",
+  "10-K405",
   "10-Q/A",
   "8-K/A",
   "20-F",
@@ -21,6 +22,7 @@ export const SEC_FORM_TITLES: Record<string, string> = {
   "10-Q": "Quarterly Report",
   "8-K": "Current Report",
   "10-K/A": "Annual Report (Amendment)",
+  "10-K405": "Annual Report",
   "10-Q/A": "Quarterly Report (Amendment)",
   "8-K/A": "Current Report (Amendment)",
   "20-F": "Annual Report",
@@ -50,7 +52,14 @@ export function secFormTitle(formType: string) {
 }
 
 export function secFormCategory(formType: string): Exclude<SecFilingCategory, "all"> | "other" {
-  if (formType === "10-K" || formType === "10-K/A" || formType === "20-F" || formType === "20-F/A" || formType === "40-F") {
+  if (
+    formType === "10-K" ||
+    formType === "10-K/A" ||
+    formType === "10-K405" ||
+    formType === "20-F" ||
+    formType === "20-F/A" ||
+    formType === "40-F"
+  ) {
     return "annual";
   }
   if (formType === "10-Q" || formType === "10-Q/A") return "quarterly";
