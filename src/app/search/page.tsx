@@ -25,7 +25,7 @@ export default async function SearchPage({
 
   return (
     <Container>
-      <PageHeader title={query ? `Search: ${query}` : "Search"} description="Find stocks, ETFs, funds, companies, CIK, CUSIP, or ISIN." />
+      <PageHeader title={query ? `Search: ${query}` : "Search"} description="Find stocks, indexes, ETFs, funds, companies, CIK, CUSIP, or ISIN." />
       <div className="mb-6 max-w-xl">
         <SearchBox large autoFocus={!query} />
       </div>

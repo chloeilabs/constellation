@@ -625,6 +625,7 @@ export const INDEX_LABELS: Record<string, string> = {
   "^KLSE": "FTSE KLCI",
   "^NSEI": "Nifty 50",
   "000001.SS": "SSE Composite",
+  "^HSCE": "Hang Seng China Enterprises",
   "IMOEX.ME": "MOEX Russia",
   "WIG20.WA": "WIG20",
   "XU100.IS": "BIST 100",

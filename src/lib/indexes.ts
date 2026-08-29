@@ -67,6 +67,7 @@ export const WORLD_INDEX_SYMBOLS = [
   { symbol: "^KLSE", label: "FTSE KLCI", region: "Malaysia" },
   { symbol: "^NSEI", label: "Nifty 50", region: "India" },
   { symbol: "000001.SS", label: "SSE Composite", region: "China" },
+  { symbol: "^HSCE", label: "Hang Seng China Enterprises", region: "Hong Kong" },
   { symbol: "IMOEX.ME", label: "MOEX Russia", region: "Russia" },
   { symbol: "WIG20.WA", label: "WIG20", region: "Poland" },
   { symbol: "XU100.IS", label: "BIST 100", region: "Turkey" },

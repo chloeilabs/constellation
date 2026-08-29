@@ -390,6 +390,9 @@ export function quoteKind(symbol: string, hint?: QuoteHint) {
   if (href.startsWith("/markets/forex/")) return "Forex";
   if (href.startsWith("/etf/")) return "ETF";
   if (href.startsWith("/funds/")) return "Fund";
+  const ticker = decodeTicker(symbol);
+  const venue = `${hint?.exchange ?? ""} ${hint?.exchangeFullName ?? ""}`;
+  if (ticker.startsWith("^") || /\bINDEX\b/i.test(venue)) return "Index";
   return "Stock";
 }
 
