@@ -260,19 +260,21 @@ export function SearchHotkey() {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       event.preventDefault();
+      event.stopPropagation();
       const hero = document.getElementById("hero-search");
       const desktop = document.getElementById("site-search") ?? hero;
       const mobile = document.getElementById("site-search-mobile") ?? hero;
       const wide = window.matchMedia("(min-width: 768px)").matches;
       const field = wide ? desktop : mobile;
-      field?.focus();
-      field?.scrollIntoView({
-        block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      });
+      if (!(field instanceof HTMLElement)) return;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.setTimeout(() => {
+        field.focus({ preventScroll: true });
+        field.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      }, 0);
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, []);
   return null;
 }

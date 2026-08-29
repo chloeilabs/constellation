@@ -105,7 +105,7 @@ function JumpTo({ items, activeHref }: { items: NavItem[]; activeHref: string })
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted transition-transform", open && "rotate-180")} aria-hidden="true" />
       </button>
       {open ? (
-        <div className="absolute z-50 mt-1 w-full min-w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-background shadow-[var(--shadow-lg)] sm:w-72">
+        <div className="absolute left-0 z-50 mt-1 w-full max-w-[calc(100vw-2rem)] rounded-md border border-border bg-background shadow-[var(--shadow-lg)] sm:w-72">
           <label htmlFor={inputId} className="sr-only">
             Filter pages
           </label>
@@ -140,7 +140,7 @@ function JumpTo({ items, activeHref }: { items: NavItem[]; activeHref: string })
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => go(item.href)}
                     className={cn(
-                      "flex w-full px-3 py-1.5 text-left text-sm",
+                      "flex w-full px-3 py-1.5 text-left text-sm whitespace-normal",
                       index === activeIndex ? "bg-muted-bg text-header" : "text-header",
                     )}
                   >
