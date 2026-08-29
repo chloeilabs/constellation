@@ -536,6 +536,9 @@ const EXCHANGE_LIST_HREF: Record<string, string> = {
   HAM: "/list/hamburg-stocks",
   MUN: "/list/munich-stocks",
   STU: "/list/stuttgart-stocks",
+  VIE: "/list/vienna-stocks",
+  WSE: "/list/warsaw-stocks",
+  DXE: "/list/cboe-europe",
 };
 
 export function exchangeStocksHref(exchange: string | null | undefined) {

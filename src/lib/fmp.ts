@@ -1282,18 +1282,24 @@ export function getLatestInsiderTrades(limit = 50, page = 0) {
 }
 
 const FMP_HUB_PAGE_SIZE = 100;
+/** Senate net worth and per-symbol price-target news; other hubs have their own page caps. */
 const FMP_HUB_MAX_PAGES = 4;
+const FMP_INSIDER_HUB_PAGES = 7;
+const FMP_TRANSCRIPT_HUB_PAGES = 11;
+const FMP_GRADES_NEWS_PAGES = 9;
+const FMP_INSTITUTIONAL_HUB_PAGES = 9;
+const FMP_SEC_HUB_PAGES = 7;
 
 export async function getLatestInsiderTradesArchive() {
   const pages = await Promise.all(
-    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getLatestInsiderTrades(FMP_HUB_PAGE_SIZE, page)),
+    Array.from({ length: FMP_INSIDER_HUB_PAGES }, (_, page) => getLatestInsiderTrades(FMP_HUB_PAGE_SIZE, page)),
   );
   return mergeInsiderPages(pages);
 }
 
 export async function searchInsiderTradesArchive(reportingCik: string) {
   const pages = await Promise.all(
-    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) =>
+    Array.from({ length: FMP_INSIDER_HUB_PAGES }, (_, page) =>
       searchInsiderTrades({ reportingCik, limit: FMP_HUB_PAGE_SIZE, page }),
     ),
   );
@@ -1392,9 +1398,9 @@ export function getLatestFinancialStatements(page = 0, limit = 100) {
 }
 
 const FMP_STATEMENT_PAGE_SIZE = 100;
-const FMP_STATEMENT_MAX_PAGES = 16;
+const FMP_STATEMENT_MAX_PAGES = 25;
 
-/** Newest-first ingest feed; sixteen pages cover about two calendar days of additions. */
+/** Newest-first ingest feed; twenty-five pages cover about two calendar days of additions. */
 export async function getLatestFinancialStatementsArchive() {
   const pages = await Promise.all(
     Array.from({ length: FMP_STATEMENT_MAX_PAGES }, (_, page) =>
@@ -1434,9 +1440,9 @@ export function getLatestSecFilingsFinancials(from: string, to: string, limit = 
 
 export async function getLatestSecFilingsArchive(from: string, to: string) {
   const [eightKPages, financialPages] = await Promise.all([
-    Promise.all(Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getLatestSecFilings8k(from, to, FMP_HUB_PAGE_SIZE, page))),
+    Promise.all(Array.from({ length: FMP_SEC_HUB_PAGES }, (_, page) => getLatestSecFilings8k(from, to, FMP_HUB_PAGE_SIZE, page))),
     Promise.all(
-      Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) =>
+      Array.from({ length: FMP_SEC_HUB_PAGES }, (_, page) =>
         getLatestSecFilingsFinancials(from, to, FMP_HUB_PAGE_SIZE, page),
       ),
     ),
@@ -1588,7 +1594,7 @@ export function getLatestTranscripts(limit = 30, page = 0) {
 
 export async function getLatestTranscriptsArchive() {
   const pages = await Promise.all(
-    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getLatestTranscripts(FMP_HUB_PAGE_SIZE, page)),
+    Array.from({ length: FMP_TRANSCRIPT_HUB_PAGES }, (_, page) => getLatestTranscripts(FMP_HUB_PAGE_SIZE, page)),
   );
   const seen = new Set<string>();
   const out: Array<FmpTranscriptDate & { symbol: string; period?: string }> = [];
@@ -1799,7 +1805,7 @@ export function getGradesLatestNews(limit = 80, page = 0) {
 
 export async function getGradesLatestNewsArchive() {
   const pages = await Promise.all(
-    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) => getGradesLatestNews(FMP_HUB_PAGE_SIZE, page)),
+    Array.from({ length: FMP_GRADES_NEWS_PAGES }, (_, page) => getGradesLatestNews(FMP_HUB_PAGE_SIZE, page)),
   );
   const seen = new Set<string>();
   const out: FmpGradeNews[] = [];
@@ -1979,7 +1985,7 @@ export function getLatestInstitutionalFilings(limit = 80, page = 0) {
 
 export async function getLatestInstitutionalFilingsArchive() {
   const pages = await Promise.all(
-    Array.from({ length: FMP_HUB_MAX_PAGES }, (_, page) =>
+    Array.from({ length: FMP_INSTITUTIONAL_HUB_PAGES }, (_, page) =>
       getLatestInstitutionalFilings(FMP_HUB_PAGE_SIZE, page),
     ),
   );
