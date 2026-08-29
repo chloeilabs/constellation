@@ -187,6 +187,11 @@ const SUFFIX_CURRENCY: Record<string, string> = {
   NE: "CAD",
   TWO: "TWD",
   ME: "RUB",
+  DU: "EUR",
+  HM: "EUR",
+  MU: "EUR",
+  SG: "EUR",
+  XD: "EUR",
 };
 
 export function currencyForCountry(country?: string | null) {
